@@ -52,9 +52,7 @@ class TestGetDefaults:
 
     def test_writes_defaults_file_from_pandoc_key(self, tmp_path):
         md = tmp_path / "test.md"
-        md.write_text(
-            "---\n__pandoc__:\n  variable:\n    fontsize: 12pt\n---\nBody\n"
-        )
+        md.write_text("---\n__pandoc__:\n  variable:\n    fontsize: 12pt\n---\nBody\n")
         out = tmp_path / "defaults.yml"
         get_defaults(str(md), defaults_file=str(out))
         assert out.exists()
@@ -92,9 +90,7 @@ class TestGetDefaults:
 
     def test_raises_when_both_keys_present(self, tmp_path):
         md = tmp_path / "test.md"
-        md.write_text(
-            "---\n__defaults__:\n  a: 1\n__pandoc__:\n  b: 2\n---\nBody\n"
-        )
+        md.write_text("---\n__defaults__:\n  a: 1\n__pandoc__:\n  b: 2\n---\nBody\n")
         out = tmp_path / "defaults.yml"
         with pytest.raises(KeyError, match="found too many keys"):
             get_defaults(str(md), defaults_file=str(out))

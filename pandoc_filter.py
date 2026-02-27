@@ -57,10 +57,13 @@ def tikz2image(tikz_src, filetype, outfile):
         shutil.copyfile(tmpdir + "/tikz.pdf", outfile + ".pdf")
     else:
         cmd = [
-            "magick", "convert",
-            "-density", str(DENSITY),
+            "magick",
+            "convert",
+            "-density",
+            str(DENSITY),
             f"{tmpdir}/tikz.pdf",
-            "-colorspace", "RGB",
+            "-colorspace",
+            "RGB",
             f"{outfile}.{filetype}",
         ]
         sys.stderr.write("running cmd:\n\t" + " ".join(cmd) + "\n")

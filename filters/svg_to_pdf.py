@@ -42,8 +42,7 @@ def svg_to_pdf(
 
     # Convert if PDF doesn't exist or SVG is newer
     needs_convert: bool = not os.path.isfile(pdf_src) or (
-        os.path.isfile(src)
-        and os.path.getmtime(src) > os.path.getmtime(pdf_src)
+        os.path.isfile(src) and os.path.getmtime(src) > os.path.getmtime(pdf_src)
     )
 
     if needs_convert:

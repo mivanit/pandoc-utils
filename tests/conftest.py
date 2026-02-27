@@ -40,9 +40,7 @@ def run_pandoc(
         cwd=cwd,
     )
     if result.returncode != 0:
-        raise RuntimeError(
-            f"pandoc failed (rc={result.returncode}):\n{result.stderr}"
-        )
+        raise RuntimeError(f"pandoc failed (rc={result.returncode}):\n{result.stderr}")
     return result.stdout
 
 

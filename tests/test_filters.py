@@ -102,7 +102,7 @@ class TestIncludeFiles:
     def test_includes_markdown_file(self, tmp_workdir):
         included = tmp_workdir / "included.md"
         included.write_text("## Included heading\n\nIncluded paragraph.\n")
-        md = f'```{{.include}}\n{included}\n```\n'
+        md = f"```{{.include}}\n{included}\n```\n"
         output = run_pandoc(
             md,
             to="plain",
@@ -117,7 +117,7 @@ class TestIncludeFiles:
         b = tmp_workdir / "b.md"
         a.write_text("Content A\n")
         b.write_text("Content B\n")
-        md = f'```{{.include}}\n{a}\n{b}\n```\n'
+        md = f"```{{.include}}\n{a}\n{b}\n```\n"
         output = run_pandoc(
             md,
             to="plain",
@@ -134,15 +134,15 @@ class TestIncludeFiles:
 class TestTableLua:
     def test_creates_table_from_yaml(self, tmp_workdir):
         md = (
-            '```{.table}\n'
-            'caption: Test Table\n'
-            'series:\n'
-            '  - name: Name\n'
-            '  - name: Value\n'
-            'data:\n'
-            '  - [Alice, 10]\n'
-            '  - [Bob, 20]\n'
-            '```\n'
+            "```{.table}\n"
+            "caption: Test Table\n"
+            "series:\n"
+            "  - name: Name\n"
+            "  - name: Value\n"
+            "data:\n"
+            "  - [Alice, 10]\n"
+            "  - [Bob, 20]\n"
+            "```\n"
         )
         output = run_pandoc(
             md,
@@ -161,14 +161,14 @@ class TestTableLua:
 class TestColumnsLua:
     def test_multicol_in_latex(self, tmp_workdir):
         md = (
-            '::: {.columns columngap=2em}\n'
-            'First column content.\n'
-            '\n'
-            '::: columnbreak\n'
-            ':::\n'
-            '\n'
-            'Second column content.\n'
-            ':::\n'
+            "::: {.columns columngap=2em}\n"
+            "First column content.\n"
+            "\n"
+            "::: columnbreak\n"
+            ":::\n"
+            "\n"
+            "Second column content.\n"
+            ":::\n"
         )
         output = run_pandoc(
             md,
@@ -186,12 +186,7 @@ class TestMermaid:
     def test_mermaid_generates_image_for_latex(self, tmp_workdir):
         require_tool("mmdc")
         require_tool("inkscape")
-        md = (
-            '```mermaid\n'
-            'graph LR\n'
-            '    A --> B\n'
-            '```\n'
-        )
+        md = "```mermaid\ngraph LR\n    A --> B\n```\n"
         output = run_pandoc(
             md,
             filter_path=FILTERS_DIR / "mermaid.py",
