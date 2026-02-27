@@ -32,7 +32,7 @@ fi
 # defaults processing
 DEFAULTS_FILE="$DEFAULTS_PRE$var_basename$DEFAULTS_SUF"
 echo "# trying to generate $DEFAULTS_FILE from yaml front matter"
-(set -x; python $GET_DEFAULTS_PY_PATH $1 --defaults-file $DEFAULTS_FILE --filters-dir $FILTERS_DIR)
+(set -x; uv run "$GET_DEFAULTS_PY_PATH" "$1" --defaults-file "$DEFAULTS_FILE" --filters-dir "$FILTERS_DIR")
 if test -f "$DEFAULTS_FILE"; then
 	echo "# found file, using as default: $DEFAULTS_FILE"
 	PANDOC_CMD="$PANDOC_CMD --defaults $DEFAULTS_FILE"
@@ -40,20 +40,28 @@ fi
 
 # compilation
 
-(set -x; $PANDOC_CMD $1 -o $var_basename.tex)
+(set -x; $PANDOC_CMD "$1" -o "$var_basename.tex")
 echo "# converted to .tex"
 
-(set -x; $TEX_COMPILE $var_basename.tex > $var_basename.pdlog)
+(set -x; $TEX_COMPILE "$var_basename.tex" > "$var_basename.pdlog")
 echo "# compiled pdf"
 
 # compilation, with biber
 
-if [[ $* == *-b* ]]; then
+var_bib=false
+for arg in "$@"; do
+	if [[ "$arg" == "-b" ]]; then
+		var_bib=true
+		break
+	fi
+done
+
+if [[ "$var_bib" == true ]]; then
 	echo "# updating bibliography as well..."
 
-	(set -x; $BIB_COMPILE $var_basename >> $var_basename.pdlog)
+	(set -x; $BIB_COMPILE "$var_basename" >> "$var_basename.pdlog")
 	echo "# compiled bib"
 
-	(set -x; $TEX_COMPILE $var_basename.tex >> $var_basename.pdlog)
+	(set -x; $TEX_COMPILE "$var_basename.tex" >> "$var_basename.pdlog")
 	echo "# compiled pdf (again)"
 fi

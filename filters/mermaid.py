@@ -1,3 +1,10 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "pandocfilters",
+# ]
+# ///
+
 """pandoc filter to process Mermaid diagrams into svg for html, pdf for latex
 
 assumes `mmdc` (mermaid-cli) is installed and available in PATH
@@ -100,7 +107,7 @@ def mermaid(
                     cmd_inkscape: list[str] = [
                         INKSCAPE_BIN,
                         svg_file,
-                        "--export-pdf=" + pdf_uncropped,
+                        "--export-filename=" + pdf_uncropped,
                     ]
 
                     sys.stderr.write(f"Running: {' '.join(cmd_inkscape)}\n")
@@ -129,7 +136,7 @@ def mermaid(
                 else:
                     # For non-LaTeX formats, use original behavior
                     cmd: list[str] = [
-                        MERMAID_BIN.as_posix(),  # TODO: .as_posix() will crash — MERMAID_BIN is str, not Path
+                        MERMAID_BIN,
                         "--input",
                         src,
                         "--output",

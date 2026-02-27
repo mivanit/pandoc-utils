@@ -1,3 +1,11 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "pandocfilters",
+#     "pandas",
+# ]
+# ///
+
 """
 pandoc filter to process code blocks with class "csvtable",
 turning csv-formatted data into a table
@@ -30,7 +38,7 @@ def rawcsv_to_df(
     write_kwargs: Dict[str, Any] = WRITE_KWARGS_DEFAULT,
 ) -> pd.DataFrame:
     data_stream: StringIO = StringIO(in_csv)
-    data: pd.DataFrame = pd.read_csv(data_stream, *read_kwargs)
+    data: pd.DataFrame = pd.read_csv(data_stream, **read_kwargs)
 
     return data
 
@@ -39,7 +47,7 @@ def csv_tex_table(key, value, format, meta):
     if key == "CodeBlock":
         [[ident, classes, keyvals], code] = value
 
-        df = pd.DataFrame = rawcsv_to_df(code)
+        df = rawcsv_to_df(code)
 
         if "csvtable" in set(classes):
             caption, typef, keyvals = get_caption(keyvals)
@@ -48,7 +56,7 @@ def csv_tex_table(key, value, format, meta):
                 [
                     [],
                     Plain(caption),
-                    [{"t": "AlignCenter"}, {"t": "ColWidthDefault"}] * len(df.cols),  # TODO: df.cols is not a valid attribute (should be df.columns), WIP
+                    [{"t": "AlignCenter"}, {"t": "ColWidthDefault"}] * len(df.columns),
                 ]
             )
 

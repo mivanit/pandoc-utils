@@ -7,15 +7,16 @@ Utilities for my pandoc/markdown/LaTeX workflows.
 ```
 pandoc-utils/
 ├── pandoc_md_pdf.sh                # markdown -> LaTeX -> PDF pipeline
-├── pandoc_md_tex.sh                # markdown -> LaTeX (no PDF compilation)
-├── markdown_get_defaults_yaml.py   # extract pandoc config from YAML front matter
-├── rsvg_convert_magick.py          # SVG converter using ImageMagick (rsvg-convert interface)
-├── pandoc_filter.py                # TikZ diagram processor (legacy)
+├── Makefile                        # install, test, check-deps targets
+├── pyproject.toml                  # Python deps managed via uv
+├── markdown_get_defaults_yaml.py   # (internal) extract pandoc config from YAML front matter
+├── rsvg_convert_magick.py          # (internal) SVG converter using ImageMagick, legacy
+├── pandoc_filter.py                # (internal) TikZ diagram processor, legacy
 └── filters/
     ├── svg_to_pdf.py               # convert SVG images to PDF for LaTeX
     ├── mermaid.py                  # render mermaid diagrams to SVG/PDF
     ├── csv_tex_table.py            # CSV code blocks to tables
-    ├── _dendron_link_tools.py      # dendron wiki-link conversion utilities
+    ├── _dendron_link_tools.py      # (internal) dendron wiki-link conversion utilities
     ├── include-files.lua           # include external markdown files
     ├── include-code-files.lua      # include source code snippets
     ├── columns.lua                 # multi-column layout (HTML + LaTeX)
@@ -33,33 +34,17 @@ pandoc_md_pdf.sh document.md       # convert to PDF
 pandoc_md_pdf.sh document.md -b    # convert with bibliography (biber)
 ```
 
-Extracts pandoc configuration from the document's YAML front matter via `markdown_get_defaults_yaml.py`, then runs pandoc and pdflatex. Produces `.tex`, `.pdf`, and `.pdlog` files.
+Extracts pandoc configuration from the document's YAML front matter (via `uv run markdown_get_defaults_yaml.py`), then runs pandoc and pdflatex. Produces `.tex`, `.pdf`, and `.pdlog` files.
 
-### pandoc_md_tex.sh
+<details>
+<summary><b>Internal helpers</b></summary>
 
-Simple markdown -> LaTeX conversion without PDF compilation.
+- **markdown_get_defaults_yaml.py** — Extracts pandoc defaults from YAML front matter and writes a defaults file. Called internally by `pandoc_md_pdf.sh`. Resolves the `$FILTERS$` placeholder to the actual filters directory.
+- **rsvg_convert_magick.py** — Drop-in replacement for `rsvg-convert` backed by ImageMagick. Legacy Windows workaround.
+- **pandoc_filter.py** — Legacy TikZ diagram processor. Unused.
+- **_dendron_link_tools.py** — Utility module for converting Dendron-style wiki links (`[[path.to.note]]`) to markdown links. Used by deprecated dendron filters.
 
-```bash
-pandoc_md_tex.sh document.md
-```
-
-### markdown_get_defaults_yaml.py
-
-Extracts pandoc defaults from a markdown file's YAML front matter and writes them to a defaults file. Looks for `__defaults__` or `__pandoc__` keys and resolves the `$FILTERS$` placeholder to the actual filters directory.
-
-```bash
-python markdown_get_defaults_yaml.py document.md
-python markdown_get_defaults_yaml.py document.md --defaults-file custom.yml --filters-dir /path/to/filters
-```
-
-### rsvg_convert_magick.py
-
-Drop-in replacement for `rsvg-convert` backed by ImageMagick. Supports DPI, zoom, size, background color, and output format (png/pdf/ps/eps/svg) options.
-
-```bash
-python rsvg_convert_magick.py input.svg -f pdf -o output.pdf
-python rsvg_convert_magick.py input.svg -d 300 -f png -o output.png
-```
+</details>
 
 ## Filters
 
@@ -86,10 +71,6 @@ Renders `mermaid` code blocks to SVG (HTML output) or PDF (LaTeX output) using `
 ### csv_tex_table.py
 
 Converts `csvtable` code blocks containing CSV data into pandoc tables. (WIP)
-
-### _dendron_link_tools.py
-
-Utility module for converting Dendron-style wiki links (`[[path.to.note]]`) to standard markdown links. Provides factory functions for customizable link text and path generation.
 
 ### include-files.lua
 
@@ -130,8 +111,18 @@ Column 2 content
 
 YAML-driven table generation with reusable templates, configurable alignment and widths, auto-numbering, and horizontal orientation support.
 
-## Dependencies
+## Setup
 
-**System binaries:** `pandoc` (≥2.12), `pdflatex`, `inkscape`, `mmdc` (mermaid-cli), `pdfcrop`, `magick` (ImageMagick), `biber` (optional)
+Dependencies are managed via `Makefile` and `pyproject.toml`:
 
-**Python:** `pyyaml`, `pandocfilters`, `pandas`
+```bash
+make install       # install system (apt), npm, and Python (uv) deps
+make check-deps    # verify all required binaries are available
+make test          # run pytest
+```
+
+### Dependencies
+
+**System binaries:** `uv`, `pandoc` (≥2.12), `pdflatex`, `inkscape`, `mmdc` (mermaid-cli), `pdfcrop`, `magick` (ImageMagick), `biber` (optional)
+
+**Python** (managed by `uv` via `pyproject.toml`): `pyyaml`, `pandocfilters`, `pandas`

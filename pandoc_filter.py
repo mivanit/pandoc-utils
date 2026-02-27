@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "pandocfilters",
+# ]
+# ///
 
 """
 Pandoc filter to process raw latex tikz environments into images.
@@ -50,13 +56,16 @@ def tikz2image(tikz_src, filetype, outfile):
     if filetype == "pdf":
         shutil.copyfile(tmpdir + "/tikz.pdf", outfile + ".pdf")
     else:
-        # cmd = ["magick", tmpdir + '/tikz.pdf', outfile + '.' + filetype]
-        # cmd = ["F:\\packages\\ImageMagick-7.0.11-Q16-HDRI\\magick.exe", tmpdir + '\\tikz.pdf', outfile + '.' + filetype]
-        # TODO: hardcoded Windows path, needs updating for Linux
-        cmd = f'"F:\packages\ImageMagick-7.0.11-Q16-HDRI\magick.exe" convert -density {DENSITY} {tmpdir}/tikz.pdf -colorspace RGB {outfile}.{filetype}'
-        sys.stderr.write("running cmd:\n\t" + cmd + "\n")
+        cmd = [
+            "magick", "convert",
+            "-density", str(DENSITY),
+            f"{tmpdir}/tikz.pdf",
+            "-colorspace", "RGB",
+            f"{outfile}.{filetype}",
+        ]
+        sys.stderr.write("running cmd:\n\t" + " ".join(cmd) + "\n")
         call(cmd, stdout=VERBOSE_OUT)
-    # shutil.rmtree(tmpdir)
+    shutil.rmtree(tmpdir)
 
 
 def tikz(key, value, format, _):

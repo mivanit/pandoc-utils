@@ -1,3 +1,10 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "pyyaml",
+# ]
+# ///
+
 """markdown_get_defaults_yaml.py
 
 gets the "defaults" section from yaml front matter in a markdown file
@@ -137,7 +144,7 @@ def get_defaults(
 
                     lst_filters_new.append(x)
 
-                defaults_data["filters"] = lst_filters_new
+                defaults_data[filter_key] = lst_filters_new
 
         # write the defaults to a file, if nonempty dict
         if defaults_data:

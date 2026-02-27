@@ -1,3 +1,10 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "pandocfilters",
+# ]
+# ///
+
 """Pandoc filter to convert SVG images to PDF for LaTeX output.
 
 Assumes `inkscape` is installed and available in PATH.
