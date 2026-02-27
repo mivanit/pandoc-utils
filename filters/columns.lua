@@ -219,7 +219,7 @@ local function number_by_name(name)
     tenth = 10,
   }
 
-  result = nil
+  local result = nil
 
   if name and names[name] then
       return names[name]
@@ -237,7 +237,7 @@ local function css_values_to_latex(css_str)
   -- color conversion table
   --  keys are CSS values, values are LaTeX equivalents
 
-  latex_colors = {
+  local latex_colors = {
     -- xcolor always available
     black = 'black',
     blue = 'blue',
@@ -306,7 +306,7 @@ local function css_values_to_latex(css_str)
   -- lengths units to be kept as is
   --  nb, % must be escaped
   --  nb, if several found, the latest type is preserved
-  keep_units = { '%%', 'pt', 'mm', 'cm', 'in', 'ex', 'em' }
+  local keep_units = { '%%', 'pt', 'mm', 'cm', 'in', 'ex', 'em' }
 
   for _,unit in pairs(keep_units) do
 
@@ -333,7 +333,7 @@ local function ensures_latex_length(text)
 
   -- LaTeX lengths units
   --  nb, % must be escaped in lua patterns
-  units = { '%%', 'pt', 'mm', 'cm', 'in', 'ex', 'em' }
+  local units = { '%%', 'pt', 'mm', 'cm', 'in', 'ex', 'em' }
 
   local result = nil
 

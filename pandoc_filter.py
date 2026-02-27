@@ -24,7 +24,6 @@ import hashlib
 from pandocfilters import toJSONFilter, Para, Image, get_extension
 
 VERBOSE_OUT = sys.stderr
-VERBOSE_OUT = None
 
 DENSITY = 300
 

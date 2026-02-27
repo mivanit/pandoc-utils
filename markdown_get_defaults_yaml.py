@@ -136,15 +136,9 @@ def get_defaults(
                 ]
 
                 # test that filters exist
-                lst_filters_new: List[str] = list()
                 for x in defaults_data[filter_key]:
-                    # x_win: str = bash_to_py_path(x) if x[0] == "/" else x
                     if not os.path.exists(x):
                         warnings.warn(f"  !!WARNING!!: could not find filter at {x}")
-
-                    lst_filters_new.append(x)
-
-                defaults_data[filter_key] = lst_filters_new
 
         # write the defaults to a file, if nonempty dict
         if defaults_data:
