@@ -1,10 +1,13 @@
 APT_YES ?=
 
-.PHONY: install install-apt install-npm test check-deps format typing
+.PHONY: check
+check: dep-check format typing test
 
+.PHONY: install
 install: install-apt install-npm
 	uv sync
 
+.PHONY: install-apt
 install-apt:
 	sudo apt-get update
 	sudo apt-get install $(APT_YES) pandoc \
@@ -12,13 +15,16 @@ install-apt:
 		texlive-bibtex-extra biber \
 		inkscape imagemagick
 
+.PHONY: install-npm
 install-npm:
 	npm install -g @mermaid-js/mermaid-cli
 
+.PHONY: test
 test:
 	uv run pytest tests/ -v
 
-check-deps:
+.PHONY: dep-check
+dep-check:
 	@echo "Checking dependencies..."
 	@for cmd in uv pandoc pdflatex biber inkscape pdfcrop mmdc magick python; do \
 		if command -v $$cmd >/dev/null 2>&1; then \
@@ -28,9 +34,16 @@ check-deps:
 		fi; \
 	done
 
+.PHONY: format
 format:
 	uv run ruff format .
 	uv run ruff check --fix .
 
+.PHONY: format-check
+format-check:
+	uv run ruff format --check .
+	uv run ruff check .
+
+.PHONY: typing
 typing:
 	uv run ty check .

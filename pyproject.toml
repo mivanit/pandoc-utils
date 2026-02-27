@@ -14,3 +14,9 @@ dev = [
     "ruff",
     "ty",
 ]
+
+[tool.ruff]
+exclude = [".old"]
+
+[tool.ty.src]
+exclude = [".old"]

@@ -28,4 +28,6 @@ jobs:
         env:
           APT_YES: --assume-yes
 
+      - run: make format-check
+      - run: make typing
       - run: make test
