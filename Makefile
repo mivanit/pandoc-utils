@@ -1,6 +1,6 @@
 APT_YES ?=
 
-.PHONY: install install-apt install-npm test check-deps
+.PHONY: install install-apt install-npm test check-deps format typing
 
 install: install-apt install-npm
 	uv sync
@@ -27,3 +27,10 @@ check-deps:
 			printf "  %-12s MISSING\n" "$$cmd"; \
 		fi; \
 	done
+
+format:
+	uv run ruff format .
+	uv run ruff check --fix .
+
+typing:
+	uv run ty check .
