@@ -1,4 +1,4 @@
-from typing import *
+from typing import Any, Callable, Dict, Optional, Union
 import re
 
 from pandocfilters import Str, Link
@@ -45,7 +45,7 @@ def get_dendron_link(data: str) -> Union[str, None]:
     otherwise, return the link text
     """
 
-    match: re.Match = DENDRON_LINK_REGEX.pattern.match(data)
+    match: Optional[re.Match[str]] = DENDRON_LINK_REGEX.pattern.match(data)
     if match:
         return match.group(DENDRON_LINK_REGEX.link_group_idx)
     else:

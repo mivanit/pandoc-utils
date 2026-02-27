@@ -11,7 +11,7 @@ pandoc filter to process code blocks with class "csvtable",
 turning csv-formatted data into a table
 """
 
-from typing import *
+from typing import Any, Dict
 from io import StringIO
 
 import pandas as pd
