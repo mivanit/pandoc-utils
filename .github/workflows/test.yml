@@ -25,5 +25,7 @@ jobs:
           node-version: "22"
 
       - run: make install
+        env:
+          APT_YES: --assume-yes
 
       - run: make test

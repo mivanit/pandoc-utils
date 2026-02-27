@@ -1,10 +1,13 @@
+APT_YES ?=
+
 .PHONY: install install-apt install-npm test check-deps
 
 install: install-apt install-npm
 	uv sync
 
 install-apt:
-	sudo apt install pandoc \
+	sudo apt-get update
+	sudo apt-get install $(APT_YES) pandoc \
 		texlive-latex-base texlive-latex-extra texlive-extra-utils \
 		texlive-bibtex-extra biber \
 		inkscape imagemagick
