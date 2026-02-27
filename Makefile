@@ -19,8 +19,12 @@ install-apt:
 install-npm:
 	npm install -g @mermaid-js/mermaid-cli
 
+.PHONY: clean
+clean:
+	rm -rf tests/.temp
+
 .PHONY: test
-test:
+test: clean
 	uv run pytest tests/ -v
 
 .PHONY: dep-check

@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -7,14 +8,25 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FILTERS_DIR = REPO_ROOT / "filters"
+TEMP_DIR = REPO_ROOT / "tests" / ".temp"
 
 
 @pytest.fixture
-def tmp_workdir(tmp_path):
+def temp_dir(request):
+    """Provide a per-test temp directory under tests/.temp/ for inspecting outputs."""
+    d = TEMP_DIR / request.node.name
+    if d.exists():
+        shutil.rmtree(d)
+    d.mkdir(parents=True)
+    return d
+
+
+@pytest.fixture
+def tmp_workdir(temp_dir):
     """Change to a temp directory for tests that produce output files."""
     orig = os.getcwd()
-    os.chdir(tmp_path)
-    yield tmp_path
+    os.chdir(temp_dir)
+    yield temp_dir
     os.chdir(orig)
 
 
