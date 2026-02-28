@@ -5,9 +5,15 @@ and checks the output.
 """
 
 import json
+import os
 import shutil
+import sys
 
-from conftest import run_pandoc, run_pandoc_json, FILTERS_DIR
+import pytest
+
+from conftest import run_pandoc, run_pandoc_json, FILTERS_DIR, REPO_ROOT
+
+sys.path.insert(0, str(REPO_ROOT))
 
 
 def require_tool(name: str) -> None:
@@ -455,3 +461,184 @@ class TestCsvTexTable:
             cwd=tmp_workdir,
         )
         assert "print('hello')" in output
+
+    def test_headers_only_csv(self, tmp_workdir):
+        md = "```{.csvtable}\nx,y,z\n```\n"
+        output = run_pandoc(
+            md,
+            filter_path=FILTERS_DIR / "csv_tex_table.py",
+            to="latex",
+            cwd=tmp_workdir,
+        )
+        assert "x" in output
+        assert "y" in output
+        assert "z" in output
+
+    def test_single_column_csv(self, tmp_workdir):
+        md = "```{.csvtable}\nname\nAlice\nBob\n```\n"
+        output = run_pandoc(
+            md,
+            filter_path=FILTERS_DIR / "csv_tex_table.py",
+            to="latex",
+            cwd=tmp_workdir,
+        )
+        assert "Alice" in output
+        assert "Bob" in output
+
+    def test_empty_codeblock_errors(self, tmp_workdir):
+        md = "```{.csvtable}\n```\n"
+        with pytest.raises(RuntimeError, match="pandoc failed"):
+            run_pandoc(
+                md,
+                filter_path=FILTERS_DIR / "csv_tex_table.py",
+                to="latex",
+                cwd=tmp_workdir,
+            )
+
+
+# -- svg_to_pdf error paths --
+
+
+class TestSvgToPdfErrors:
+    def test_missing_svg_raises(self, tmp_workdir):
+        """Filter should raise FileNotFoundError when SVG source doesn't exist."""
+        md = "![test](nonexistent.svg)\n"
+        with pytest.raises(RuntimeError, match="pandoc failed"):
+            run_pandoc(
+                md,
+                filter_path=FILTERS_DIR / "svg_to_pdf.py",
+                to="latex",
+                cwd=tmp_workdir,
+            )
+
+
+# -- include-code-files edge cases --
+
+
+class TestIncludeCodeFilesEdgeCases:
+    def test_dedent_with_line_range(self, tmp_workdir):
+        """Dedent and line range should work together: range applied first, then dedent."""
+        src = tmp_workdir / "code.py"
+        src.write_text(
+            "def outer():\n    def inner():\n        pass\n    return inner\n"
+        )
+        md = f'```{{.python include="{src}" start-line="2" end-line="3" dedent="4"}}\n```\n'
+        ast = run_pandoc_json(
+            md,
+            extra_args=["--lua-filter", str(FILTERS_DIR / "include-code-files.lua")],
+            cwd=tmp_workdir,
+        )
+        code_blocks = [b for b in ast["blocks"] if b["t"] == "CodeBlock"]
+        assert len(code_blocks) == 1
+        content = code_blocks[0]["c"][1]
+        assert "def inner():" in content
+        assert "    pass" in content
+        assert "    def inner():" not in content
+
+
+# -- columns.lua column-span --
+
+
+class TestColumnsLuaColumnSpan:
+    def test_column_span_in_latex(self, tmp_workdir):
+        md = (
+            "::: {.columns column-count=2}\n"
+            "Column content.\n"
+            "\n"
+            "::: column-span\n"
+            "Spanning content.\n"
+            ":::\n"
+            "\n"
+            "More column content.\n"
+            ":::\n"
+        )
+        output = run_pandoc(
+            md,
+            to="latex",
+            extra_args=["--lua-filter", str(FILTERS_DIR / "columns.lua")],
+            cwd=tmp_workdir,
+        )
+        assert "\\end{multicols}" in output
+        assert "\\begin{multicols}" in output
+        assert "Spanning content" in output
+
+    def test_column_span_in_html(self, tmp_workdir):
+        md = (
+            "::: {.columns column-count=2}\n"
+            "Column content.\n"
+            "\n"
+            "::: column-span\n"
+            "Spanning content.\n"
+            ":::\n"
+            "\n"
+            "More column content.\n"
+            ":::\n"
+        )
+        output = run_pandoc(
+            md,
+            to="html",
+            extra_args=["--lua-filter", str(FILTERS_DIR / "columns.lua")],
+            cwd=tmp_workdir,
+        )
+        assert "column-span" in output
+        assert "Spanning content" in output
+
+
+# -- mermaid puppeteer config --
+
+
+class TestMermaidPuppeteerConfig:
+    def test_env_var_config(self):
+        cmd: list[str] = ["mmdc", "--input", "test.mmd"]
+        original_env = os.environ.get("PUPPETEER_CFG")
+        try:
+            os.environ["PUPPETEER_CFG"] = "/path/to/config.json"
+            # reload to pick up new env var
+            import importlib
+            import filters.mermaid as mermaid_mod
+
+            importlib.reload(mermaid_mod)
+            mermaid_mod._append_puppeteer_config(cmd)
+            assert "-p" in cmd
+            assert "/path/to/config.json" in cmd
+        finally:
+            if original_env is None:
+                os.environ.pop("PUPPETEER_CFG", None)
+            else:
+                os.environ["PUPPETEER_CFG"] = original_env
+            importlib.reload(mermaid_mod)
+
+    def test_file_fallback_config(self, tmp_workdir):
+        cmd: list[str] = ["mmdc", "--input", "test.mmd"]
+        # ensure env var is not set
+        original_env = os.environ.pop("PUPPETEER_CFG", None)
+        try:
+            import importlib
+            import filters.mermaid as mermaid_mod
+
+            importlib.reload(mermaid_mod)
+            # create .puppeteer.json in cwd
+            puppet_file = tmp_workdir / ".puppeteer.json"
+            puppet_file.write_text('{"args": ["--no-sandbox"]}')
+            mermaid_mod._append_puppeteer_config(cmd)
+            assert "-p" in cmd
+            assert ".puppeteer.json" in cmd
+        finally:
+            if original_env is not None:
+                os.environ["PUPPETEER_CFG"] = original_env
+            importlib.reload(mermaid_mod)
+
+    def test_no_config(self, tmp_workdir):
+        cmd: list[str] = ["mmdc", "--input", "test.mmd"]
+        original_env = os.environ.pop("PUPPETEER_CFG", None)
+        try:
+            import importlib
+            import filters.mermaid as mermaid_mod
+
+            importlib.reload(mermaid_mod)
+            mermaid_mod._append_puppeteer_config(cmd)
+            assert cmd == ["mmdc", "--input", "test.mmd"]
+        finally:
+            if original_env is not None:
+                os.environ["PUPPETEER_CFG"] = original_env
+            importlib.reload(mermaid_mod)

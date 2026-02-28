@@ -1,3 +1,4 @@
+import subprocess
 import sys
 from pathlib import Path
 
@@ -123,3 +124,48 @@ class TestGetDefaults:
         """FILTERS_DIR should resolve relative to the script location."""
         assert Path(FILTERS_DIR).is_dir()
         assert (Path(FILTERS_DIR) / "mermaid.py").is_file()
+
+
+class TestCli:
+    def test_cli_writes_defaults_file(self, temp_dir):
+        md = temp_dir / "test.md"
+        md.write_text("---\n__pandoc__:\n  variable:\n    fontsize: 11pt\n---\nBody\n")
+        out = temp_dir / "defaults.yml"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(REPO_ROOT / "markdown_get_defaults_yaml.py"),
+                str(md),
+                "--defaults-file",
+                str(out),
+            ],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, f"CLI failed: {result.stderr}"
+        assert out.exists()
+        data = yaml.safe_load(out.read_text())
+        assert data["variable"] == {"fontsize": "11pt"}
+
+    def test_cli_custom_filters_dir(self, temp_dir):
+        md = temp_dir / "test.md"
+        md.write_text(
+            "---\n__pandoc__:\n  filters:\n    - $FILTERS$/mermaid.py\n---\nBody\n"
+        )
+        out = temp_dir / "defaults.yml"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(REPO_ROOT / "markdown_get_defaults_yaml.py"),
+                str(md),
+                "--defaults-file",
+                str(out),
+                "--filters-dir",
+                "/custom/dir",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, f"CLI failed: {result.stderr}"
+        data = yaml.safe_load(out.read_text())
+        assert data["filters"] == ["/custom/dir/mermaid.py"]
