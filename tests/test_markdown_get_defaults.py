@@ -102,6 +102,23 @@ class TestGetDefaults:
         get_defaults(str(md), defaults_file=str(out))
         assert not out.exists()
 
+    def test_replaces_filter_singular_key(self, temp_dir):
+        md = temp_dir / "test.md"
+        md.write_text(
+            "---\n__pandoc__:\n  filter:\n    - $FILTERS$/svg_to_pdf.py\n---\nBody\n"
+        )
+        out = temp_dir / "defaults.yml"
+        get_defaults(str(md), defaults_file=str(out), filters_dir="/fake/filters")
+        data = yaml.safe_load(out.read_text())
+        assert data["filter"] == ["/fake/filters/svg_to_pdf.py"]
+
+    def test_no_output_when_defaults_empty_dict(self, temp_dir):
+        md = temp_dir / "test.md"
+        md.write_text("---\n__defaults__: {}\n---\nBody\n")
+        out = temp_dir / "defaults.yml"
+        get_defaults(str(md), defaults_file=str(out))
+        assert not out.exists()
+
     def test_filters_dir_resolves_to_real_path(self):
         """FILTERS_DIR should resolve relative to the script location."""
         assert Path(FILTERS_DIR).is_dir()
