@@ -253,6 +253,34 @@ class TestTableLua:
         assert "Paris" in output
         assert "2M" in output
 
+    def test_horizontal_orientation(self, tmp_workdir):
+        md = (
+            "```{.table}\n"
+            "caption: Horizontal\n"
+            "orientation: horizontal\n"
+            "series:\n"
+            "  - title: Name\n"
+            "    id: name\n"
+            "  - title: Score\n"
+            "    id: score\n"
+            "data:\n"
+            "  - {name: Ada, score: 100}\n"
+            "  - {name: Bob, score: 200}\n"
+            "```\n"
+        )
+        output = run_pandoc(
+            md,
+            to="plain",
+            extra_args=["--lua-filter", str(FILTERS_DIR / "table.lua")],
+            cwd=tmp_workdir,
+        )
+        # In horizontal mode, series titles become row headers
+        # so Name and Score appear as leftmost cells in their rows
+        assert "Name" in output
+        assert "Score" in output
+        assert "Ada" in output
+        assert "200" in output
+
     def test_column_alignment_right(self, tmp_workdir):
         md = (
             "```{.table}\n"

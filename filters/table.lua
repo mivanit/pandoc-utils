@@ -120,13 +120,16 @@ local function format_table(template, table, datum)
 					rows[#rows + 1] = row
 			end
 
-			local aligns = {pandoc.AlignDefault}
-			for i, _ in ipairs(datum) do
-					aligns[#aligns + 1] = pandoc.AlignDefault
+			local n_cols = 1 + #datum
+			local aligns = {}
+			local widths = {}
+			for i = 1, n_cols do
+					aligns[i] = pandoc.AlignDefault
+					widths[i] = 0
 			end
 
 			return pandoc.utils.from_simple_table(
-			pandoc.SimpleTable(table.caption, aligns, {}, {}, rows)
+			pandoc.SimpleTable(table.caption, aligns, widths, {}, rows)
 		)
 	end
 	return pandoc.utils.from_simple_table(
