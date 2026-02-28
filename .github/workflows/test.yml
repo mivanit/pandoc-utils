@@ -31,3 +31,5 @@ jobs:
       - run: make format-check
       - run: make typing
       - run: make test
+        env:
+          PUPPETEER_CFG: ${{ github.workspace }}/.github/puppeteer-ci.json
