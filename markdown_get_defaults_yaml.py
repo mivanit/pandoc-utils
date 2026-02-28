@@ -21,44 +21,6 @@ import yaml
 FILTERS_DIR: str = str(Path(__file__).resolve().parent / "filters")
 
 
-def bash_to_py_path(p: str) -> str:
-    """takes the first bit of an absolute bash path starting with `/` and treats it as a drive name
-
-    python has difficulty understanding absolute paths from bash, so we have to do this bit of trickery
-
-    ### Parameters:
-     - `p : str`
-        original absolute path
-
-    ### Returns:
-     - `str`
-        path, with drivename
-
-    ### Raises:
-     -
-
-    """
-
-    if not p[0] == "/":
-        raise ValueError(f"not an absolute posix-style path: {p}")
-
-    p_split: list[str] = p.split("/")
-
-    drive: str = p_split[1]
-
-    if len(drive) != 1:
-        raise ValueError(
-            f'first dir "{drive}" in posix path is not a drive letter: {p}'
-        )
-
-    return "/".join(
-        [
-            f"{drive}:",
-            *p_split[2:],
-        ]
-    )
-
-
 def get_front_matter(file: str) -> dict[str, Any]:
     """get the yaml front matter from a markdown file
 
