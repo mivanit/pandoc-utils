@@ -94,6 +94,19 @@ class TestIncludeCodeFiles:
         assert "line1" not in output
         assert "line4" not in output
 
+    def test_dedent(self, tmp_workdir):
+        src = tmp_workdir / "indented.py"
+        src.write_text("    def hello():\n        pass\n")
+        md = f'```{{.python include="{src}" dedent="4"}}\n```\n'
+        output = run_pandoc(
+            md,
+            to="plain",
+            extra_args=["--lua-filter", str(FILTERS_DIR / "include-code-files.lua")],
+            cwd=tmp_workdir,
+        )
+        assert "def hello():" in output
+        assert "    def hello():" not in output
+
 
 # -- include-files --
 
@@ -127,6 +140,33 @@ class TestIncludeFiles:
         assert "Content A" in output
         assert "Content B" in output
 
+    def test_heading_level_shift(self, tmp_workdir):
+        included = tmp_workdir / "shifted.md"
+        included.write_text("## Level Two\n\nBody text.\n")
+        md = f'```{{.include shift-heading-level-by="2"}}\n{included}\n```\n'
+        ast = run_pandoc_json(
+            md,
+            extra_args=["--lua-filter", str(FILTERS_DIR / "include-files.lua")],
+            cwd=tmp_workdir,
+        )
+        # heading should be shifted from level 2 to level 4
+        headers = [b for b in ast["blocks"] if b["t"] == "Header"]
+        assert len(headers) == 1
+        assert headers[0]["c"][0] == 4  # level 2 + shift 2 = 4
+
+    def test_comment_lines_ignored(self, tmp_workdir):
+        included = tmp_workdir / "real.md"
+        included.write_text("Real content here.\n")
+        md = f"```{{.include}}\n// this is a comment\n{included}\n```\n"
+        output = run_pandoc(
+            md,
+            to="plain",
+            extra_args=["--lua-filter", str(FILTERS_DIR / "include-files.lua")],
+            cwd=tmp_workdir,
+        )
+        assert "Real content here" in output
+        assert "this is a comment" not in output
+
 
 # -- table.lua --
 
@@ -154,6 +194,85 @@ class TestTableLua:
         assert "Bob" in output
         assert "Test Table" in output
 
+    def test_auto_numbering(self, tmp_workdir):
+        md = (
+            "```{.table}\n"
+            "caption: Numbered\n"
+            "series:\n"
+            "  - title: No.\n"
+            "    special: number\n"
+            "  - title: Item\n"
+            "    id: item\n"
+            "data:\n"
+            "  - item: Apple\n"
+            "  - item: Banana\n"
+            "  - item: Cherry\n"
+            "```\n"
+        )
+        output = run_pandoc(
+            md,
+            to="plain",
+            extra_args=["--lua-filter", str(FILTERS_DIR / "table.lua")],
+            cwd=tmp_workdir,
+        )
+        assert "1" in output
+        assert "2" in output
+        assert "3" in output
+        assert "Apple" in output
+        assert "Cherry" in output
+
+    def test_id_field_mapping(self, tmp_workdir):
+        md = (
+            "```{.table}\n"
+            "caption: Mapped\n"
+            "series:\n"
+            "  - title: City\n"
+            "    id: city\n"
+            "  - title: Pop\n"
+            "    id: pop\n"
+            "data:\n"
+            "  - city: London\n"
+            "    pop: 9M\n"
+            "  - city: Paris\n"
+            "    pop: 2M\n"
+            "```\n"
+        )
+        output = run_pandoc(
+            md,
+            to="plain",
+            extra_args=["--lua-filter", str(FILTERS_DIR / "table.lua")],
+            cwd=tmp_workdir,
+        )
+        assert "London" in output
+        assert "9M" in output
+        assert "Paris" in output
+        assert "2M" in output
+
+    def test_column_alignment_right(self, tmp_workdir):
+        md = (
+            "```{.table}\n"
+            "caption: Aligned\n"
+            "series:\n"
+            "  - title: Name\n"
+            "    id: name\n"
+            "    align: left\n"
+            "  - title: Score\n"
+            "    id: score\n"
+            "    align: right\n"
+            "data:\n"
+            "  - name: Ada\n"
+            "    score: 100\n"
+            "```\n"
+        )
+        ast = run_pandoc_json(
+            md,
+            extra_args=["--lua-filter", str(FILTERS_DIR / "table.lua")],
+            cwd=tmp_workdir,
+        )
+        ast_str = json.dumps(ast)
+        assert "AlignRight" in ast_str
+        assert "AlignLeft" in ast_str
+
 
 # -- columns.lua --
 
@@ -176,7 +295,52 @@ class TestColumnsLua:
             extra_args=["--lua-filter", str(FILTERS_DIR / "columns.lua")],
             cwd=tmp_workdir,
         )
-        assert "multicol" in output.lower() or "column" in output.lower()
+        assert "\\begin{multicols}" in output
+        assert "\\end{multicols}" in output
+        assert "\\columnbreak" in output
+        assert "First column content" in output
+        assert "Second column content" in output
+
+    def test_column_count(self, tmp_workdir):
+        md = "::: {.columns column-count=3}\nContent here.\n:::\n"
+        output = run_pandoc(
+            md,
+            to="latex",
+            extra_args=["--lua-filter", str(FILTERS_DIR / "columns.lua")],
+            cwd=tmp_workdir,
+        )
+        assert "\\begin{multicols}{3}" in output
+
+    def test_column_gap_in_latex(self, tmp_workdir):
+        md = "::: {.columns column-gap=3em}\nGapped content.\n:::\n"
+        output = run_pandoc(
+            md,
+            to="latex",
+            extra_args=["--lua-filter", str(FILTERS_DIR / "columns.lua")],
+            cwd=tmp_workdir,
+        )
+        assert "\\columnsep" in output
+        assert "3em" in output
+
+    def test_columns_html(self, tmp_workdir):
+        md = "::: {.columns column-count=2}\nHTML columns.\n:::\n"
+        output = run_pandoc(
+            md,
+            to="html",
+            extra_args=["--lua-filter", str(FILTERS_DIR / "columns.lua")],
+            cwd=tmp_workdir,
+        )
+        assert "column-count: 2" in output
+
+    def test_syntactic_sugar_two_columns(self, tmp_workdir):
+        md = "::: two-columns\nSugar content.\n:::\n"
+        output = run_pandoc(
+            md,
+            to="latex",
+            extra_args=["--lua-filter", str(FILTERS_DIR / "columns.lua")],
+            cwd=tmp_workdir,
+        )
+        assert "\\begin{multicols}{2}" in output
 
 
 # -- mermaid (skipped by default) --
@@ -194,3 +358,67 @@ class TestMermaid:
             cwd=tmp_workdir,
         )
         assert "includegraphics" in output
+
+    def test_mermaid_generates_image_for_html(self, tmp_workdir):
+        require_tool("mmdc")
+        md = "```mermaid\ngraph LR\n    A --> B\n```\n"
+        output = run_pandoc(
+            md,
+            filter_path=FILTERS_DIR / "mermaid.py",
+            to="html",
+            cwd=tmp_workdir,
+        )
+        assert "<img" in output
+
+    def test_skips_non_mermaid_codeblock(self, tmp_workdir):
+        md = "```python\nprint('hello')\n```\n"
+        output = run_pandoc(
+            md,
+            filter_path=FILTERS_DIR / "mermaid.py",
+            to="plain",
+            cwd=tmp_workdir,
+        )
+        assert "print('hello')" in output
+
+
+# -- csv_tex_table --
+
+
+class TestCsvTexTable:
+    def test_creates_table_from_csv(self, tmp_workdir):
+        md = "```{.csvtable}\nx,y,z\n10,20,30\n40,50,60\n```\n"
+        output = run_pandoc(
+            md,
+            filter_path=FILTERS_DIR / "csv_tex_table.py",
+            to="latex",
+            cwd=tmp_workdir,
+        )
+        # column headers
+        assert "x" in output
+        assert "y" in output
+        assert "z" in output
+        # data values
+        assert "10" in output
+        assert "30" in output
+        assert "50" in output
+
+    def test_csv_table_caption(self, tmp_workdir):
+        md = '```{.csvtable caption="Sales Data"}\nitem,qty\nApples,5\n```\n'
+        output = run_pandoc(
+            md,
+            filter_path=FILTERS_DIR / "csv_tex_table.py",
+            to="latex",
+            cwd=tmp_workdir,
+        )
+        assert "Sales Data" in output
+        assert "Apples" in output
+
+    def test_ignores_non_csvtable_codeblock(self, tmp_workdir):
+        md = "```python\nprint('hello')\n```\n"
+        output = run_pandoc(
+            md,
+            filter_path=FILTERS_DIR / "csv_tex_table.py",
+            to="plain",
+            cwd=tmp_workdir,
+        )
+        assert "print('hello')" in output
