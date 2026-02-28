@@ -11,74 +11,97 @@ pandoc filter to process code blocks with class "csvtable",
 turning csv-formatted data into a table
 """
 
-from typing import Any, Dict
+from typing import Any
 from io import StringIO
 
 import pandas as pd
-from pandocfilters import toJSONFilter, Plain, get_caption, Table
+from pandocfilters import toJSONFilter, get_caption, Table
 
 
-READ_KWARGS_DEFAULT: Dict[str, Any] = {}
-
-WRITE_KWARGS_DEFAULT: Dict[str, Any] = {
-    "index": False,
-}
+READ_KWARGS_DEFAULT: dict[str, Any] = {}
 
 
-# TODO: just use panflute
-# http://scorreia.com/software/panflute/guide.html#more-complex-filters
+def _emptyblock() -> list:
+    return ["", [], []]
 
-# also, read this page
-# https://johnlekberg.com/blog/2020-11-27-cli-pandoc.html
+
+def _plain_factory(val: str) -> dict:
+    return {
+        "t": "Plain",
+        "c": [{"t": "Str", "c": val.strip()}],
+    }
+
+
+def _table_cell_factory(val: str) -> list:
+    return [
+        _emptyblock(),
+        {"t": "AlignDefault"},
+        1,
+        1,
+        [_plain_factory(val)],
+    ]
+
+
+def _table_row_factory(vals: list[str]) -> list:
+    return [_emptyblock(), [_table_cell_factory(v) for v in vals]]
+
+
+def _header_factory(vals: list[str]) -> list:
+    return [_emptyblock(), [_table_row_factory(vals)]]
+
+
+def _body_factory(rows: list[list[str]]) -> list:
+    return [
+        [
+            _emptyblock(),
+            0,
+            [],
+            [_table_row_factory(row) for row in rows],
+        ]
+    ]
 
 
 def rawcsv_to_df(
     in_csv: str,
-    read_kwargs: Dict[str, Any] = READ_KWARGS_DEFAULT,
-    write_kwargs: Dict[str, Any] = WRITE_KWARGS_DEFAULT,
+    read_kwargs: dict[str, Any] = READ_KWARGS_DEFAULT,
 ) -> pd.DataFrame:
-    data_stream: StringIO = StringIO(in_csv)
-    data: pd.DataFrame = pd.read_csv(data_stream, **read_kwargs)
-
-    return data
+    return pd.read_csv(StringIO(in_csv), **read_kwargs)
 
 
-def csv_tex_table(key, value, format, meta):
-    if key == "CodeBlock":
-        [[ident, classes, keyvals], code] = value
+def csv_tex_table(
+    key: str, value: Any, format: str, meta: Any
+) -> dict[str, Any] | None:
+    if key != "CodeBlock":
+        return None
 
-        df = rawcsv_to_df(code)
+    [[ident, classes, keyvals], code] = value
 
-        if "csvtable" in set(classes):
-            caption, typef, keyvals = get_caption(keyvals)
+    if "csvtable" not in classes:
+        return None
 
-            return Table(
-                [
-                    [],
-                    Plain(caption),
-                    [{"t": "AlignCenter"}, {"t": "ColWidthDefault"}] * len(df.columns),
-                ]
-            )
+    caption, typef, keyvals = get_caption(keyvals)
+    df = rawcsv_to_df(code)
 
-        """
-        return Plain(['test'])
-        
-        # if codeblock has class ".csvtable"
-        if "csvtable" in classes:
-            # TODO: get any settings
-            # for nameval in keyvals:
-            #     if 'w_index' in nameval:
-            #         {'index' : False}
+    n_cols = len(df.columns)
+    colspecs = [[{"t": "AlignCenter"}, {"t": "ColWidthDefault"}]] * n_cols
+    header = _header_factory([str(c) for c in df.columns])
+    body = _body_factory([[str(v) for v in row] for row in df.values.tolist()])
+    foot = [_emptyblock(), []]
+    cap = [
+        None,
+        []
+        if not caption
+        else [_plain_factory(" ".join(s["c"] for s in caption if "c" in s))],
+    ]
 
-            return { key : [[ident, classes, keyvals], code] }
-
-            # print(code)
-            
-            # content : str = rawcsv_to_latextable(
-            #     code,
-            # )
-            # return {'CodeBlock': [[ident, classes, keyvals], content]}
-        """
+    return Table(
+        _emptyblock(),
+        cap,
+        colspecs,
+        header,
+        body,
+        foot,
+    )
 
 
 if __name__ == "__main__":

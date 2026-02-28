@@ -21,17 +21,18 @@ from typing import Any
 from pandocfilters import toJSONFilter, Para, Image
 from pandocfilters import get_filename4code, get_caption, get_extension
 
-# Environment variables with fallback values
-# MERMAID_BIN = os.path.expanduser(os.environ.get('MERMAID_BIN', 'mermaid'))
-# MERMAID_BIN = '/f/packages/pandoc/mermaid-cli/node_modules/.bin/mmdc'
-# MERMAID_BIN: Path = "F:\\packages\\pandoc\\mermaid-cli\\node_modules\\.bin\\mmdc"
-# MERMAID_BIN: Path = Path("~/.nvm/versions/node/v22.16.0/bin/mmdc").expanduser()
-
-# Environment variables with fallback values
 PUPPETEER_CFG: str | None = os.environ.get("PUPPETEER_CFG", None)
 MERMAID_BIN: str = "mmdc"
 INKSCAPE_BIN: str = "inkscape"
 PDFCROP_BIN: str = "pdfcrop"
+
+
+def _append_puppeteer_config(cmd: list[str]) -> None:
+    """Append puppeteer config flags to a mermaid command if available."""
+    if PUPPETEER_CFG is not None:
+        cmd.extend(["-p", PUPPETEER_CFG])
+    elif os.path.isfile(".puppeteer.json"):
+        cmd.extend(["-p", ".puppeteer.json"])
 
 
 def mermaid(
@@ -95,10 +96,7 @@ def mermaid(
                         svg_file,
                     ]
 
-                    if PUPPETEER_CFG is not None:
-                        cmd_mermaid.extend(["-p", PUPPETEER_CFG])
-                    elif os.path.isfile(".puppeteer.json"):
-                        cmd_mermaid.extend(["-p", ".puppeteer.json"])
+                    _append_puppeteer_config(cmd_mermaid)
 
                     sys.stderr.write(f"Running: {' '.join(cmd_mermaid)}\n")
                     subprocess.check_call(cmd_mermaid, stderr=sys.stderr)
@@ -143,10 +141,7 @@ def mermaid(
                         dest,
                     ]
 
-                    if PUPPETEER_CFG is not None:
-                        cmd.extend(["-p", PUPPETEER_CFG])
-                    elif os.path.isfile(".puppeteer.json"):
-                        cmd.extend(["-p", ".puppeteer.json"])
+                    _append_puppeteer_config(cmd)
 
                     sys.stderr.write(f"Running: {' '.join(cmd)}\n")
                     subprocess.check_call(cmd, stderr=sys.stderr)
