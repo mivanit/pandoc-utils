@@ -34,7 +34,7 @@ fi
 # defaults processing
 DEFAULTS_FILE="$DEFAULTS_PRE$var_basename$DEFAULTS_SUF"
 echo "# trying to generate $DEFAULTS_FILE from yaml front matter"
-(set -x; uv run "$GET_DEFAULTS_PY_PATH" "$1" --defaults-file "$DEFAULTS_FILE" --filters-dir "$FILTERS_DIR")
+(set -x; uv run --project "$SCRIPT_DIR" "$GET_DEFAULTS_PY_PATH" "$1" --defaults-file "$DEFAULTS_FILE" --filters-dir "$FILTERS_DIR")
 if test -f "$DEFAULTS_FILE"; then
 	echo "# found file, using as default: $DEFAULTS_FILE"
 	PANDOC_CMD="$PANDOC_CMD --defaults $DEFAULTS_FILE"
@@ -42,7 +42,7 @@ fi
 
 # compilation
 
-(set -x; $PANDOC_CMD "$1" -o "$var_basename.tex")
+(set -x; uv run --project "$SCRIPT_DIR" $PANDOC_CMD "$1" -o "$var_basename.tex")
 echo "# converted to .tex"
 
 (set -x; $TEX_COMPILE "$var_basename.tex" > "$var_basename.pdlog")
