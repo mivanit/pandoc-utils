@@ -24,7 +24,7 @@ jobs:
         with:
           node-version: "22"
 
-      - run: make install
+      - run: make dep-install
         env:
           APT_YES: --assume-yes
 
