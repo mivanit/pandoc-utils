@@ -15,7 +15,7 @@ install-apt:
 	sudo apt-get install $(APT_YES) pandoc \
 		texlive-latex-base texlive-latex-extra texlive-extra-utils \
 		texlive-bibtex-extra biber \
-		inkscape imagemagick
+		inkscape
 
 .PHONY: install-npm
 install-npm:
@@ -32,7 +32,7 @@ test: clean
 .PHONY: dep-check
 dep-check:
 	@echo "Checking dependencies..."
-	@for cmd in uv pandoc pdflatex biber inkscape pdfcrop mmdc magick python; do \
+	@for cmd in uv pandoc pdflatex biber inkscape pdfcrop mmdc python; do \
 		if command -v $$cmd >/dev/null 2>&1; then \
 			printf "  %-12s %s\n" "$$cmd" "$$(command -v $$cmd)"; \
 			printf "  %-12s %s\n" "" "$$($$cmd --version 2>&1 | head -1)"; \
