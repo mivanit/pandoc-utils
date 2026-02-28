@@ -5,20 +5,18 @@ PANDOC_FROM := markdown+footnotes+inline_notes
 .PHONY: check
 check: dep-check format typing test
 
-.PHONY: install
-install: install-apt install-npm
+.PHONY: dep-install
+dep-install: dep-install-apt dep-install-npm
 	uv sync
 
-.PHONY: install-apt
-install-apt:
+.PHONY: dep-install-apt
+dep-install-apt:
 	sudo apt-get update
-	sudo apt-get install $(APT_YES) pandoc \
-		texlive-latex-base texlive-latex-extra texlive-extra-utils \
-		texlive-bibtex-extra biber \
-		inkscape
+	sudo apt-get install $(APT_YES) \
+		pandoc texlive-latex-base texlive-latex-extra texlive-extra-utils texlive-bibtex-extra biber inkscape
 
-.PHONY: install-npm
-install-npm:
+.PHONY: dep-install-npm
+dep-install-npm:
 	npm install -g @mermaid-js/mermaid-cli
 
 .PHONY: clean
