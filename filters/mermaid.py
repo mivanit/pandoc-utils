@@ -13,6 +13,7 @@ Modified from:
 https://github.com/timofurrer/pandoc-mermaid-filter
 """
 
+import json
 import os
 import sys
 import subprocess
@@ -25,6 +26,10 @@ PUPPETEER_CFG: str | None = os.environ.get("PUPPETEER_CFG", None)
 MERMAID_BIN: str = "mmdc"
 INKSCAPE_BIN: str = "inkscape"
 PDFCROP_BIN: str = "pdfcrop"
+MERMAID_PDF_CONFIG: dict[str, object] = {
+    "htmlLabels": False,
+    "flowchart": {"htmlLabels": False},
+}
 
 
 def _append_puppeteer_config(cmd: list[str]) -> None:
@@ -88,6 +93,12 @@ def mermaid(
                     svg_file: str = filename + ".svg"
                     pdf_uncropped: str = filename + "_uncropped.pdf"
 
+                    # Write mermaid config to force native SVG text
+                    # (Inkscape drops <foreignObject> during SVG-to-PDF)
+                    config_path: str = filename + "_mermaid_config.json"
+                    with open(config_path, "w") as cf:
+                        json.dump(MERMAID_PDF_CONFIG, cf)
+
                     # Step 1: Generate SVG with mermaid
                     cmd_mermaid: list[str] = [
                         MERMAID_BIN,
@@ -95,6 +106,8 @@ def mermaid(
                         src,
                         "--output",
                         svg_file,
+                        "--configFile",
+                        config_path,
                     ]
 
                     _append_puppeteer_config(cmd_mermaid)
