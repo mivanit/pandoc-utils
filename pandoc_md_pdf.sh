@@ -1,3 +1,5 @@
+set -euo pipefail
+
 # resolve paths relative to this script's location
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

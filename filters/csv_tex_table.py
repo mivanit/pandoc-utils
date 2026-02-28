@@ -85,9 +85,9 @@ def csv_tex_table(
     df = rawcsv_to_df(code)
 
     n_cols = len(df.columns)
-    colspecs = [[{"t": "AlignCenter"}, {"t": "ColWidthDefault"}]] * n_cols
+    colspecs = [[{"t": "AlignCenter"}, {"t": "ColWidthDefault"}] for _ in range(n_cols)]
     header = _header_factory([str(c) for c in df.columns])
-    body = _body_factory([[str(v) for v in row] for row in df.values.tolist()])
+    body = _body_factory([[str(v) for v in row] for row in df.to_numpy().tolist()])
     foot = [_emptyblock(), []]
     cap = [
         None,

@@ -47,8 +47,7 @@ def svg_to_pdf(
 
     if needs_convert:
         if not os.path.isfile(src):
-            sys.stderr.write(f"svg_to_pdf: SVG not found: {src}\n")
-            return None
+            raise FileNotFoundError(f"svg_to_pdf: SVG not found: {src}")
 
         cmd: list[str] = [
             INKSCAPE_BIN,

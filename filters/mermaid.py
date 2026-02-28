@@ -78,7 +78,7 @@ def mermaid(
             dest: str = filename + "." + filetype
 
             if not os.path.isfile(dest):
-                txt: bytes = code.encode(sys.getfilesystemencoding())
+                txt: bytes = code.encode("utf-8")
                 with open(src, "wb") as f:
                     f.write(txt)
 

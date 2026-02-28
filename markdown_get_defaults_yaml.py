@@ -76,7 +76,7 @@ def get_defaults(
     # get the yaml front matter
     yaml_data: dict[str, Any] = get_front_matter(file)
 
-    if sum([int(bool(x in yaml_data)) for x in defaults_keys]) > 1:
+    if sum(1 for x in defaults_keys if x in yaml_data) > 1:
         raise KeyError(
             f"found too many keys: {defaults_keys = } {list(yaml_data.keys()) = }"
         )
