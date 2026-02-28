@@ -2,19 +2,21 @@ import json
 import os
 import shutil
 import subprocess
+from collections.abc import Generator
 from pathlib import Path
+from typing import Any
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-FILTERS_DIR = REPO_ROOT / "filters"
-TEMP_DIR = REPO_ROOT / "tests" / ".temp"
+REPO_ROOT: Path = Path(__file__).resolve().parent.parent
+FILTERS_DIR: Path = REPO_ROOT / "filters"
+TEMP_DIR: Path = REPO_ROOT / "tests" / ".temp"
 
 
 @pytest.fixture
-def temp_dir(request):
+def temp_dir(request: pytest.FixtureRequest) -> Path:
     """Provide a per-test temp directory under tests/.temp/ for inspecting outputs."""
-    d = TEMP_DIR / request.node.name
+    d: Path = TEMP_DIR / request.node.name
     if d.exists():
         shutil.rmtree(d)
     d.mkdir(parents=True)
@@ -22,9 +24,9 @@ def temp_dir(request):
 
 
 @pytest.fixture
-def tmp_workdir(temp_dir):
+def tmp_workdir(temp_dir: Path) -> Generator[Path, None, None]:
     """Change to a temp directory for tests that produce output files."""
-    orig = os.getcwd()
+    orig: str = os.getcwd()
     os.chdir(temp_dir)
     yield temp_dir
     os.chdir(orig)
@@ -62,7 +64,7 @@ def run_pandoc_json(
     filter_path: str | Path | None = None,
     extra_args: list[str] | None = None,
     cwd: str | Path | None = None,
-) -> dict:
+) -> dict[str, Any]:
     """Run pandoc and return the AST as a JSON dict."""
     output = run_pandoc(
         markdown,

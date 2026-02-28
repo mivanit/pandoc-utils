@@ -11,7 +11,7 @@ gets the "defaults" section from yaml front matter in a markdown file
 and throws it into a file `_pandoc_defaults.yml`
 """
 
-from typing import List, Dict, Any
+from typing import Any
 import os
 from pathlib import Path
 import warnings
@@ -42,7 +42,7 @@ def bash_to_py_path(p: str) -> str:
     if not p[0] == "/":
         raise ValueError(f"not an absolute posix-style path: {p}")
 
-    p_split: List[str] = p.split("/")
+    p_split: list[str] = p.split("/")
 
     drive: str = p_split[1]
 
@@ -59,7 +59,7 @@ def bash_to_py_path(p: str) -> str:
     )
 
 
-def get_front_matter(file: str) -> Dict[str, Any]:
+def get_front_matter(file: str) -> dict[str, Any]:
     """get the yaml front matter from a markdown file
 
     ### Parameters:
@@ -67,7 +67,7 @@ def get_front_matter(file: str) -> Dict[str, Any]:
        file to read
 
     ### Returns:
-     - `Dict[str, Any]`
+     - `dict[str, Any]`
        yaml front matter
 
     ### Raises:
@@ -75,14 +75,14 @@ def get_front_matter(file: str) -> Dict[str, Any]:
     """
     with open(file, "r") as f:
         # split the document by yaml file front matter
-        sections: List[str] = f.read().split("---")
+        sections: list[str] = f.read().split("---")
         # check the zeroth section is empty
         if sections[0].strip():
             raise ValueError(
                 f"file does not start with yaml front matter, found at start of file: {sections[0]}"
             )
         # get the first section and parse as yaml
-        yaml_data: Dict[str, Any] = yaml.safe_load(sections[1])
+        yaml_data: dict[str, Any] = yaml.safe_load(sections[1])
 
     return yaml_data
 
@@ -110,7 +110,7 @@ def get_defaults(
     """
 
     # get the yaml front matter
-    yaml_data: Dict[str, Any] = get_front_matter(file)
+    yaml_data: dict[str, Any] = get_front_matter(file)
 
     if sum([int(bool(x in yaml_data)) for x in defaults_keys]) > 1:
         raise KeyError(
@@ -125,7 +125,7 @@ def get_defaults(
 
     # get the defaults section, if it exists
     if def_key_found is not None:
-        defaults_data: Dict[str, Any] = yaml_data[def_key_found]
+        defaults_data: dict[str, Any] = yaml_data[def_key_found]
 
         # in filters section, replace `%FILTERS%` with appropriate dir
         for filter_key in ("filters", "filter"):
@@ -181,7 +181,7 @@ if __name__ == "__main__":
         help="directory containing pandoc filters (default: '~/dotfiles/scripts/pandoc/filters')",
     )
 
-    args = parser.parse_args()
+    args: argparse.Namespace = parser.parse_args()
 
     get_defaults(
         args.file,
