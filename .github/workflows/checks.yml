@@ -28,8 +28,14 @@ jobs:
         env:
           APT_YES: --assume-yes
 
+      - run: make dep-check
+
       - run: make format-check
       - run: make typing
       - run: make test
+        env:
+          PUPPETEER_CFG: ${{ github.workspace }}/.github/puppeteer-ci.json
+
+      - run: make demo
         env:
           PUPPETEER_CFG: ${{ github.workspace }}/.github/puppeteer-ci.json
