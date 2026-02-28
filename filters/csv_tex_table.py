@@ -63,8 +63,10 @@ def _body_factory(rows: list[list[str]]) -> list:
 
 def rawcsv_to_df(
     in_csv: str,
-    read_kwargs: dict[str, Any] = READ_KWARGS_DEFAULT,
+    read_kwargs: dict[str, Any] | None = None,
 ) -> pd.DataFrame:
+    if read_kwargs is None:
+        read_kwargs = READ_KWARGS_DEFAULT
     return pd.read_csv(StringIO(in_csv), **read_kwargs)
 
 

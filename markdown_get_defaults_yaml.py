@@ -45,6 +45,8 @@ def get_front_matter(file: str) -> dict[str, Any]:
             )
         # get the first section and parse as yaml
         yaml_data: dict[str, Any] = yaml.safe_load(sections[1])
+        if yaml_data is None:
+            raise ValueError("file has empty yaml front matter")
 
     return yaml_data
 

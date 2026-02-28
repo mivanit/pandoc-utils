@@ -378,7 +378,7 @@ local function process_meta(meta)
   -- idem for the first element after a `column-span` element
   if FORMAT:match('html.*') then
 
-    html_header = [[
+    local html_header = [[
 <style>
 /* Styles added by the columns.lua pandoc filter */
   .columns :first-child {margin-top: 0;}
@@ -418,7 +418,7 @@ local function convert_explicit_columbreaks(elem)
   end
 
   -- processes `column` Divs and `\columnbreak` LaTeX RawBlocks
-  filter = {
+  local filter = {
 
     Div = function (el)
 
@@ -721,7 +721,7 @@ local function format_colspan_latex(elem, number_columns)
     if #elem.content == 1 and elem.content[1].t == 'Header' then
 
       -- create a list of inlines
-      inlines = pandoc.List:new()
+      local inlines = pandoc.List:new()
       inlines:insert(pandoc.RawInline('latex',
         "\\end{multicols}\n"))
       inlines:insert(pandoc.RawInline('latex',
@@ -757,7 +757,7 @@ local function format_columns_latex(elem)
   pandoc.List:new(elem.content)
 
   -- how many columns?
-  number_columns = determine_column_count(elem)
+  local number_columns = determine_column_count(elem)
 
   -- set properties and insert LaTeX environment
   --  we wrap the entire environment in `{...}` to
@@ -842,7 +842,7 @@ local function format_columns_latex(elem)
   --  turn any explicit columnbreaks into LaTeX markup
   --  turn `column-span` Divs into LaTeX markup
 
-  filter = {
+  local filter = {
 
     Div = function(el)
 
@@ -872,7 +872,7 @@ end
 local function format_columns_html(elem)
 
   -- how many columns?
-  number_columns = determine_column_count(elem)
+  local number_columns = determine_column_count(elem)
 
   -- add properties to the `columns` Div
 
@@ -905,7 +905,7 @@ local function format_columns_html(elem)
 
   -- convert any explicit columnbreaks in CSS markup
 
-  filter = {
+  local filter = {
 
     Div = function(el)
 
