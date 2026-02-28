@@ -35,6 +35,7 @@ dep-check:
 	@for cmd in uv pandoc pdflatex biber inkscape pdfcrop mmdc magick python; do \
 		if command -v $$cmd >/dev/null 2>&1; then \
 			printf "  %-12s %s\n" "$$cmd" "$$(command -v $$cmd)"; \
+			printf "  %-12s %s\n" "" "$$($$cmd --version 2>&1 | head -1)"; \
 		else \
 			printf "  %-12s MISSING\n" "$$cmd"; \
 		fi; \
