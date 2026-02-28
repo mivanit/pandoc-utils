@@ -15,7 +15,7 @@ from typing import Any
 from io import StringIO
 
 import pandas as pd
-from pandocfilters import toJSONFilter, get_caption, Table
+from pandocfilters import toJSONFilter, get_caption
 
 
 READ_KWARGS_DEFAULT: dict[str, Any] = {}
@@ -94,14 +94,10 @@ def csv_tex_table(
         else [_plain_factory(" ".join(s["c"] for s in caption if "c" in s))],
     ]
 
-    return Table(
-        _emptyblock(),
-        cap,
-        colspecs,
-        header,
-        body,
-        foot,
-    )
+    return {
+        "t": "Table",
+        "c": [_emptyblock(), cap, colspecs, header, body, foot],
+    }
 
 
 if __name__ == "__main__":

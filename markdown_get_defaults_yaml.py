@@ -140,7 +140,7 @@ if __name__ == "__main__":
         "--filters-dir",
         type=str,
         default=FILTERS_DIR,
-        help="directory containing pandoc filters (default: '~/dotfiles/scripts/pandoc/filters')",
+        help=f"directory containing pandoc filters (default: '{FILTERS_DIR}')",
     )
 
     args: argparse.Namespace = parser.parse_args()

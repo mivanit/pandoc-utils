@@ -99,7 +99,9 @@ def mermaid(
                     _append_puppeteer_config(cmd_mermaid)
 
                     sys.stderr.write(f"Running: {' '.join(cmd_mermaid)}\n")
-                    subprocess.check_call(cmd_mermaid, stderr=sys.stderr)
+                    subprocess.check_call(
+                        cmd_mermaid, stdout=sys.stderr, stderr=sys.stderr
+                    )
 
                     # Step 2: Convert SVG to PDF with Inkscape
                     cmd_inkscape: list[str] = [
@@ -109,7 +111,9 @@ def mermaid(
                     ]
 
                     sys.stderr.write(f"Running: {' '.join(cmd_inkscape)}\n")
-                    subprocess.check_call(cmd_inkscape, stderr=sys.stderr)
+                    subprocess.check_call(
+                        cmd_inkscape, stdout=sys.stderr, stderr=sys.stderr
+                    )
 
                     # Step 3: Crop the PDF
                     cmd_pdfcrop: list[str] = [
@@ -121,13 +125,12 @@ def mermaid(
                     ]
 
                     sys.stderr.write(f"Running: {' '.join(cmd_pdfcrop)}\n")
-                    subprocess.check_call(cmd_pdfcrop, stderr=sys.stderr)
+                    subprocess.check_call(
+                        cmd_pdfcrop, stdout=sys.stderr, stderr=sys.stderr
+                    )
 
-                    # Clean up intermediate files
-                    # if os.path.exists(svg_file):
-                    #     os.remove(svg_file)
-                    # if os.path.exists(pdf_uncropped):
-                    #     os.remove(pdf_uncropped)
+                    # Intermediate SVG/PDF kept for debugging; pandoc re-runs
+                    # skip conversion when the final dest already exists (line 80).
 
                     sys.stderr.write(f"Created cropped PDF: {dest}\n")
 
@@ -144,7 +147,7 @@ def mermaid(
                     _append_puppeteer_config(cmd)
 
                     sys.stderr.write(f"Running: {' '.join(cmd)}\n")
-                    subprocess.check_call(cmd, stderr=sys.stderr)
+                    subprocess.check_call(cmd, stdout=sys.stderr, stderr=sys.stderr)
                     sys.stderr.write(f"Created image: {dest}\n")
 
             return Para([Image([ident, [], cap_keyvals], caption, [dest, typef])])

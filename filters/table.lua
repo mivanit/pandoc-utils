@@ -25,8 +25,8 @@ local function to_inlines(content)
 			return {pandoc.Str(content)}
 	elseif type(content) == 'number' then
 			return to_inlines(tostring(content))
-	elseif content.t == 'MetaInlines' then
-			inlines = {}
+	elseif pandoc.utils.type(content) == 'Inlines' then
+			local inlines = {}
 			for i, item in ipairs(content) do
 					inlines[i] = item
 			end
@@ -35,7 +35,9 @@ local function to_inlines(content)
 end
 
 local function to_blocks(content)
-	if (type(content) == 'table') and content.t == 'MetaBlocks' then
+	if content == nil then
+			return {pandoc.Plain{pandoc.Str("")}}
+	elseif (type(content) == 'table') and pandoc.utils.type(content) == 'Blocks' then
 			return content
 	else
 			return {pandoc.Plain(to_inlines(content))}
@@ -71,7 +73,7 @@ local function parse_template(meta)
 			end
 
 			aligns[i] = parse_align(column)
-			widths[i] = column.width
+			widths[i] = column.width and tonumber(pandoc.utils.stringify(column.width)) or 0
 			headers[i] = to_blocks(column.title)
 	end
 	return {
@@ -123,9 +125,13 @@ local function format_table(template, table, datum)
 					aligns[#aligns + 1] = pandoc.AlignDefault
 			end
 
-			return pandoc.Table(table.caption, aligns, {}, {}, rows)
+			return pandoc.utils.from_simple_table(
+			pandoc.SimpleTable(table.caption, aligns, {}, {}, rows)
+		)
 	end
-	return pandoc.Table(table.caption, template.aligns, template.widths, template.headers, datum)
+	return pandoc.utils.from_simple_table(
+		pandoc.SimpleTable(table.caption, template.aligns, template.widths, template.headers, datum)
+	)
 end
 
 local function create_table(block)

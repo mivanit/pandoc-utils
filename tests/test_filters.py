@@ -98,14 +98,17 @@ class TestIncludeCodeFiles:
         src = tmp_workdir / "indented.py"
         src.write_text("    def hello():\n        pass\n")
         md = f'```{{.python include="{src}" dedent="4"}}\n```\n'
-        output = run_pandoc(
+        ast = run_pandoc_json(
             md,
-            to="plain",
             extra_args=["--lua-filter", str(FILTERS_DIR / "include-code-files.lua")],
             cwd=tmp_workdir,
         )
-        assert "def hello():" in output
-        assert "    def hello():" not in output
+        # check raw CodeBlock content in AST (plain writer re-indents code blocks)
+        code_blocks = [b for b in ast["blocks"] if b["t"] == "CodeBlock"]
+        assert len(code_blocks) == 1
+        content = code_blocks[0]["c"][1]
+        assert "def hello():" in content
+        assert "    def hello():" not in content
 
 
 # -- include-files --
@@ -177,11 +180,13 @@ class TestTableLua:
             "```{.table}\n"
             "caption: Test Table\n"
             "series:\n"
-            "  - name: Name\n"
-            "  - name: Value\n"
+            "  - id: name\n"
+            "    title: Name\n"
+            "  - id: value\n"
+            "    title: Value\n"
             "data:\n"
-            "  - [Alice, 10]\n"
-            "  - [Bob, 20]\n"
+            "  - {name: Alice, value: 10}\n"
+            "  - {name: Bob, value: 20}\n"
             "```\n"
         )
         output = run_pandoc(

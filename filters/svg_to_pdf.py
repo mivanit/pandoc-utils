@@ -57,7 +57,7 @@ def svg_to_pdf(
         ]
 
         sys.stderr.write(f"svg_to_pdf: {' '.join(cmd)}\n")
-        subprocess.check_call(cmd, stderr=sys.stderr)
+        subprocess.check_call(cmd, stdout=sys.stderr, stderr=sys.stderr)
         sys.stderr.write(f"svg_to_pdf: created {pdf_src}\n")
 
     return Image(attrs, caption, [pdf_src, title])
