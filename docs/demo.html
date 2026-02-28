@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>pandoc-utils Feature Demo</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+    /* CSS for syntax highlighting */
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <style>
+  /* Styles added by the columns.lua pandoc filter */
+    .columns :first-child {margin-top: 0;}
+    .column-span + * {margin-top: 0;}
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">pandoc-utils Feature Demo</h1>
+</header>
+<div>
+<h1 id="csv-tables">CSV Tables</h1>
+<table>
+<caption>Benchmark Results</caption>
+<thead>
+<tr class="header">
+<th style="text-align: center;">n</th>
+<th style="text-align: center;">time_ms</th>
+<th style="text-align: center;">error</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">10.0</td>
+<td style="text-align: center;">0.0</td>
+<td style="text-align: center;">9.47e-17</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">100.0</td>
+<td style="text-align: center;">0.44</td>
+<td style="text-align: center;">5.9e-16</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">1000.0</td>
+<td style="text-align: center;">3.75</td>
+<td style="text-align: center;">1.48e-15</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">10000.0</td>
+<td style="text-align: center;">39.9</td>
+<td style="text-align: center;">8.27e-16</td>
+</tr>
+</tbody>
+</table>
+<h1 id="mermaid-diagrams">Mermaid Diagrams</h1>
+<p><img
+src="mermaid-images/eb89df5389d37301b76912c9a36e6c9216078328.svg" /></p>
+<p><img
+src="mermaid-images/6b7ed204e608e78bdb28298f700be677fc4b96f9.svg" /></p>
+<h1 id="svg-images">SVG Images</h1>
+<!-- svg_to_pdf.py converts SVG to PDF when targeting LaTeX; passes through for HTML -->
+<figure>
+<img src="demo_pipeline.svg" alt="Pandoc pipeline" />
+<figcaption aria-hidden="true">Pandoc pipeline</figcaption>
+</figure>
+<h1 id="include-files">Include Files</h1>
+<!-- include-files.lua: include external markdown at compile time -->
+<h2 id="pandoc-utils">pandoc-utils</h2>
+<p>Utilities for my pandoc/markdown/LaTeX workflows.</p>
+<h3 id="structure">Structure</h3>
+<pre><code>pandoc-utils/
+|-- pandoc_md_pdf.sh                # markdown -&gt; LaTeX -&gt; PDF pipeline
+|-- Makefile                        # install, test, check-deps targets
+|-- pyproject.toml                  # Python deps managed via uv
+|-- markdown_get_defaults_yaml.py   # (internal) extract pandoc config from YAML front matter
++-- filters/
+    |-- svg_to_pdf.py               # convert SVG images to PDF for LaTeX
+    |-- mermaid.py                  # render mermaid diagrams to SVG/PDF
+    |-- csv_tex_table.py            # CSV code blocks to tables
+    |-- include-files.lua           # include external markdown files
+    |-- include-code-files.lua      # include source code snippets
+    |-- columns.lua                 # multi-column layout (HTML + LaTeX)
+    +-- table.lua                   # YAML-driven table templating</code></pre>
+<h3 id="core-scripts">Core Scripts</h3>
+<h4 id="pandoc_md_pdf.sh">pandoc_md_pdf.sh</h4>
+<p>Main conversion pipeline: markdown -&gt; LaTeX -&gt; PDF with
+optional bibliography support.</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pandoc_md_pdf.sh</span> document.md       <span class="co"># convert to PDF</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pandoc_md_pdf.sh</span> document.md <span class="at">-b</span>    <span class="co"># convert with bibliography (biber)</span></span></code></pre></div>
+<p>Extracts pandoc configuration from the document’s YAML front matter
+(via <code>uv run markdown_get_defaults_yaml.py</code>), then runs
+pandoc and pdflatex. Produces <code>.tex</code>, <code>.pdf</code>, and
+<code>.pdlog</code> files.</p>
+<details>
+<summary>
+<b>Internal helpers</b>
+</summary>
+<ul>
+<li><strong>markdown_get_defaults_yaml.py</strong> — Extracts pandoc
+defaults from YAML front matter and writes a defaults file. Called
+internally by <code>pandoc_md_pdf.sh</code>. Resolves the
+<code>$FILTERS$</code> placeholder to the actual filters directory.</li>
+</ul>
+</details>
+<h3 id="filters">Filters</h3>
+<p>Pandoc filters are referenced in YAML front matter using the
+<code>$FILTERS$</code> placeholder:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="pp">---</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">__defaults__</span><span class="kw">:</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">filters</span><span class="kw">:</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> $FILTERS$/mermaid.py</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> $FILTERS$/svg_to_pdf.py</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> $FILTERS$/columns.lua</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="pp">---</span></span></code></pre></div>
+<h4 id="svg_to_pdf.py">svg_to_pdf.py</h4>
+<p>Converts <code>.svg</code> images to PDF using Inkscape when
+targeting LaTeX output. Caches results — only re-converts when the SVG
+is newer than the existing PDF.</p>
+<h4 id="mermaid.py">mermaid.py</h4>
+<p>Renders <code>mermaid</code> code blocks to SVG (HTML output) or PDF
+(LaTeX output) using <code>mmdc</code>. For LaTeX, converts SVG -&gt;
+PDF via Inkscape and crops with <code>pdfcrop</code>. Caches output by
+content hash.</p>
+<h4 id="csv_tex_table.py">csv_tex_table.py</h4>
+<p>Converts <code>csvtable</code> code blocks containing CSV data into
+pandoc tables. (WIP)</p>
+<h4 id="include-files.lua">include-files.lua</h4>
+<p>Includes external markdown files at compile time. Supports recursive
+inclusion, heading level shifting, relative path resolution, and comment
+lines.</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="in">```include</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="in">chapter1.md</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="in">chapter2.md</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span></code></pre></div>
+<h4 id="include-code-files.lua">include-code-files.lua</h4>
+<p>Includes source code from external files into code blocks, with
+optional line range selection and dedentation.</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="in">```python {include=&quot;src/main.py&quot; startLine=10 endLine=25 dedent=4}</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span></code></pre></div>
+<h4 id="columns.lua">columns.lua</h4>
+<p>Multi-column layout support for both HTML (CSS columns) and LaTeX
+(<code>multicols</code>). Configurable column count, gap, rules, and
+justification.</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>::: {.columns column-count=3 column-gap=&quot;1em&quot;}</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>Column 1 content</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>::: columnbreak</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>Column 2 content</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div>
+<h4 id="table.lua">table.lua</h4>
+<p>YAML-driven table generation with reusable templates, configurable
+alignment and widths, auto-numbering, and horizontal orientation
+support.</p>
+<h3 id="setup">Setup</h3>
+<p>Dependencies are managed via <code>Makefile</code> and
+<code>pyproject.toml</code>:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> install       <span class="co"># install system (apt), npm, and Python (uv) deps</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> dep-check     <span class="co"># verify all required binaries are available</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> test          <span class="co"># run pytest</span></span></code></pre></div>
+<h4 id="dependencies">Dependencies</h4>
+<p><strong>System binaries:</strong> <code>uv</code>,
+<code>pandoc</code> (&gt;=2.12), <code>pdflatex</code>,
+<code>inkscape</code>, <code>mmdc</code> (mermaid-cli),
+<code>pdfcrop</code>, <code>magick</code> (ImageMagick),
+<code>biber</code> (optional)</p>
+<p><strong>Python</strong> (managed by <code>uv</code> via
+<code>pyproject.toml</code>): <code>pyyaml</code>,
+<code>pandocfilters</code>, <code>pandas</code></p>
+<h1 id="include-code-files">Include Code Files</h1>
+<!-- include-code-files.lua: embed source code from external files -->
+<p>Full file:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># /// script</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co"># requires-python = &quot;&gt;=3.10&quot;</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co"># dependencies = [</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">#     &quot;pandocfilters&quot;,</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co">#     &quot;pandas&quot;,</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co"># ]</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co"># ///</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="co">pandoc filter to process code blocks with class &quot;csvtable&quot;,</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="co">turning csv-formatted data into a table</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> typing <span class="im">import</span> Any</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> io <span class="im">import</span> StringIO</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pandocfilters <span class="im">import</span> toJSONFilter, get_caption</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>READ_KWARGS_DEFAULT: <span class="bu">dict</span>[<span class="bu">str</span>, Any] <span class="op">=</span> {}</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> _emptyblock() <span class="op">-&gt;</span> <span class="bu">list</span>:</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [<span class="st">&quot;&quot;</span>, [], []]</span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> _plain_factory(val: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">dict</span>:</span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> {</span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;t&quot;</span>: <span class="st">&quot;Plain&quot;</span>,</span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;c&quot;</span>: [{<span class="st">&quot;t&quot;</span>: <span class="st">&quot;Str&quot;</span>, <span class="st">&quot;c&quot;</span>: val.strip()}],</span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> _table_cell_factory(val: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">list</span>:</span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [</span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>        _emptyblock(),</span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>        {<span class="st">&quot;t&quot;</span>: <span class="st">&quot;AlignDefault&quot;</span>},</span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>        <span class="dv">1</span>,</span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>        <span class="dv">1</span>,</span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>        [_plain_factory(val)],</span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a>    ]</span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> _table_row_factory(vals: <span class="bu">list</span>[<span class="bu">str</span>]) <span class="op">-&gt;</span> <span class="bu">list</span>:</span>
+<span id="cb8-46"><a href="#cb8-46" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [_emptyblock(), [_table_cell_factory(v) <span class="cf">for</span> v <span class="kw">in</span> vals]]</span>
+<span id="cb8-47"><a href="#cb8-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-48"><a href="#cb8-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-49"><a href="#cb8-49" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> _header_factory(vals: <span class="bu">list</span>[<span class="bu">str</span>]) <span class="op">-&gt;</span> <span class="bu">list</span>:</span>
+<span id="cb8-50"><a href="#cb8-50" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [_emptyblock(), [_table_row_factory(vals)]]</span>
+<span id="cb8-51"><a href="#cb8-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-52"><a href="#cb8-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-53"><a href="#cb8-53" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> _body_factory(rows: <span class="bu">list</span>[<span class="bu">list</span>[<span class="bu">str</span>]]) <span class="op">-&gt;</span> <span class="bu">list</span>:</span>
+<span id="cb8-54"><a href="#cb8-54" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [</span>
+<span id="cb8-55"><a href="#cb8-55" aria-hidden="true" tabindex="-1"></a>        [</span>
+<span id="cb8-56"><a href="#cb8-56" aria-hidden="true" tabindex="-1"></a>            _emptyblock(),</span>
+<span id="cb8-57"><a href="#cb8-57" aria-hidden="true" tabindex="-1"></a>            <span class="dv">0</span>,</span>
+<span id="cb8-58"><a href="#cb8-58" aria-hidden="true" tabindex="-1"></a>            [],</span>
+<span id="cb8-59"><a href="#cb8-59" aria-hidden="true" tabindex="-1"></a>            [_table_row_factory(row) <span class="cf">for</span> row <span class="kw">in</span> rows],</span>
+<span id="cb8-60"><a href="#cb8-60" aria-hidden="true" tabindex="-1"></a>        ]</span>
+<span id="cb8-61"><a href="#cb8-61" aria-hidden="true" tabindex="-1"></a>    ]</span>
+<span id="cb8-62"><a href="#cb8-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-63"><a href="#cb8-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-64"><a href="#cb8-64" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> rawcsv_to_df(</span>
+<span id="cb8-65"><a href="#cb8-65" aria-hidden="true" tabindex="-1"></a>    in_csv: <span class="bu">str</span>,</span>
+<span id="cb8-66"><a href="#cb8-66" aria-hidden="true" tabindex="-1"></a>    read_kwargs: <span class="bu">dict</span>[<span class="bu">str</span>, Any] <span class="op">|</span> <span class="va">None</span> <span class="op">=</span> <span class="va">None</span>,</span>
+<span id="cb8-67"><a href="#cb8-67" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> pd.DataFrame:</span>
+<span id="cb8-68"><a href="#cb8-68" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> read_kwargs <span class="kw">is</span> <span class="va">None</span>:</span>
+<span id="cb8-69"><a href="#cb8-69" aria-hidden="true" tabindex="-1"></a>        read_kwargs <span class="op">=</span> READ_KWARGS_DEFAULT</span>
+<span id="cb8-70"><a href="#cb8-70" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pd.read_csv(StringIO(in_csv), <span class="op">**</span>read_kwargs)</span>
+<span id="cb8-71"><a href="#cb8-71" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-72"><a href="#cb8-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-73"><a href="#cb8-73" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> csv_tex_table(</span>
+<span id="cb8-74"><a href="#cb8-74" aria-hidden="true" tabindex="-1"></a>    key: <span class="bu">str</span>, value: Any, <span class="bu">format</span>: <span class="bu">str</span>, meta: Any</span>
+<span id="cb8-75"><a href="#cb8-75" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> <span class="bu">dict</span>[<span class="bu">str</span>, Any] <span class="op">|</span> <span class="va">None</span>:</span>
+<span id="cb8-76"><a href="#cb8-76" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> key <span class="op">!=</span> <span class="st">&quot;CodeBlock&quot;</span>:</span>
+<span id="cb8-77"><a href="#cb8-77" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">None</span></span>
+<span id="cb8-78"><a href="#cb8-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-79"><a href="#cb8-79" aria-hidden="true" tabindex="-1"></a>    [[ident, classes, keyvals], code] <span class="op">=</span> value</span>
+<span id="cb8-80"><a href="#cb8-80" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-81"><a href="#cb8-81" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="st">&quot;csvtable&quot;</span> <span class="kw">not</span> <span class="kw">in</span> classes:</span>
+<span id="cb8-82"><a href="#cb8-82" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">None</span></span>
+<span id="cb8-83"><a href="#cb8-83" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-84"><a href="#cb8-84" aria-hidden="true" tabindex="-1"></a>    caption, typef, keyvals <span class="op">=</span> get_caption(keyvals)</span>
+<span id="cb8-85"><a href="#cb8-85" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> rawcsv_to_df(code)</span>
+<span id="cb8-86"><a href="#cb8-86" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-87"><a href="#cb8-87" aria-hidden="true" tabindex="-1"></a>    n_cols <span class="op">=</span> <span class="bu">len</span>(df.columns)</span>
+<span id="cb8-88"><a href="#cb8-88" aria-hidden="true" tabindex="-1"></a>    colspecs <span class="op">=</span> [[{<span class="st">&quot;t&quot;</span>: <span class="st">&quot;AlignCenter&quot;</span>}, {<span class="st">&quot;t&quot;</span>: <span class="st">&quot;ColWidthDefault&quot;</span>}] <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(n_cols)]</span>
+<span id="cb8-89"><a href="#cb8-89" aria-hidden="true" tabindex="-1"></a>    header <span class="op">=</span> _header_factory([<span class="bu">str</span>(c) <span class="cf">for</span> c <span class="kw">in</span> df.columns])</span>
+<span id="cb8-90"><a href="#cb8-90" aria-hidden="true" tabindex="-1"></a>    body <span class="op">=</span> _body_factory([[<span class="bu">str</span>(v) <span class="cf">for</span> v <span class="kw">in</span> row] <span class="cf">for</span> row <span class="kw">in</span> df.to_numpy().tolist()])</span>
+<span id="cb8-91"><a href="#cb8-91" aria-hidden="true" tabindex="-1"></a>    foot <span class="op">=</span> [_emptyblock(), []]</span>
+<span id="cb8-92"><a href="#cb8-92" aria-hidden="true" tabindex="-1"></a>    cap <span class="op">=</span> [</span>
+<span id="cb8-93"><a href="#cb8-93" aria-hidden="true" tabindex="-1"></a>        <span class="va">None</span>,</span>
+<span id="cb8-94"><a href="#cb8-94" aria-hidden="true" tabindex="-1"></a>        []</span>
+<span id="cb8-95"><a href="#cb8-95" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="kw">not</span> caption</span>
+<span id="cb8-96"><a href="#cb8-96" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span> [_plain_factory(<span class="st">&quot; &quot;</span>.join(s[<span class="st">&quot;c&quot;</span>] <span class="cf">for</span> s <span class="kw">in</span> caption <span class="cf">if</span> <span class="st">&quot;c&quot;</span> <span class="kw">in</span> s))],</span>
+<span id="cb8-97"><a href="#cb8-97" aria-hidden="true" tabindex="-1"></a>    ]</span>
+<span id="cb8-98"><a href="#cb8-98" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-99"><a href="#cb8-99" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> {</span>
+<span id="cb8-100"><a href="#cb8-100" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;t&quot;</span>: <span class="st">&quot;Table&quot;</span>,</span>
+<span id="cb8-101"><a href="#cb8-101" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;c&quot;</span>: [_emptyblock(), cap, colspecs, header, body, foot],</span>
+<span id="cb8-102"><a href="#cb8-102" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb8-103"><a href="#cb8-103" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-104"><a href="#cb8-104" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-105"><a href="#cb8-105" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> main() <span class="op">-&gt;</span> <span class="va">None</span>:</span>
+<span id="cb8-106"><a href="#cb8-106" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;Entry point for the pandoc filter.&quot;&quot;&quot;</span></span>
+<span id="cb8-107"><a href="#cb8-107" aria-hidden="true" tabindex="-1"></a>    toJSONFilter(csv_tex_table)</span>
+<span id="cb8-108"><a href="#cb8-108" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-109"><a href="#cb8-109" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-110"><a href="#cb8-110" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">&quot;__main__&quot;</span>:</span>
+<span id="cb8-111"><a href="#cb8-111" aria-hidden="true" tabindex="-1"></a>    main()</span></code></pre></div>
+<p>Line range with dedent:</p>
+<div class="sourceCode" id="cb9" data-startFrom="1"><pre
+class="sourceCode lua"><code class="sourceCode lua"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">--[[-- # Columns - multiple column support in Pandoc&#39;s markdown.</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co">This Lua filter provides support for multiple columns in</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co">latex and html outputs. For details, see README.md.</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co">from: https://github.com/dialoa/columns/blob/master/columns.lua</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co">@author Julien Dutant &lt;julien.dutant@kcl.ac.uk&gt;</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="co">@copyright 2021 Julien Dutant</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="co">@license MIT - see LICENSE file for details.</span></span></code></pre></div>
+<h1 id="multi-column-layout">Multi-Column Layout</h1>
+<div class="columns" style="column-count: 3 ;; column-gap: 1.5em ;">
+<p><strong>Column 1</strong> — Filters process the document AST,
+transforming custom code blocks and divs into native pandoc
+elements.</p><div style="break-after: column ;">
+
+</div><p><strong>Column 2</strong> — Output adapts to the target format:
+LaTeX uses <code>multicols</code>, HTML uses CSS columns.</p><div
+style="break-after: column ;">
+
+</div><p><strong>Column 3</strong> — All filters can be combined freely
+in a single document via the YAML front matter.</p>
+</div>
+<h2 id="shorthand-syntax">Shorthand syntax</h2>
+<div class="columns" style="column-count: 2 ;">
+<p>Left column content goes here. The <code>two-columns</code> class is
+syntactic sugar for <code>{.columns column-count=2}</code>.</p><div
+style="break-after: column ;">
+
+</div><p>Right column content goes here.</p>
+</div>
+<h2 id="column-span">Column span</h2>
+<div class="columns" style="column-count: 2 ;">
+<p>Left column.</p><div style="break-after: column ;">
+
+</div><p>Right column.</p>
+</div>
+<div class="column-span-to-be-processed">
+<p>This paragraph spans across all columns.</p>
+</div>
+<h1 id="yaml-tables">YAML Tables</h1>
+<h2 id="vertical-table-with-auto-numbering">Vertical table with
+auto-numbering</h2>
+<div id="tbl:team" class="table">
+<table>
+<caption>Team Roles</caption>
+<thead>
+<tr class="header">
+<th style="text-align: right;">#</th>
+<th>Role</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">1</td>
+<td>Developer</td>
+<td><ul>
+<li>Write <strong>quality</strong> code</li>
+<li>Review pull requests</li>
+</ul></td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2</td>
+<td>Designer</td>
+<td><ul>
+<li>Create mockups</li>
+<li>Maintain style guide</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">3</td>
+<td>Manager</td>
+<td><ul>
+<li>Coordinate team</li>
+<li>Report status</li>
+</ul></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h2 id="horizontal-table">Horizontal table</h2>
+<div id="tbl:measurements" class="table horizontal">
+<table>
+<caption>Sensor Readings</caption>
+<thead>
+<tr class="header">
+<th>Current (mA)</th>
+<th>Voltage (V)</th>
+<th>Power (mW)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>15</td>
+<td>3</td>
+<td>45</td>
+</tr>
+<tr class="even">
+<td>16</td>
+<td>3.1</td>
+<td>49.6</td>
+</tr>
+<tr class="odd">
+<td>14</td>
+<td>2.9</td>
+<td>40.6</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h2 id="table-from-template">Table from template</h2>
+<!-- Template "card" is defined in the YAML front matter metadata -->
+<div id="tbl:project" class="table">
+<table>
+<caption>Project Info</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Field</th>
+<th style="text-align: left;">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Name</td>
+<td style="text-align: left;">pandoc-utils</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Language</td>
+<td style="text-align: left;">Python, Lua, Bash</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">License</td>
+<td style="text-align: left;">MIT</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</body>
+</html>

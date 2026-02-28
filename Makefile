@@ -1,4 +1,6 @@
 APT_YES ?=
+FILTERS_DIR := $(CURDIR)/filters
+PANDOC_FROM := markdown+footnotes+inline_notes
 
 .PHONY: check
 check: dep-check format typing test
@@ -51,3 +53,17 @@ format-check:
 .PHONY: typing
 typing:
 	uv run ty check .
+
+.PHONY: demo
+demo: clean-demo
+	mkdir -p docs/filters
+	cp demo.md demo_pipeline.svg README.md docs/
+	cp filters/csv_tex_table.py filters/columns.lua docs/filters/
+	cd docs && uv run bash ../pandoc_md_pdf.sh demo.md
+	cd docs && uv run pandoc -f $(PANDOC_FROM) -s \
+		--defaults _pandoc_defaults.demo.yml \
+		demo.md -o demo.html
+
+.PHONY: clean-demo
+clean-demo:
+	rm -rf docs

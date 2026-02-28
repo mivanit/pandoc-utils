@@ -79,6 +79,7 @@ def mermaid(
 
             if not os.path.isfile(dest):
                 txt: bytes = code.encode("utf-8")
+                os.makedirs(os.path.dirname(src), exist_ok=True)
                 with open(src, "wb") as f:
                     f.write(txt)
 

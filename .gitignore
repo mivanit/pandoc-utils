@@ -16,6 +16,10 @@ tests/.temp/
 # Generated pandoc defaults
 _pandoc_defaults.*.yml
 
+# demo
+docs/**
+!docs/demo.*
+
 # LaTeX build artifacts
 *.aux
 *.bbl

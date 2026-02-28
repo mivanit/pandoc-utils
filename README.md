@@ -6,18 +6,18 @@ Utilities for my pandoc/markdown/LaTeX workflows.
 
 ```
 pandoc-utils/
-├── pandoc_md_pdf.sh                # markdown -> LaTeX -> PDF pipeline
-├── Makefile                        # install, test, check-deps targets
-├── pyproject.toml                  # Python deps managed via uv
-├── markdown_get_defaults_yaml.py   # (internal) extract pandoc config from YAML front matter
-└── filters/
-    ├── svg_to_pdf.py               # convert SVG images to PDF for LaTeX
-    ├── mermaid.py                  # render mermaid diagrams to SVG/PDF
-    ├── csv_tex_table.py            # CSV code blocks to tables
-    ├── include-files.lua           # include external markdown files
-    ├── include-code-files.lua      # include source code snippets
-    ├── columns.lua                 # multi-column layout (HTML + LaTeX)
-    └── table.lua                   # YAML-driven table templating
+|-- pandoc_md_pdf.sh                # markdown -> LaTeX -> PDF pipeline
+|-- Makefile                        # install, test, check-deps targets
+|-- pyproject.toml                  # Python deps managed via uv
+|-- markdown_get_defaults_yaml.py   # (internal) extract pandoc config from YAML front matter
++-- filters/
+    |-- svg_to_pdf.py               # convert SVG images to PDF for LaTeX
+    |-- mermaid.py                  # render mermaid diagrams to SVG/PDF
+    |-- csv_tex_table.py            # CSV code blocks to tables
+    |-- include-files.lua           # include external markdown files
+    |-- include-code-files.lua      # include source code snippets
+    |-- columns.lua                 # multi-column layout (HTML + LaTeX)
+    +-- table.lua                   # YAML-driven table templating
 ```
 
 ## Core Scripts
@@ -117,6 +117,6 @@ make test          # run pytest
 
 ### Dependencies
 
-**System binaries:** `uv`, `pandoc` (≥2.12), `pdflatex`, `inkscape`, `mmdc` (mermaid-cli), `pdfcrop`, `magick` (ImageMagick), `biber` (optional)
+**System binaries:** `uv`, `pandoc` (>=2.12), `pdflatex`, `inkscape`, `mmdc` (mermaid-cli), `pdfcrop`, `magick` (ImageMagick), `biber` (optional)
 
 **Python** (managed by `uv` via `pyproject.toml`): `pyyaml`, `pandocfilters`, `pandas`
