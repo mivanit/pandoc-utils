@@ -102,5 +102,10 @@ def csv_tex_table(
     }
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Entry point for the pandoc filter."""
     toJSONFilter(csv_tex_table)
+
+
+if __name__ == "__main__":
+    main()

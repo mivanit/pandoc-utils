@@ -6,7 +6,7 @@ __pandoc__:
     # - $FILTERS$/table.lua
 ---
 
-```{.csv_table aligns="RCLL" caption="Error Table"}
+```{.csvtable caption="Error Table"}
 m,t1,t2,error
 10,0.0,0.0,9.46949e-17
 100,0.438,0.0,5.90354e-16

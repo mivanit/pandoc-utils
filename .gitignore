@@ -13,6 +13,9 @@ dist/
 # Test temp outputs
 tests/.temp/
 
+# Generated pandoc defaults
+_pandoc_defaults.*.yml
+
 # LaTeX build artifacts
 *.aux
 *.bbl
