@@ -27,11 +27,10 @@ pandoc-utils/
 Main conversion pipeline: markdown -> LaTeX -> PDF with optional bibliography support.
 
 ```bash
-pandoc_md_pdf.sh document.md       # convert to PDF
-pandoc_md_pdf.sh document.md -b    # convert with bibliography (biber)
+pandoc_md_pdf.sh document.md       # convert to PDF (bibliography built automatically)
 ```
 
-Extracts pandoc configuration from the document's YAML front matter (via `uv run markdown_get_defaults_yaml.py`), then runs pandoc and pdflatex. Produces `.tex`, `.pdf`, and `.pdlog` files.
+Extracts pandoc configuration from the document's YAML front matter (via `uv run markdown_get_defaults_yaml.py`), then runs pandoc followed by `latexmk`. `latexmk` runs `pdflatex` and, if the document uses citations, `biber`/`bibtex`, re-running each as many times as needed until references converge — so the bibliography is built automatically without any extra flag. Produces `.tex`, `.pdf`, and `.pdlog` files.
 
 <details>
 <summary><b>Internal helpers</b></summary>
@@ -117,6 +116,6 @@ make test          # run pytest
 
 ### Dependencies
 
-**System binaries:** `uv`, `pandoc` (>=2.12), `pdflatex`, `inkscape`, `mmdc` (mermaid-cli), `pdfcrop`, `magick` (ImageMagick), `biber` (optional)
+**System binaries:** `uv`, `pandoc` (>=2.12), `latexmk`, `pdflatex`, `inkscape`, `mmdc` (mermaid-cli), `pdfcrop`, `magick` (ImageMagick), `biber` (for bibliographies)
 
 **Python** (managed by `uv` via `pyproject.toml`): `pyyaml`, `pandocfilters`, `pandas`

@@ -13,9 +13,6 @@ DEFAULTS_SUF=".yml"
 GET_DEFAULTS_PY_PATH="$SCRIPT_DIR/markdown_get_defaults_yaml.py"
 FILTERS_DIR="$SCRIPT_DIR/filters"
 
-TEX_COMPILE="pdflatex -synctex=1 -interaction=nonstopmode -file-line-error"
-BIB_COMPILE="biber"
-
 # initial processing
 
 # var_basename=$(echo "$1" | cut -f 1 -d '.')
@@ -45,25 +42,11 @@ fi
 (set -x; uv run --project "$SCRIPT_DIR" $PANDOC_CMD "$1" -o "$var_basename.tex")
 echo "# converted to .tex"
 
-(set -x; $TEX_COMPILE "$var_basename.tex" > "$var_basename.pdlog")
-echo "# compiled pdf"
-
-# compilation, with biber
-
-var_bib=false
-for arg in "$@"; do
-	if [[ "$arg" == "-b" ]]; then
-		var_bib=true
-		break
-	fi
-done
-
-if [[ "$var_bib" == true ]]; then
-	echo "# updating bibliography as well..."
-
-	(set -x; $BIB_COMPILE "$var_basename" >> "$var_basename.pdlog")
-	echo "# compiled bib"
-
-	(set -x; $TEX_COMPILE "$var_basename.tex" >> "$var_basename.pdlog")
-	echo "# compiled pdf (again)"
+# compilation: latexmk runs pdflatex + biber/bibtex as many passes as needed
+LATEXMK="latexmk -pdf -synctex=1 -interaction=nonstopmode -file-line-error"
+if ! (set -x; $LATEXMK "$var_basename.tex" > "$var_basename.pdlog"); then
+	echo "# ERROR: latexmk failed; last lines of $var_basename.pdlog:" >&2
+	tail -n 30 "$var_basename.pdlog" >&2
+	exit 1
 fi
+echo "# compiled pdf (bibliography resolved automatically by latexmk)"
