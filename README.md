@@ -27,10 +27,11 @@ pandoc-utils/
 Main conversion pipeline: markdown -> LaTeX -> PDF with optional bibliography support.
 
 ```bash
-pandoc_md_pdf.sh document.md       # convert to PDF (bibliography built automatically)
+pandoc_md_pdf.sh document.md       # convert to PDF (biblatex auto-detected)
+pandoc_md_pdf.sh document.md -b    # force biblatex on
 ```
 
-Extracts pandoc configuration from the document's YAML front matter (via `uv run markdown_get_defaults_yaml.py`), then runs pandoc followed by `latexmk`. `latexmk` runs `pdflatex` and, if the document uses citations, `biber`/`bibtex`, re-running each as many times as needed until references converge — so the bibliography is built automatically without any extra flag. Produces `.tex`, `.pdf`, and `.pdlog` files.
+Extracts pandoc configuration from the document's YAML front matter (via `uv run markdown_get_defaults_yaml.py`), then runs pandoc followed by `latexmk`. Biblatex is enabled automatically when the front matter declares a `bibliography:` or `references:` field (pass `-b` to force it on regardless); when it is off, no bibliography markup is emitted so documents without citations build cleanly. `latexmk` runs `pdflatex` and, when biblatex is enabled, `biber`, re-running each as many times as needed until references converge. Produces `.tex`, `.pdf`, and `.pdlog` files.
 
 <details>
 <summary><b>Internal helpers</b></summary>
