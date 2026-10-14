@@ -511,6 +511,23 @@ class TestSvgToPdfErrors:
                 cwd=tmp_workdir,
             )
 
+    @pytest.mark.parametrize("stale_pdf", [False, True])
+    def test_unparseable_svg_raises(self, tmp_workdir, stale_pdf):
+        """Inkscape exits 0 on unparseable SVG; filter must still fail, not reference a missing/stale PDF."""
+        require_tool("inkscape")
+        svg = tmp_workdir / "bad.svg"
+        if stale_pdf:
+            svg.with_suffix(".pdf").write_bytes(b"%PDF-stale")
+            os.utime(svg.with_suffix(".pdf"), (0, 0))
+        svg.write_text("not xml")
+        with pytest.raises(RuntimeError, match="inkscape did not produce"):
+            run_pandoc(
+                "![test](bad.svg)\n",
+                filter_path=FILTERS_DIR / "svg_to_pdf.py",
+                to="latex",
+                cwd=tmp_workdir,
+            )
+
 
 # -- include-code-files edge cases --
 

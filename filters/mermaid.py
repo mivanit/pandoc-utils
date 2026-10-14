@@ -128,6 +128,12 @@ def mermaid(
                     subprocess.check_call(
                         cmd_inkscape, stdout=sys.stderr, stderr=sys.stderr
                     )
+                    # Inkscape exits 0 even when it can't parse the SVG; without
+                    # this, pdfcrop below fails with a confusing "not found"
+                    if not os.path.isfile(pdf_uncropped):
+                        raise RuntimeError(
+                            f"mermaid: inkscape did not produce {pdf_uncropped}"
+                        )
 
                     # Step 3: Crop the PDF
                     cmd_pdfcrop: list[str] = [

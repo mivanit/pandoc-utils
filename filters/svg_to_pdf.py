@@ -55,8 +55,17 @@ def svg_to_pdf(
             f"--export-filename={pdf_src}",
         ]
 
+        # Inkscape exits 0 even when it can't parse the SVG, so remove any
+        # stale PDF first and check that a fresh one was actually written
+        if os.path.isfile(pdf_src):
+            os.remove(pdf_src)
+
         sys.stderr.write(f"svg_to_pdf: {' '.join(cmd)}\n")
         subprocess.check_call(cmd, stdout=sys.stderr, stderr=sys.stderr)
+        if not os.path.isfile(pdf_src):
+            raise RuntimeError(
+                f"svg_to_pdf: inkscape did not produce {pdf_src} (see inkscape output above)"
+            )
         sys.stderr.write(f"svg_to_pdf: created {pdf_src}\n")
 
     return Image(attrs, caption, [pdf_src, title])
