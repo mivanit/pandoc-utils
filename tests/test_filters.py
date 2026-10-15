@@ -487,7 +487,7 @@ class TestCsvTexTable:
 
     def test_empty_codeblock_errors(self, tmp_workdir):
         md = "```{.csvtable}\n```\n"
-        with pytest.raises(RuntimeError, match="pandoc failed"):
+        with pytest.raises(RuntimeError, match="No columns to parse"):
             run_pandoc(
                 md,
                 filter_path=FILTERS_DIR / "csv_tex_table.py",
@@ -503,7 +503,7 @@ class TestSvgToPdfErrors:
     def test_missing_svg_raises(self, tmp_workdir):
         """Filter should raise FileNotFoundError when SVG source doesn't exist."""
         md = "![test](nonexistent.svg)\n"
-        with pytest.raises(RuntimeError, match="pandoc failed"):
+        with pytest.raises(RuntimeError, match="SVG not found"):
             run_pandoc(
                 md,
                 filter_path=FILTERS_DIR / "svg_to_pdf.py",
