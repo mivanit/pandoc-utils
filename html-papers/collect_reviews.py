@@ -7,7 +7,8 @@ one they deleted after an earlier export is dropped.
 
 With ``--md``, each quote is located in the markdown the page was rendered from: exactly
 (whitespace collapsed, case ignored, best prefix/suffix match among repeats), else
-approximately, by 8-character shingles of the quote voting for where it starts. Rendered text
+approximately, by 8-character shingles of the quote voting for where it starts (a quarter of
+them must agree). Rendered text
 differs from the source (emphasis, citations, term macros, math), and the page may have
 changed since the comment was written. An approximate line is marked ``~``. A quote with no
 match at all is listed with its section heading.
@@ -15,8 +16,8 @@ match at all is listed with its section heading.
     uv run html-papers/collect_reviews.py reviews/ --md paper.md -o reviews/merged.json
 
 To see the merged comments in place, put ``merged.json`` beside the page and open
-``paper.html?review=1&review-load=merged.json``, or drop the files on Import in the review
-panel. Standard library only. From https://github.com/mivanit/pandoc-utils, html-papers/.
+``index.html?review=1&review-load=merged.json`` (over http: a page opened from a file cannot
+load it), or drop the files on Import in the review panel. Standard library only. From https://github.com/mivanit/pandoc-utils, html-papers/.
 """
 
 import argparse
@@ -135,22 +136,33 @@ def _context(text: str, start: int, end: int, prefix: str, suffix: str) -> int:
 
 
 def _vote(text: str, probe: str) -> int | None:
-    """Where ``probe`` most likely starts in ``text``: its shingles vote; None if under two agree."""
-    votes: Counter[int] = Counter()
+    """Where ``probe`` most likely starts in ``text``.
+
+    Each of its shingles found in the text votes for the start that implies. None unless a
+    quarter of the shingles (two at least) agree to within a bin; then the start most of them
+    name (the earliest on a tie), which is the true one for the part of a quote before the
+    first place it differs from the source.
+    """
+    votes: Counter[int] = Counter()  # by bin
+    starts: Counter[int] = Counter()  # by exact start
     stride: int = max(1, (len(probe) - SHINGLE) // 100)
+    shingles: int = 0
     for j in range(0, len(probe) - SHINGLE + 1, stride):
+        shingles += 1
         hits: list[int] = _find_all(text, probe[j : j + SHINGLE], MAX_HITS)
         if len(hits) > MAX_HITS:
             continue
         for p in hits:
             votes[(p - j) // BIN] += 1
+            starts[p - j] += 1
     if not votes:
         return None
     # neighbouring bins pool their votes: a start near a bin edge splits them
     best: int = max(votes, key=lambda b: votes[b - 1] + votes[b] + votes[b + 1])
-    if votes[best - 1] + votes[best] + votes[best + 1] < 2:
+    if votes[best - 1] + votes[best] + votes[best + 1] < max(2, shingles // 4):
         return None
-    return max(0, best * BIN)
+    near: list[int] = [s for s in starts if best - 1 <= s // BIN <= best + 1]
+    return max(0, min(near, key=lambda s: (-starts[s], s)))
 
 
 def locate(quote: dict[str, str], text: str, lines: list[int]) -> Location | None:

@@ -5,6 +5,7 @@ holds a terms file, an image and a token-rows file.
 """
 
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -223,6 +224,10 @@ def test_static_figure_with_a_link(folder: Path) -> None:
 
 def test_live_attributes_in_the_wrong_place_fail(folder: Path) -> None:
     for source, error in (
+        (
+            '![No page.](a.svg){#fig:n interactive-height="300"}\n',
+            "interactive-height needs interactive-src",
+        ),
         # no caption: pandoc makes no figure of it
         (
             '![](a.svg){interactive-src="live/x.html"}\n',
@@ -280,8 +285,8 @@ def test_token_rows_in_latex(folder: Path) -> None:
     assert result.returncode == 0, result.stderr
     tex: str = result.stdout
     assert "\\newcommand{\\hptok}" in tex and "\\usepackage{array}" in tex
-    assert "\\hptok{the}\\hptok{paper}" in tex
-    assert "\\hptok{x\\_y}{\\color{gray}\\ldots}" in tex  # escaped for LaTeX
+    assert "\\hptok{\\texttt{the}}\\hptok{\\texttt{paper}}" in tex
+    assert "\\hptok{\\texttt{x\\_y}}{\\color{gray}\\ldots}" in tex  # escaped for LaTeX
     assert "\\term[widget]{widget}" in tex
     assert "\\caption{What each model says.}\\label{fig:rows}" in tex
 
@@ -290,6 +295,107 @@ def test_token_rows_need_their_file(folder: Path) -> None:
     source: str = '::: {#fig:rows .generations src="missing.json"}\nCaption.\n:::\n'
     result: subprocess.CompletedProcess[str] = build(folder, "html5", source)
     assert result.returncode != 0 and "cannot read missing.json" in result.stderr
+
+
+def test_token_rows_say_what_is_wrong_with_their_file(folder: Path) -> None:
+    source: str = '::: {#fig:rows .generations src="bad.json"}\nCaption.\n:::\n'
+    row: dict = {"label": "m", "tokens": ["a"]}
+    for content, error in (
+        ("{not json", "not valid JSON"),
+        (json.dumps({"rows": [row]}), '"prompt" needs a list of tokens'),
+        (json.dumps({"prompt": ["a", 3], "rows": [row]}), "every token is a string"),
+        (
+            json.dumps({"prompt": [], "rows": [{"tokens": ["a"]}]}),
+            'row 1 needs a "label"',
+        ),
+        (
+            json.dumps({"prompt": [], "rows": [{**row, "end": "EOS"}]}),
+            '"end" is "eos" or "cut"',
+        ),
+        (
+            json.dumps({"prompt": [], "rows": [{**row, "reference": "true"}]}),
+            '"reference" is true or false',
+        ),
+    ):
+        (folder / "bad.json").write_text(content)
+        result: subprocess.CompletedProcess[str] = build(folder, "html5", source)
+        assert result.returncode != 0, content
+        assert "bad.json: " in result.stderr and error in result.stderr, content
+
+
+def test_a_token_is_the_same_characters_in_latex(folder: Path) -> None:
+    """Typewriter text joins -- and '' into other characters unless they are kept apart."""
+    tokens: list[str] = ["--", "''", "`", "a b", "% #~\\{}"]
+    (folder / "odd.json").write_text(
+        json.dumps({"prompt": tokens, "rows": [{"label": "a t~x model", "tokens": []}]})
+    )
+    (folder / "terms.yaml").write_text(
+        TERMS
+        + "  tilde:\n    text: t~x model\n    def: Odd.\n    target: sec:widgets\n"
+    )
+    source: str = '# W {#sec:widgets}\n\n::: {#fig:rows .generations src="odd.json"}\nCaption.\n:::\n'
+    tex: str = build(folder, "latex", source).stdout
+    for chip in (
+        "\\texttt{-\\/-}",
+        "\\texttt{\\textquotesingle{}\\textquotesingle{}}",
+        "\\texttt{\\textasciigrave{}}",
+        "\\texttt{a\\ b}",
+        "\\texttt{\\%\\ \\#\\textasciitilde{}\\textbackslash{}\\{\\}}",
+    ):
+        assert "\\hptok{" + chip + "}" in tex, chip
+    page: str = build(folder, "html5", source).stdout
+    assert (
+        ">t~x model</a>" in page
+    )  # a term in a label keeps every character on the page too
+
+
+def test_ref_is_the_number_alone(folder: Path) -> None:
+    source: str = (
+        "# One {#sec:one}\n\n## Two {#sec:two}\n\n# Plain {#sec:plain .unnumbered}\n\n"
+        "![A figure.](a.svg){#fig:f}\n\n"
+        "Section \\ref{sec:two}, Figure \\ref{fig:f}, \\ref{sec:plain}; \\autoref{sec:two}.\n"
+    )
+    result: subprocess.CompletedProcess[str] = build(folder, "html5", source)
+    assert result.returncode == 0, result.stderr
+    page: str = " ".join(result.stdout.split())
+    assert (
+        'Section <a href="#sec:two">1.1</a>, Figure <a href="#fig:f">1</a>, '
+        '<a href="#sec:plain">Plain</a>; <a href="#sec:two">Section 1.1</a>.' in page
+    )
+    tex: str = build(folder, "latex", source).stdout  # LaTeX's own \ref and \autoref
+    assert "Section \\ref{sec:two}, Figure \\ref{fig:f}" in tex
+    for level in (
+        "section",
+        "subsection",
+        "subsubsection",
+        "paragraph",
+        "subparagraph",
+    ):
+        assert f"\\def\\{level}autorefname{{Section}}" in tex
+
+
+def test_head_values_are_escaped(folder: Path) -> None:
+    result: subprocess.CompletedProcess[str] = subprocess.run(
+        ["pandoc", "--to", "html5", "--standalone", "--lua-filter", str(FILTER)]
+        + [
+            "-M",
+            'review_email=a"b&c@x.org',
+            "-M",
+            "title=T",
+            "-M",
+            'html_papers_dir=s"/',
+        ],
+        input="Text.\n",
+        cwd=folder,
+        env={**os.environ, "DOC_VERSION": 'v"1'},
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert 'data-review-email="a&quot;b&amp;c@x.org"' in result.stdout
+    assert '<script src="s&quot;/popups.js" defer></script>' in result.stdout
+    assert '<meta name="review-doc-version" content="v&quot;1">' in result.stdout
 
 
 def test_todo_and_date_lines(html: str) -> None:
@@ -302,9 +408,6 @@ def test_todo_and_date_lines(html: str) -> None:
 def test_latex_keeps_references_and_defines_terms(latex: str) -> None:
     assert "\\autoref{sec:widgets}" in latex and "\\term{widget}" in latex
     assert "\\@namedef{hp@term@widget}" in latex
-    assert (
-        "\\def\\subsectionautorefname{Section}" in latex
-    )  # reads as the web page does
     assert "\\begin{subfigure}" in latex and "\\label{fig:left}" in latex
     assert "\\usepackage{float}" in latex  # the document's own preamble is kept
     # nothing of a live figure reaches LaTeX, so a PDF build never fetches its page

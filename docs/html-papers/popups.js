@@ -20,18 +20,23 @@
  * it (and the hover notes it came from), with a × that closes it and every note opened from
  * it. A click on a citation, footnote mark or table-note cell pins or unpins directly. Notes
  * never overlap, an open note does not move when notes open from it, and a thin line joins
- * each note to its anchor. Without room for a margin (html-papers.css) the newest note shows
- * in a panel at the bottom, on a tap.
+ * each note to its anchor. A preview of a figure or table is scaled to fit its box, so it has
+ * no scrollbar.
+ *
+ * The margin is the page's side column (html-papers.css), and its left edge drags to resize
+ * it, remembered in this browser (a double click puts it back). On a touch screen, where no
+ * pointer rests on a link, one tap on a link opens its note, with the link itself inside.
+ * Without a side column (a phone) a note opens in the text, under the block its link is in.
  *
  * For the page's own scripts:
  * - `window.MarginNotes`: `show(key, anchor, html)` puts a note of the page's own beside an
  *   element, `hide(key)` removes it, `place()` lays the notes out again (after the page moved
- *   things), `narrow()` says whether the margin is the bottom panel;
+ *   things), `narrow()` says whether there is no margin (notes go in the text);
  * - a `popups:preview` event on document, `detail: {box, target}`, before a preview's copy is
  *   shown: change `box` to fix up the copy (drop an iframe, say);
  * - with review.js: everything added here is `data-doc-chrome` (not the document's text), each
- *   note is `data-doc-avoid` (comment lines pass behind it), and a `doclayout` event on
- *   document follows every layout.
+ *   note is `data-doc-avoid` (comment lines pass behind it), a pinned one `data-doc-reserve`
+ *   (comment cards keep clear of it), and a `doclayout` event on document follows every layout.
  */
 (function () {
   const CFG = (document.currentScript && document.currentScript.dataset) || {};
@@ -39,6 +44,8 @@
   const PREVIEW_MAX = 36;  // rem: a preview's width, where the window allows
   const REST = 120, REST_IN_TRANSIT = 450;  // ms the pointer rests on an anchor before its note opens
   const HOVER_BAND = 48;  // px above and below an anchor in which its hover note stays
+  const FIT_MIN = 0.3;  // a figure in a preview is scaled down to this, no further
+  const SIDE_MIN = 12, SIDE_MAX = 48;  // rem: how far the side column drags
 
   // What this script adds to the page is not the document's text: review.js skips it, and in
   // its Suggest mode, where the page is editable, it stays read-only.
@@ -56,8 +63,10 @@
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
   lines.append(path);
   document.body.append(margin, lines);
-  // no room for a margin: html-papers.css makes the notes a panel fixed at the bottom
-  const narrow = () => getComputedStyle(margin).position === 'fixed';
+  // no side column (a phone): html-papers.css hides the margin, and notes go in the text
+  const narrow = () => getComputedStyle(margin).display === 'none';
+  // no pointer that can rest on a link (a touch screen): a tap opens its note
+  const TOUCH = matchMedia('(hover: none)');
 
   // every link in the bibliography or a note opens in a new tab: the reader keeps their place
   document.addEventListener('click', (event) => {
@@ -65,7 +74,8 @@
     if (a && /^https?:/.test(a.getAttribute('href'))) { a.target = '_blank'; a.rel = 'noopener'; }
   }, true);
 
-  const notes = () => [...margin.children];
+  const open = [];  // every note on the page, oldest first: in the margin or (narrow) in the text
+  const notes = () => open.slice();
   const isHover = (n) => n.dataset.key === 'hover';
   const isPreview = (n) => n.classList.contains('preview');
   const hovers = () => notes().filter(isHover);
@@ -77,9 +87,10 @@
   // Each note sits level with its anchor, pushed down past the notes above; a note opened from
   // a note goes right below it (and its earlier children).
   function place() {
-    const all = notes();
-    if (narrow()) {
-      for (const n of all) { n.style.width = ''; n.style.maxHeight = ''; }
+    const all = notes(), inText = narrow();
+    for (const n of all) if (n.classList.contains('inline') !== inText) home(n);  // the window changed
+    if (inText) {
+      for (const n of all) { n.style.width = ''; n.style.maxHeight = ''; n.style.top = ''; fit(n, Infinity); }
       draw();
       return;
     }
@@ -120,12 +131,46 @@
           }
         }
         n.style.maxHeight = Math.min(n.cap, n.cut) + 'px';
+        fit(n, Math.min(n.cap, n.cut));
       }
       floor = top + n.offsetHeight + 10;
       k.forEach(put);
     }
     roots.sort(byY).forEach(put);
     draw();
+  }
+  // A figure or table in a preview (.preview-fit, as wide as it is in the text) is scaled to
+  // the note: to its width, then down to FIT_MIN to the height the note may take, so it has no
+  // scrollbar. Its caption keeps the note's size (html-papers.css) and wraps again at each
+  // scale, so the height takes a few steps.
+  function fit(n, maxHeight) {
+    const box = n.querySelector(':scope > .preview-fit');
+    if (!box) return;
+    const cs = getComputedStyle(n);
+    const inner = n.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    let scale = Math.min(1, inner / parseFloat(box.style.width));
+    for (let i = 0; i < 5; i++) {
+      box.style.setProperty('--fit', scale.toFixed(3));
+      if (scale <= FIT_MIN || n.scrollHeight <= maxHeight + 1) break;
+      scale = Math.max(FIT_MIN, scale * 0.97 * maxHeight / n.scrollHeight);
+    }
+  }
+  // Where a note lives: the margin or, without one, the text, under the block its anchor is in
+  // (after earlier notes of that block; inside a list item; after the whole figure or table
+  // for an anchor in a caption or a cell). A note opened from a note stays inside that note.
+  function home(n) {
+    const inText = narrow();
+    n.classList.toggle('inline', inText);
+    if (!inText) { margin.append(n); return; }
+    const a = n.anchor, parent = n.parentNote;
+    const within = (el) => el && (!parent || parent.contains(el));
+    let block = a.closest('p, li, dd, blockquote, pre, h1, h2, h3, h4, h5, h6, figure, table');
+    for (let f = a.closest('figure, table'); within(f); f = f.parentElement.closest('figure, table')) block = f;
+    if (!within(block)) { if (parent) parent.append(n); else a.after(n); return; }
+    if (block.matches('li, dd')) { block.append(n); return; }
+    let at = block;
+    while (at.nextElementSibling && at.nextElementSibling.matches('.margin-note.inline')) at = at.nextElementSibling;
+    at.after(n);
   }
   // From the text: under the anchor to the gap between text and margin, down, into the note.
   // From a note: under the anchor to the left of that note, down, into the child note.
@@ -174,19 +219,21 @@
     n.linked = !!opts.linked;
     n.innerHTML = html;
     if (closable) addClose(n);
-    margin.append(n);  // last = newest, which the narrow layout shows
+    if (key !== 'hover') n.setAttribute('data-doc-reserve', '');  // review.js's cards keep clear of it
+    open.push(n);
+    home(n);
     resized.observe(n);
     place();
     return n;
   }
   // take notes, and every note opened from them, off the page
   function drop(list) {
-    for (const n of list) for (const m of tree(n)) { resized.unobserve(m); m.remove(); }
+    for (const n of list) for (const m of tree(n)) { resized.unobserve(m); m.remove(); open.splice(open.indexOf(m), 1); }
     place();
   }
   const hide = (key) => drop(notes().filter((c) => c.dataset.key === key));
   function pinNote(n) {
-    for (let m = n; m; m = m.parentNote) if (isHover(m)) { m.dataset.key = m.pinKey; addClose(m); }
+    for (let m = n; m; m = m.parentNote) if (isHover(m)) { m.dataset.key = m.pinKey; m.setAttribute('data-doc-reserve', ''); addClose(m); }
     place();
   }
 
@@ -208,6 +255,7 @@
     return cell && cell.querySelector('.cell-note') ? cell : null;
   }
   const escape = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const HEADING = /^H[1-6]$/;
   // the note's html and class, or null when the anchor has none
   function content(a) {
     if (a.matches('.citation')) {
@@ -231,14 +279,18 @@
     }
     const target = document.getElementById(decodeURIComponent(a.getAttribute('href').slice(1)));
     if (!target || target.contains(a) || !target.matches(PREVIEWABLE)) return null;
-    return { html: preview(target), cls: 'preview' };
+    // a figure or table keeps the width it has in the text, scaled to the note (fit); a
+    // section is text, and flows at the note's width
+    const width = HEADING.test(target.tagName) ? 0 : Math.round(target.getBoundingClientRect().width);
+    const html = preview(target);
+    return { html: width ? '<div class="preview-fit" style="width:' + width + 'px">' + html + '</div>' : html, cls: 'preview' };
   }
   // has a note: open now, or one to make
   const hasNote = (a) => hovers().some((n) => n.anchor === a) || shown(keyOf(a)) || !!content(a);
   // the anchor's hover note, replacing the hover notes outside the chain it is in; nothing if
   // its note is already pinned
   function hover(a) {
-    if (narrow() || hovers().some((n) => n.anchor === a) || shown(keyOf(a))) return;
+    if (narrow() || TOUCH.matches || hovers().some((n) => n.anchor === a) || shown(keyOf(a))) return;
     const c = content(a);
     if (!c) return;
     const parent = a.closest('.margin-note'), keep = new Set();
@@ -277,11 +329,13 @@
       clickPin(a);
       return;
     }
-    // Without a margin (no hover) a tap on a term opens its definition, with the link the tap
-    // would have followed, instead of jumping there. Cross-references just go.
-    if (a && a.matches('a.term') && narrow() && hasNote(a)) {
+    // Without a pointer to rest on a link (a touch screen), or without a side column (a phone),
+    // one tap on a term or a cross-reference opens its note, with the link the tap would have
+    // followed inside it, instead of jumping there. A second tap closes the note.
+    if (a && a.matches('a[href^="#"]') && (narrow() || TOUCH.matches) && hasNote(a)) {
       event.preventDefault();
-      clickPin(a, ' <a class="note-more" href="' + escape(a.getAttribute('href')).replace(/"/g, '&quot;') + '">Go to the section ›</a>');
+      const label = a.matches('a.term') ? 'Go to the section' : 'Go to ' + escape(a.textContent.trim());
+      clickPin(a, ' <a class="note-more" href="' + escape(a.getAttribute('href')).replace(/"/g, '&quot;') + '">' + label + ' ›</a>');
       return;
     }
     // a click on a hover note, not on a link or button in it, pins it
@@ -339,13 +393,13 @@
   });
 
   // A cross-reference's preview: a copy of the target.
-  const HEADING = /^H[1-6]$/;
   function preview(target) {
     const box = document.createElement('div');
     if (HEADING.test(target.tagName)) {
       const level = Number(target.tagName[1]), subs = [];
       box.append(target.cloneNode(true));
       for (let el = target.nextElementSibling; el && !(HEADING.test(el.tagName) && Number(el.tagName[1]) <= level); el = el.nextElementSibling) {
+        if (el.matches('.margin-note')) continue;  // a note open in the text is not the section's
         if (el.matches('[data-doc-chrome], #rv-host, .footnotes, script')) break;  // the page's furniture, at the end
         if (HEADING.test(el.tagName)) subs.push(el);
         else if (!subs.length) box.append(el.cloneNode(true));
@@ -365,10 +419,54 @@
       }
     } else box.append(target.cloneNode(true));
     document.dispatchEvent(new CustomEvent('popups:preview', { detail: { box, target } }));  // the page's own fix-ups
+    box.querySelectorAll('.margin-note').forEach((e) => e.remove());  // notes open in the text: not the target's
     box.querySelectorAll('[id]').forEach((e) => e.removeAttribute('id'));
     box.querySelectorAll('.rv-ins').forEach((e) => e.remove());  // review.js's suggested insertions: not the text
     return box.innerHTML;
   }
+
+  // The side column's left edge drags (--side, html-papers.css), remembered in this browser; a
+  // double click puts it back. Text and column are centred together, so the edge moves less
+  // than the width changes: a few steps bring it under the pointer.
+  const handle = chrome(document.createElement('div'));
+  handle.id = 'side-handle';
+  handle.className = 'col-handle';
+  handle.setAttribute('role', 'separator');
+  handle.setAttribute('aria-orientation', 'vertical');
+  handle.setAttribute('aria-label', 'Resize the notes column');
+  handle.title = 'Drag to resize; double click to reset';
+  document.body.append(handle);
+  const rem = () => parseFloat(getComputedStyle(root).fontSize);
+  const setSide = (px) => root.style.setProperty('--side', Math.max(SIDE_MIN, Math.min(SIDE_MAX, px / rem())).toFixed(2) + 'rem');
+  const remember = (value) => { try { value ? localStorage.setItem('side-width', value) : localStorage.removeItem('side-width'); } catch (e) { /* no storage: not remembered */ } };
+  try { const saved = parseFloat(localStorage.getItem('side-width')); if (saved) setSide(saved * rem()); } catch (e) { /* the default */ }
+  handle.addEventListener('pointerdown', (event) => {
+    if (event.button) return;
+    event.preventDefault();
+    handle.setPointerCapture(event.pointerId);
+    handle.classList.add('dragging');
+    root.classList.add('col-dragging');
+    const move = (e) => {
+      for (let i = 0; i < 6; i++) {
+        const r = handle.getBoundingClientRect(), off = (r.left + r.right) / 2 - e.clientX, before = margin.offsetWidth;
+        if (Math.abs(off) < 1) break;
+        setSide(before + off);
+        if (margin.offsetWidth === before) break;  // as wide, or as narrow, as it goes
+      }
+      place();
+    };
+    const up = () => {
+      handle.removeEventListener('pointermove', move);
+      handle.classList.remove('dragging');
+      root.classList.remove('col-dragging');
+      setSide(margin.offsetWidth);  // what it came to, not what was asked for
+      remember((margin.offsetWidth / rem()).toFixed(2));
+    };
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', up, { once: true });
+    handle.addEventListener('pointercancel', up, { once: true });
+  });
+  handle.addEventListener('dblclick', () => { root.style.removeProperty('--side'); remember(null); place(); });
 
   window.MarginNotes = {
     show: (key, anchor, html) => show(key, anchor, html, false),

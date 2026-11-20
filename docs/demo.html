@@ -294,7 +294,7 @@ src="mermaid-images/6b7ed204e608e78bdb28298f700be677fc4b96f9.svg" /></p>
 <h3 id="structure">Structure</h3>
 <pre><code>pandoc-utils/
 |-- pandoc_md_pdf.sh                # markdown -&gt; LaTeX -&gt; PDF pipeline
-|-- Makefile                        # install, test, check-deps targets
+|-- Makefile                        # dep-install, dep-check, test, demo targets
 |-- pyproject.toml                  # Python deps managed via uv
 |-- markdown_get_defaults_yaml.py   # (internal) extract pandoc config from YAML front matter
 |-- filters/
@@ -402,12 +402,13 @@ alignment and widths, auto-numbering, and horizontal orientation
 support.</p>
 <h3 id="html-papers">HTML papers</h3>
 <p><a href="html-papers/README.md"><code>html-papers/</code></a> builds
-a paper written in markdown as a web page with notes and previews in the
-margin (citations, footnotes, terms, cross-references), a contents
-sidebar, live figures, bibliography links, and a review mode for
-comments and suggested edits; the same source builds the PDF. A filter,
-two stylesheets, five drop-in scripts, and a script that maps reviewers’
-comments back to lines of the source.</p>
+a paper written in markdown as a web page with three columns: the
+contents, the text, and a side column with notes and previews
+(citations, footnotes, terms, cross-references) and, in review mode,
+comments and suggested edits. The columns resize, and on a phone the
+notes open in the text. Figures can be live. The same source builds the
+PDF. A filter, two stylesheets, five drop-in scripts, and a script that
+maps reviewers’ comments back to lines of the source.</p>
 <p>The demo is <a
 href="https://mivanit.github.io/pandoc-utils/html-papers/">a paper that
 builds itself</a>: its build runs its experiment and prints the code
@@ -419,7 +420,7 @@ class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="
 <p>Dependencies are managed via <code>Makefile</code> and
 <code>pyproject.toml</code>:</p>
 <div class="sourceCode" id="cb8"><pre
-class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> install       <span class="co"># install system (apt), npm, and Python (uv) deps</span></span>
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> dep-install   <span class="co"># install system (apt), npm, and Python (uv) deps</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> dep-check     <span class="co"># verify all required binaries are available</span></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> test          <span class="co"># run pytest</span></span>
 <span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> test-html     <span class="co"># html-papers/ in headless Chromium (once: uv run playwright install chromium)</span></span></code></pre></div>

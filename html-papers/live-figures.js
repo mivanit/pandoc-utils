@@ -14,17 +14,23 @@
  * The static image shows until clicked, so nothing loads from the live page's host before
  * that. The click swaps the image for an iframe of `data-embed`; a note beside it (in the
  * margin, with popups.js; else under the frame) has "Open the full page" and "Back to the
- * static figure". With `data-width` the frame renders at that width and is scaled down to the
+ * static figure". The frame and the note are `data-doc-chrome`: not the document's text. With `data-width` the frame renders at that width and is scaled down to the
  * column, so the live figure matches the static one. The framed page can report its height
- * with `parent.postMessage({embedHeight: px}, '*')`. Without room for a margin the live figure
- * opens in a screen-wide panel over the page instead.
+ * with `parent.postMessage({embedHeight: px}, '*')`. Without a side column (a phone) the live
+ * figure opens in a screen-wide panel over the page instead.
  *
  * A preview of the figure (popups.js) shows the static image even while it is live.
  */
 (function () {
   const attr = (s) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
   const notes = () => window.MarginNotes;  // popups.js, if loaded
-  const narrow = () => (notes() ? notes().narrow() : matchMedia('(width < 56rem)').matches);
+  // what this script adds is not the document's text (review.js, popups.js)
+  function chrome(el) {
+    el.setAttribute('data-doc-chrome', '');
+    el.setAttribute('contenteditable', 'false');
+    return el;
+  }
+  const narrow = () => (notes() ? notes().narrow() : matchMedia('(width < 760px)').matches);
   function fit(wrap) {
     const frame = wrap.firstChild, width = Number(wrap.dataset.width);
     const scale = width ? Math.min(1, wrap.clientWidth / width) : 1;
@@ -33,7 +39,7 @@
     wrap.style.height = Math.ceil(frame.height * scale) + 'px';
   }
   function liveFrame(fig) {
-    const wrap = document.createElement('div');
+    const wrap = chrome(document.createElement('div'));
     wrap.className = 'interactive-wrap';
     if (fig.dataset.width) wrap.dataset.width = fig.dataset.width;
     const frame = document.createElement('iframe');
@@ -56,8 +62,7 @@
     closeSheet();
     sheet = document.createElement('div');
     sheet.className = 'figure-sheet';
-    sheet.setAttribute('data-doc-chrome', '');  // not the document's text (review.js, popups.js)
-    sheet.setAttribute('contenteditable', 'false');
+    chrome(sheet);
     sheet.setAttribute('role', 'dialog');
     sheet.setAttribute('aria-label', 'Interactive figure');
     sheet.innerHTML = '<div class="sheet-bar"><a class="open-full" href="' + attr(fig.dataset.link || fig.dataset.embed) + '" target="_blank" rel="noopener">Open the full page ↗</a>'
@@ -91,7 +96,7 @@
       let bar;
       if (notes()) bar = notes().show('live:' + i, wrap, html);
       else {
-        bar = document.createElement('div');
+        bar = chrome(document.createElement('div'));
         bar.className = 'live-bar';
         bar.innerHTML = html;
         wrap.after(bar);

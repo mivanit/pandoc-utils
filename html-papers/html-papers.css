@@ -1,37 +1,82 @@
-/* Layout for a paper as a web page: a text column (body), a right margin for notes
-   (popups.js), a contents sidebar at the left (contents.js), and room for review.js's comment
-   column. Load it before the page's own stylesheet, which sets type, colours and the rest.
+/* Layout for a paper as a web page: three columns. Contents at the left (contents.js), the
+   text (body), and a side column at the right for notes and previews (popups.js) and for
+   comments (review.js). The two outer columns can be dragged wider or narrower. Load it before
+   the page's own stylesheet, which sets type, colours and the rest.
    From https://github.com/mivanit/pandoc-utils, html-papers/.
 
-   Shared between the three scripts and this file:
-   - on <html>: --text, --gap, --note, --toc (widths, here); --review-width and .review-on
-     (review.js); .toc-pinned and .toc-open (contents.js);
-   - data-doc-chrome on anything a script adds to the page (not the document's text);
-   - data-doc-avoid on a box that review.js's comment lines pass behind;
-   - a `doclayout` event on document after such boxes move.
-   The breakpoints live only here: popups.js reads the layout it finds (is the notes column a
-   bottom panel?) instead of repeating them. */
+   By window width:
+   - from 62rem: all three columns (the contents can be unpinned to a tab at the edge);
+   - from 760px: text and side column; the contents slide over the text;
+   - below 760px (a phone): the text alone. A tap on a link opens its note in the text, under
+     the paragraph; the contents open from a button, or a swipe to the right.
 
-/* text column + a right margin for notes */
-:root { --text: 44rem; --gap: 2.5rem; --note: 17rem; --toc: 16rem; }
+   Shared between the scripts and this file:
+   - on <html>: --toc and --side (the outer columns' widths, set by dragging), --gap, --pad,
+     --text-min, --text-max (here); .toc-pinned and .toc-open (contents.js); .review-on
+     (review.js);
+   - --doc-side-left and --doc-side-width (here): where the side column is. review.js puts its
+     comments there instead of in a column of its own;
+   - data-doc-chrome on anything a script adds to the page (not the document's text);
+   - data-doc-avoid on a box that review.js's comment lines pass behind, data-doc-reserve on
+     one its comment cards keep clear of (a pinned note);
+   - a `doclayout` event on document after such boxes move.
+   The breakpoints live only here: popups.js reads the layout it finds (is there a side
+   column?) instead of repeating them. */
+
+:root {
+  --toc: 15rem;       /* contents column: drag its right edge */
+  --side: 20rem;      /* side column: drag its left edge */
+  --gap: 2.5rem;      /* between the text and the side column */
+  --pad: 1.5rem;      /* the text's own side padding */
+  --text-min: 22rem;
+  --text-max: 44rem;
+  /* worked out below */
+  --toc-w: 0rem;      /* the contents column while it is docked, else nothing */
+  --side-w: 0rem;     /* the side column where there is one */
+  --text: var(--text-max);
+}
 body {
   position: relative;
   max-width: var(--text);
   margin: 0 auto;
-  padding: 2rem 1.5rem;
+  padding: 2rem var(--pad);
 }
-/* With room for the margin, the text sits left of centre; as the window narrows (or the
-   browser zooms in) the text column gives way first (44rem down to 30rem), so the margin
-   lasts down to 56rem. Review mode has its own widths (below). */
-@media (width >= 56rem) {
-  html:not(.review-on) { --text: clamp(30rem, calc(100vw - var(--gap) - var(--note) - 7rem), 44rem); }
-  html:not(.review-on) body { margin-left: max(2rem, calc((100vw - var(--text) - var(--gap) - var(--note)) / 2)); }
+/* Text and side column, centred as one in what the contents leave. The side column is as wide
+   as it was dragged while the text has its full width beside it. With less room than that it
+   takes at most 36% of what the two share, so both narrow together with the window; it stops
+   at 12rem, the text at --text-min. Whatever widths were dragged, the three fit. The 2rem is
+   the least margin left and right. */
+@media (width >= 760px) {
+  :root {
+    --fixed: calc(var(--gap) + 2 * var(--pad) + 2rem);
+    --room: calc(100vw - var(--toc-w) - var(--fixed));  /* for the text and the side column */
+    --side-w: max(12rem, min(var(--side), max(calc(var(--room) * 0.36), calc(var(--room) - var(--text-max))), calc(var(--room) - var(--text-min))));
+    --text: clamp(var(--text-min), calc(var(--room) - var(--side-w)), var(--text-max));
+    --body-left: calc(var(--toc-w) + max(1rem, (100vw - var(--toc-w) - var(--text) - var(--side-w) - var(--gap) - 2 * var(--pad)) / 2));
+    --doc-side-left: calc(var(--body-left) + var(--text) + 2 * var(--pad) + var(--gap));
+    --doc-side-width: var(--side-w);
+  }
+  body { margin-left: var(--body-left); margin-right: 0; }
 }
+@media (width >= 62rem) {
+  html.toc-pinned { --toc-w: clamp(10rem, var(--toc), 24vw); }
+}
+@media (max-width: 600px) { :root { --pad: 1rem; } body { padding-top: 1rem; padding-bottom: 1rem; } }
 
-/* contents sidebar (contents.js): a thin tab at the left edge; the panel slides out while the
-   pointer is left of the text (or on the tab), or stays out when pinned. Pinned, the text
-   moves right of it (narrowing, as above); where even that has no room (below 71rem, e.g.
-   zoomed in), the pin waits and the panel only slides out, so it never covers the text. */
+/* the edges that drag (contents.js, popups.js): a faint line, stronger under the pointer */
+.col-handle { width: 9px; cursor: col-resize; z-index: 21; touch-action: none; display: none; }
+.col-handle::after { content: ''; position: absolute; top: 0; bottom: 0; left: 4px; width: 1px; background: #eceef1; }
+.col-handle:hover::after, .col-handle.dragging::after { left: 3px; width: 3px; background: #9aa7bd; }
+html.col-dragging, html.col-dragging * { cursor: col-resize !important; user-select: none !important; }
+#toc-handle { position: fixed; top: 0; bottom: 0; left: calc(var(--toc-w) - 5px); }
+#side-handle { position: absolute; top: 0; bottom: 0; left: calc(100% + var(--gap) / 2 - 4px); }
+@media (width >= 760px) { #side-handle { display: block; } }
+@media (width >= 62rem) { html.toc-pinned #toc-handle { display: block; } }
+
+/* contents (contents.js): pinned, the left column. Unpinned, or where there is no room for
+   three columns (below 62rem, e.g. zoomed in), a thin tab at the left edge: the panel slides
+   out over the page while the pointer is left of the text or on the tab. On a phone the tab is
+   a round button at the bottom, and a swipe to the right opens the panel too. */
 #toc-tab {
   position: fixed; left: 0; top: 0; bottom: 0; width: 1.1rem; z-index: 19;
   border: 0; border-right: 1px solid #e4e6ea; padding: 0; background: #fafbfc; cursor: pointer;
@@ -40,7 +85,7 @@ body {
 #toc-tab span { display: inline-block; writing-mode: vertical-rl; transform: rotate(180deg); }
 #toc-tab:hover { background: #f0f2f5; color: #444; }
 #toc-nav {
-  position: fixed; left: 0; top: 0; bottom: 0; width: var(--toc); z-index: 20; box-sizing: border-box;
+  position: fixed; left: 0; top: 0; bottom: 0; width: min(var(--toc), 86vw); z-index: 20; box-sizing: border-box;
   overflow-y: auto; padding: 1rem 0.9rem 2rem 1rem; background: #fafbfc; border-right: 1px solid #dde0e5;
   font-size: 0.82rem; line-height: 1.35; transform: translateX(-100%); transition: transform 0.15s ease;
 }
@@ -61,15 +106,22 @@ body {
 #toc-nav li.toc-h3 a { padding-left: 2.4rem; }
 #toc-nav a.current { background: #e4e9f2; color: #111; }
 .toc-num { color: #888; font-variant-numeric: tabular-nums; margin-right: 0.15rem; }
-@media (width >= 71rem) {
-  html.toc-pinned:not(.review-on) #toc-nav { transform: none; box-shadow: none; }
-  html.toc-pinned:not(.review-on) { --text: clamp(30rem, calc(100vw - var(--toc) - var(--gap) - var(--note) - 9rem), 44rem); }
-  html.toc-pinned:not(.review-on) body { margin-left: max(calc(var(--toc) + 2rem), calc((100vw - var(--text) - var(--gap) - var(--note)) / 2)); }
+@media (width >= 62rem) {
+  html.toc-pinned #toc-nav { transform: none; box-shadow: none; width: var(--toc-w); transition: none; }
 }
-@media print { #toc-tab, #toc-nav, #margin-notes, #note-lines { display: none; } }
+@media (width < 760px) {
+  #toc-tab {
+    top: auto; bottom: 0.9rem; left: 0.9rem; width: 2.6rem; height: 2.6rem; border: 1px solid #d5d9e0;
+    border-radius: 50%; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.18); font-size: 1.1rem; letter-spacing: 0; color: #444;
+  }
+  #toc-tab span { display: none; }
+  #toc-tab::before { content: '\2630'; }
+  html.review-on #toc-tab { bottom: calc(45vh + 0.9rem); }  /* above review.js's sheet */
+}
+@media print { #toc-tab, #toc-nav, #margin-notes, #note-lines, .col-handle { display: none; } }
 
 /* margin notes (popups.js) */
-#margin-notes { position: absolute; top: 0; left: calc(100% + var(--gap)); width: var(--note); }
+#margin-notes { position: absolute; top: 0; left: calc(100% + var(--gap)); width: var(--side-w); }
 .margin-note {
   position: absolute; left: 0; right: 0;
   font-size: 0.82rem; line-height: 1.45; color: #444;
@@ -93,6 +145,11 @@ body {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12); font-size: 0.78rem; color: #333;
 }
 .preview .note-close { position: sticky; top: 0; }
+/* a figure or table in a preview: laid out as wide as it is in the text, then scaled to the
+   box (popups.js fit), so it reads as it does there and needs no scrollbar; its caption stays
+   at the note's own size */
+.preview-fit { zoom: var(--fit, 1); }
+.preview-fit > figure > figcaption { zoom: calc(1 / var(--fit, 1)); }
 .preview h1, .preview h2, .preview h3, .preview h4 { font-size: 1.05rem; margin: 0.2rem 0 0.4rem; }
 .preview figure { margin: 0.3rem 0; }
 .preview table { margin: 0.3rem 0; font-size: 1em; }
@@ -131,37 +188,19 @@ button.open-full { background: white; color: #3b5a8c; font: inherit; cursor: poi
 .sheet-bar .open-full { margin: 0; }
 body.sheet-open { overflow: hidden; }
 
-/* review mode (review.js: html.review-on, its comment column --review-width wide at the right):
-   text and notes move clear of the column; the text narrows when there is not room for all three */
-@media (width >= 70rem) {
-  html.review-on { --text: clamp(24rem, calc(100vw - var(--review-width) - var(--gap) - var(--note) - 7rem), 44rem); }
-  html.review-on body { margin-left: max(2rem, calc((100vw - var(--review-width) - var(--text) - var(--gap) - var(--note)) / 2)); }
-}
-/* review mode with the contents pinned: room for contents, text (24rem+), notes and comments
-   from 88rem; below that the pin waits, as above */
-@media (width >= 88rem) {
-  html.review-on.toc-pinned #toc-nav { transform: none; box-shadow: none; }
-  html.review-on.toc-pinned { --text: clamp(24rem, calc(100vw - var(--review-width) - var(--toc) - var(--gap) - var(--note) - 9rem), 44rem); }
-  html.review-on.toc-pinned body { margin-left: max(calc(var(--toc) + 2rem), calc((100vw - var(--review-width) - var(--text) - var(--gap) - var(--note)) / 2)); }
-}
-@media (width < 70rem) {
-  html.review-on body { margin-right: calc(var(--review-width) + 1rem); }
-  /* above review.js's layer (2147483000): on a phone its bottom sheet is in the same place,
-     and the note just asked for goes on top until closed */
-  html.review-on #margin-notes { position: fixed; top: auto; left: 0; right: var(--review-width); bottom: 0; width: auto; max-height: 45vh; overflow-y: auto; z-index: 2147483001; background: #fafafa; border-top: 1px solid #d5d9e0; box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15); }
-  html.review-on #margin-notes:empty, html.review-on #note-lines { display: none; }
-  html.review-on .margin-note { position: static; border: 0; padding: 0.9rem 1rem 1.1rem; font-size: 0.95rem; }
-  html.review-on .note-close { font-size: 1.4rem; padding: 0 0 0.4rem 0.8rem; }
-  html.review-on .margin-note:not(:last-child) { display: none; }
-}
+/* review mode (review.js: html.review-on): its comment cards share the side column. A hover
+   note goes over them; a pinned one they move clear of (data-doc-reserve) */
+html.review-on #margin-notes { z-index: 2147483001; }  /* above review.js's layer (2147483000) */
+html.review-on .margin-note { background: white; box-shadow: 0 1px 8px rgba(0, 0, 0, 0.14); padding-right: 0.5rem; }
 
-@media (width < 56rem) {
-  /* no room for a margin: the newest note in a panel at the bottom (same in review mode
-     below 70rem, above) */
-  #margin-notes { position: fixed; top: auto; left: 0; right: 0; bottom: 0; width: auto; max-height: 45vh; overflow-y: auto; z-index: 5; background: #fafafa; border-top: 1px solid #d5d9e0; box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15); }
-  #margin-notes:empty, #note-lines { display: none; }
-  .margin-note { position: static; border: 0; padding: 0.9rem 1rem 1.1rem; font-size: 0.95rem; }
-  .note-close { font-size: 1.4rem; padding: 0 0 0.4rem 0.8rem; }
-  .margin-note:not(:last-child) { display: none; }
+/* a phone: no side column. A note goes in the text, under the block its link is in (popups.js) */
+@media (width < 760px) {
+  #margin-notes, #note-lines { display: none; }
 }
-@media (max-width: 600px) { body { padding: 1rem; } }
+.margin-note.inline {
+  position: static; margin: 0.6rem 0 0.9rem; padding: 0.6rem 0.8rem; box-sizing: border-box;
+  background: #f7f8fa; border: 1px solid #e1e4e9; border-left: 3px solid #b9c2d0; border-radius: 4px;
+  font-size: 0.9rem; text-align: left; font-weight: normal; font-style: normal;
+}
+.margin-note.inline.preview { max-height: none; overflow: visible; box-shadow: none; }
+.margin-note.inline .note-close { font-size: 1.4rem; padding: 0 0 0.4rem 0.8rem; position: static; }

@@ -1,4 +1,9 @@
-"""Shared fixtures: the demo paper, built once per test run."""
+"""The demo paper, built once per test run. A test module that needs it says
+`pytest_plugins = ["hp_fixtures"]`.
+
+Not a conftest.py: the repository's other test folder has one, and its tests import from it by
+name, so a second module called conftest breaks a run of both folders together.
+"""
 
 import os
 import shutil
@@ -7,13 +12,7 @@ from pathlib import Path
 
 import pytest
 
-HTML_PAPERS: Path = Path(__file__).parent.parent
-REPO: Path = HTML_PAPERS.parent
-SHARED: list[str] = [
-    *sorted(p.name for p in HTML_PAPERS.glob("*.js")),
-    *sorted(p.name for p in HTML_PAPERS.glob("*.css")),
-    "numeric.csl",
-]
+from hp_paths import HTML_PAPERS, REPO, SHARED
 
 
 @pytest.fixture(scope="session")

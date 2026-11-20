@@ -16,6 +16,9 @@ tests/.temp/
 # demo (docs/ is the GitHub Pages site)
 docs/**
 !docs/demo.*
+!docs/demo_pipeline.svg
+!docs/mermaid-images/
+!docs/mermaid-images/*.svg
 !docs/index.html
 !docs/.nojekyll
 !docs/html-papers/

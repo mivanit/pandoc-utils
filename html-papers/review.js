@@ -39,8 +39,11 @@
  * Layout. Each comment sits in a column at the right, level with its text and joined to it
  * by a line. While review mode is on, `<html>` has the class `review-on` and the property
  * `--review-width` (the column's width), so the page can move its own content clear of it.
- * Lines pass behind the page's boxes marked `data-doc-avoid` (redrawn on a `doclayout`
- * event on document).
+ * A page with a side column of its own says where it is with `--doc-side-left` and
+ * `--doc-side-width` on `<html>` (lengths; html-papers.css does): the comments then go in that
+ * column, and `--review-width` is 0.
+ * Lines pass behind the page's boxes marked `data-doc-avoid`, and cards keep clear of those
+ * marked `data-doc-reserve` (both laid out again on a `doclayout` event on document).
  * Below 760px the cards go in a bottom sheet instead. The panel lives in a shadow root, so
  * page styles do not reach it.
  *
@@ -174,11 +177,13 @@
 	// The page's own scripts can mark what they add without configuring this one:
 	// `data-doc-chrome` on an element = not document text (as data-review-ignore);
 	// `data-doc-avoid` = a box (a margin note, say) that comment lines pass behind, not
-	// through. A page that moves such boxes dispatches `doclayout` on document to redraw them.
+	// through; `data-doc-reserve` = a box that cards keep clear of (a pinned note in the
+	// column the cards share). A page that moves such boxes dispatches `doclayout` on document.
 	const OUTSIDE =
 		"script,style,noscript,template,annotation,#rv-host,[data-doc-chrome]" +
 		(CFG.ignore ? "," + CFG.ignore : "");
 	const AVOID = "[data-doc-avoid]";
+	const RESERVE = "[data-doc-reserve]";
 	const SKIP = OUTSIDE + ",.rv-ins"; // not document text: also our own inserted-text spans
 	const OTHER_COLORS = [
 		"#7fb3ff",
@@ -935,7 +940,7 @@ input, textarea { font: inherit; color: #222; border: 1px solid #ccc; border-rad
 .layer path { fill: none; stroke: #c9c9c9; stroke-width: 1; }
 .layer path.active { stroke: #f0a000; stroke-width: 1.5; }
 .layer circle { fill: #c9c9c9; } .layer circle.active { fill: #f0a000; }
-.layer .card { position: absolute; left: var(--x0); width: ${COLUMN - 16}px; }
+.layer .card { position: absolute; left: var(--x0); width: var(--cw, ${COLUMN - 16}px); }
 .card { pointer-events: auto; background: #fff; border: 1px solid #e0e0e0; border-left: 4px solid #f2c200; border-radius: 6px;
   padding: 6px 8px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
 .card.suggestion { border-left-color: #e05252; }
@@ -1508,21 +1513,49 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 	}
 
 	/**
-	 * Place the cards in the column: each level with its text, pushed down past the card above,
-	 * with a line from the text's line to it. Narrow screens: the bottom sheet, no lines.
+	 * The page's own side column, if it declares one (`--doc-side-left`, `--doc-side-width` on
+	 * <html>): measured with an empty box placed by those properties.
+	 * @returns {{left: number, width: number}|null} in page coordinates; null without one
+	 */
+	let sideProbe = null;
+	function sideColumn() {
+		if (!sideProbe) {
+			sideProbe = document.createElement("div");
+			sideProbe.setAttribute("data-doc-chrome", "");
+			sideProbe.setAttribute("aria-hidden", "true");
+			sideProbe.style.cssText =
+				"position:absolute;top:0;height:0;visibility:hidden;pointer-events:none;" +
+				"left:var(--doc-side-left);width:var(--doc-side-width)";
+		}
+		if (!sideProbe.isConnected) document.documentElement.append(sideProbe);
+		const r = sideProbe.getBoundingClientRect();
+		return r.width >= 120 ? { left: r.left + scrollX, width: r.width } : null;
+	}
+	/** Tell the page how much room the comments need beside it: none in its own side column. */
+	function reserveWidth() {
+		const own = innerWidth >= NARROW && !sideColumn();
+		document.documentElement.style.setProperty(
+			"--review-width",
+			own ? COLUMN + "px" : "0px",
+		);
+	}
+
+	/**
+	 * Place the cards in the column: each level with its text, pushed down past the card above
+	 * and clear of the page's reserved boxes, with a line from the text's line to it. Narrow
+	 * screens: the bottom sheet, no lines.
 	 */
 	function layout() {
 		if (!on) return;
 		const wide = innerWidth >= NARROW;
 		panel.classList.toggle("sheet", !wide);
 		layer.hidden = !wide;
-		document.documentElement.style.setProperty(
-			"--review-width",
-			wide ? COLUMN + "px" : "0px",
-		);
+		reserveWidth();
 		if (!wide) return;
+		const side = sideColumn();
 		const cw = document.documentElement.clientWidth,
-			x0 = cw - COLUMN + 8,
+			x0 = side ? side.left : cw - COLUMN + 8,
+			cardWidth = side ? side.width - 4 : COLUMN - 16,
 			sy = scrollY;
 		const rootBox = idx.root.getBoundingClientRect(),
 			rootPad = parseFloat(getComputedStyle(idx.root).paddingRight) || 0;
@@ -1555,6 +1588,13 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 			return x < x1 ? d + `M${x},${y} H${x1}` : d + `M${x1},${y}`;
 		};
 		layer.style.setProperty("--x0", x0 + "px");
+		layer.style.setProperty("--cw", cardWidth + "px");
+		// the page's boxes in the cards' column that cards keep clear of (RESERVE)
+		const reserved = [...document.querySelectorAll(RESERVE)]
+			.map((el) => el.getBoundingClientRect())
+			.filter((r) => r.height && r.right > x0 && r.left < x0 + cardWidth)
+			.map((r) => ({ t: r.top + sy - 6, b: r.bottom + sy + 6 }))
+			.sort((a, b) => a.t - b.t);
 		for (const it of items) it.el.hidden = !it.box; // nowhere to sit: hidden, not stranded at the corner
 		const placed = items.filter((it) => it.box);
 		for (const p of placed) {
@@ -1565,7 +1605,9 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 		let floor = 0,
 			paths = "";
 		for (const p of placed) {
-			const y = Math.max(p.top - 4, floor);
+			let y = Math.max(p.top - 4, floor);
+			// below any reserved box it would lie on (sorted, so one pass)
+			for (const r of reserved) if (y < r.b && y + p.height > r.t) y = r.b;
 			p.el.style.top = y + "px";
 			floor = y + p.height + 8;
 			const cls = p.el.dataset.id === active ? ' class="active"' : "";
@@ -2477,10 +2519,7 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 		root.setAttribute("spellcheck", "false");
 		root.setAttribute("data-rv-root", "");
 		document.documentElement.classList.add("review-on");
-		document.documentElement.style.setProperty(
-			"--review-width",
-			innerWidth >= NARROW ? COLUMN + "px" : "0px",
-		);
+		reserveWidth();
 		render();
 		observer.observe(idx.root, {
 			childList: true,

@@ -9,6 +9,8 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import ConsoleMessage, Error, sync_playwright
 
+pytest_plugins = ["hp_fixtures"]  # the built_demo fixture
+
 HERE: Path = Path(__file__).parent
 TEST_PAGES: list[Path] = sorted(HERE.glob("test-*.html"))
 # the pages of the built demo paper (the `built_demo` fixture), relative to its folder

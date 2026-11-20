@@ -4,10 +4,11 @@
 --   filters: [html-papers.lua]          run pandoc with --number-sections --citeproc
 --
 -- What it does, in both outputs unless noted:
--- - Cross-references: `\autoref{sec:x}` / `\ref{fig:y}` to a heading, figure or table id.
---   LaTeX resolves them itself; in HTML they become links reading "Section 2.1", "Figure 3",
---   "Table 1", and captions are numbered to match. A caption may carry its id as `\label{...}`.
---   An unknown id builds with a red ?? and a warning.
+-- - Cross-references: `\autoref{sec:x}` to a heading, figure or table id reads "Section 2.1",
+--   "Figure 3", "Table 1" (a heading at any level is a "Section"); `\ref{sec:x}` is the number
+--   alone. LaTeX resolves them itself; in HTML they become links, and captions are numbered to
+--   match. A caption may carry its id as `\label{...}`. An unknown id builds: in HTML as a red
+--   ??id with a warning from this filter, in the PDF as LaTeX's own ??.
 -- - Terms: metadata `terms: {name: {text, def, target}}` (e.g. in a terms.yaml given as a
 --   metadata file) defines `\term{name}` and `\term[shown text]{name}`: the term's text, linked
 --   to the id `target`, with `def` as a tooltip (HTML: the link's title, which popups.js shows
@@ -31,12 +32,14 @@
 --   "end": "eos" | "cut" (optional), "reference": true (optional)}]}`. A term's text inside a
 --   label becomes that term.
 -- - `\TODO{...}`: red, in both.
--- - HTML head: the script tags, review.js's `review-doc-version` (the git commit, with -dirty
---   when the document's directory has uncommitted changes), and its Export > Email recipient
---   from metadata `review_email`. Metadata `html_papers_dir` is the scripts' URL prefix
---   (default: beside the page).
+-- - HTML head: the script tags, review.js's `review-doc-version`, and its Export > Email
+--   recipient from metadata `review_email`. Metadata `html_papers_dir` is the scripts' URL
+--   prefix (default: beside the page). Both are read as markdown text: write a value with `--`
+--   or `_` in backticks. The version is the environment variable DOC_VERSION if set (for a
+--   build made away from its sources); else the git commit, with -dirty when a tracked file in
+--   the document's folder, other than the page being written, is modified.
 -- - HTML: a multi-line `date: |` becomes lines of one paragraph (the date, then notes).
-PANDOC_VERSION:must_be_at_least('3.1')
+PANDOC_VERSION:must_be_at_least('3.1.1')  -- pandoc.json
 
 local HTML = FORMAT:match('html') ~= nil
 local SCRIPTS = {'arxiv-links.js', 'popups.js', 'contents.js', 'live-figures.js'}
@@ -57,6 +60,10 @@ local function live_figure(fig)
       link = img.attributes['interactive-link']
       for _, name in ipairs(LIVE_ATTRS) do img.attributes[name] = nil end
       return img
+    end
+    for _, name in ipairs({'interactive-height', 'interactive-embed', 'interactive-width'}) do
+      assert(not img.attributes[name] or img.attributes['interactive-src'],
+        name .. ' needs interactive-src, the live page: ' .. img.src)
     end
     if img.attributes['interactive-src'] then
       source = img.attributes['interactive-src']
@@ -200,7 +207,8 @@ local function latex_preamble()
     '\\providecommand{\\TODO}[1]{{\\color{red}[TODO: #1]}}',
     -- \\autoref reads as on the web page: "Section 2.1", whatever the heading's level
     '\\AtBeginDocument{\\def\\sectionautorefname{Section}\\def\\subsectionautorefname{Section}'
-      .. '\\def\\subsubsectionautorefname{Section}}',
+      .. '\\def\\subsubsectionautorefname{Section}\\def\\paragraphautorefname{Section}'
+      .. '\\def\\subparagraphautorefname{Section}}',
     '\\newcommand{\\hpdotuline}{\\bgroup\\markoverwith{\\textcolor{black!25}{\\rule[-0.45ex]{0.12ex}{0.12ex}}\\hskip0.35ex}\\ULon}',
     '\\makeatletter',
     '\\def\\hp@dest{}',
@@ -270,9 +278,8 @@ end
 
 -- ---------------------------------------------------------------------------------------
 -- token rows
--- A label with any term's text in it, that text made the term (as if written
--- `\term[shown]{name}`, so the PDF tooltip and the HTML link come from the same code). The
--- longest term wins; a term matches whole words only, in any case.
+-- A label with any term's text in it, that text made the term, as if written
+-- `\term[shown]{name}`. The longest term wins; a term matches whole words only, in any case.
 local TERM_ORDER
 
 local function label_inlines(label)
@@ -294,7 +301,9 @@ local function label_inlines(label)
     end
     if hit then
       out:extend(pandoc.Inlines(label:sub(plain, i - 1)))
-      out:insert(pandoc.RawInline('tex', '\\term[' .. tex_escape(label:sub(i, i + #hit.lower - 1)) .. ']{' .. hit.name .. '}'))
+      local shown, term = label:sub(i, i + #hit.lower - 1), TERMS[hit.name]
+      out:insert(HTML and pandoc.Link({pandoc.Str(shown)}, '#' .. term.target, term.def, pandoc.Attr('', {'term'}))
+        or pandoc.RawInline('tex', '\\term[' .. tex_escape(shown) .. ']{' .. hit.name .. '}'))
       i = i + #hit.lower
       plain = i
     else
@@ -315,11 +324,33 @@ local function generations(div)
   assert(div.identifier ~= '' and src and #div.content == 1 and caption.t == 'Para',
     'generations ' .. div.identifier .. ': needs an id, src="<json>", then a caption paragraph')
   local f = assert(io.open(src, 'r'), 'generations ' .. div.identifier .. ': cannot read ' .. src)
-  local data = pandoc.json.decode(f:read('a'), false)
+  local ok, data = pcall(pandoc.json.decode, f:read('a'), false)
   f:close()
-  assert(type(data) == 'table' and data.prompt and data.rows,
-    'generations ' .. div.identifier .. ': ' .. src .. ' needs "prompt" and "rows"')
+  local function need(condition, what)
+    if not condition then error('generations ' .. div.identifier .. ': ' .. src .. ': ' .. what, 0) end
+  end
+  local function tokens_of(list, where)
+    need(type(list) == 'table', where .. ' needs a list of tokens')
+    for _, t in ipairs(list) do need(type(t) == 'string', where .. ': every token is a string') end
+    return list
+  end
+  need(ok and data ~= nil, 'not valid JSON')
+  need(type(data) == 'table' and type(data.rows) == 'table', 'needs "prompt" and "rows"')
+  tokens_of(data.prompt, '"prompt"')
+  for i, r in ipairs(data.rows) do
+    local where = 'row ' .. i
+    need(type(r) == 'table' and type(r.label) == 'string', where .. ' needs a "label"')
+    tokens_of(r.tokens, where .. ' "tokens"')
+    need(r['end'] == nil or r['end'] == 'eos' or r['end'] == 'cut', where .. ': "end" is "eos" or "cut"')
+    need(r.reference == nil or type(r.reference) == 'boolean', where .. ': "reference" is true or false')
+  end
   local function esc(s) return (s:gsub('&', '&amp;'):gsub('<', '&lt;'):gsub('>', '&gt;')) end
+  -- a token for LaTeX exactly as it is: pandoc's own escaping of code, which also keeps
+  -- typewriter text from joining -- or '' into other characters
+  local function tex_code(s)
+    if s == '' then return '' end
+    return (pandoc.write(pandoc.Pandoc({pandoc.Plain({pandoc.Code(s)})}), 'latex'):gsub('%s+$', ''))
+  end
   local NL_TEX = '{\\color{gray}$\\hookleftarrow$}'
   -- the chips of one token list, and its end marker, as html or latex
   local function chips(tokens, finish)
@@ -331,8 +362,7 @@ local function generations(div)
         out[#out + 1] = '<span class="tok' .. (t:match('^%s*$') and nl and ' tok-nl' or '') .. '">'
           .. esc(shown):gsub('\u{E000}', '<span class="nl">↵</span>') .. '</span>'
       else
-        shown = tex_escape(shown):gsub(' ', '\\ '):gsub('\u{E000}', NL_TEX)
-        out[#out + 1] = '\\hptok{' .. shown .. '}'
+        out[#out + 1] = '\\hptok{' .. tex_code(shown):gsub('\u{E000}', NL_TEX) .. '}'
       end
       -- a newline breaks the line once there is text before it (this token's counts)
       seen = seen or t:match('%S') ~= nil
@@ -375,19 +405,39 @@ local function generations(div)
 end
 
 -- ---------------------------------------------------------------------------------------
--- HEAD's commit, with -dirty when the document's directory has uncommitted changes to tracked
--- files; '' outside a git checkout. review.js stamps exported comments with it.
+-- The version review.js stamps exported comments with: the environment variable DOC_VERSION
+-- if set (a build made away from its sources says what it was built from); else HEAD's
+-- commit, with -dirty when a tracked file in the document's folder is modified. The page being
+-- written does not count (it is an output, and often tracked), nor does a deleted file (a
+-- build that starts by clearing its folder). '' outside a git checkout.
+local function git(command)
+  local ok, handle = pcall(io.popen, 'git ' .. command .. ' 2>/dev/null')
+  if not ok or not handle then return nil end
+  local out = handle:read('a')
+  return handle:close() and out or nil
+end
+
 local function doc_version()
-  local ok, sha = pcall(pandoc.pipe, 'git', {'rev-parse', 'HEAD'}, '')
-  if not ok then return '' end
+  local given = os.getenv('DOC_VERSION')
+  if given and given ~= '' then return given end
+  local sha = git('rev-parse HEAD')
+  if not sha then return '' end
   sha = sha:gsub('%s+$', '')
-  local _, status = pcall(pandoc.pipe, 'git', {'status', '--porcelain', '--untracked-files=no', '--', '.'}, '')
-  if type(status) == 'string' and status:match('%S') then sha = sha .. '-dirty' end
+  local output = (PANDOC_STATE.output_file or ''):match('[^/\\]*$')
+  for line in (git('status --porcelain --untracked-files=no -- .') or ''):gmatch('[^\n]+') do
+    local status, path = line:sub(1, 2), line:sub(4):gsub('^"(.*)"$', '%1')
+    if not status:find('D') and path:match('[^/]*$') ~= output then return sha .. '-dirty' end
+  end
   return sha
 end
 
 local function meta_string(meta, key)
   return meta[key] and pandoc.utils.stringify(meta[key]) or ''
+end
+
+-- text for an HTML attribute's value
+local function attribute(s)
+  return (s:gsub('&', '&amp;'):gsub('"', '&quot;'):gsub('<', '&lt;'))
 end
 
 local function add_header(meta, blocks)
@@ -423,7 +473,8 @@ function Pandoc(doc)
 
   -- The head. Any header-includes of the document's own are the PDF's preamble (LaTeX): the
   -- HTML's are replaced by the scripts.
-  local dir, email, version = meta_string(doc.meta, 'html_papers_dir'), meta_string(doc.meta, 'review_email'), doc_version()
+  local dir, email, version = attribute(meta_string(doc.meta, 'html_papers_dir')),
+    attribute(meta_string(doc.meta, 'review_email')), attribute(doc_version())
   local head = {}
   for _, name in ipairs(SCRIPTS) do
     head[#head + 1] = pandoc.RawBlock('html', '<script src="' .. dir .. name .. '" defer></script>')
@@ -435,7 +486,8 @@ function Pandoc(doc)
   end
   doc.meta['header-includes'] = pandoc.MetaBlocks(head)
 
-  local targets = {}
+  local targets = {}  -- id -> what \autoref reads: "Section 2.1", "Figure 3"
+  local numbers = {}  -- id -> what \ref reads: "2.1", "3" (an unnumbered heading: its title)
   local sections = {0, 0, 0, 0, 0, 0}
   local figures, tables = 0, 0
 
@@ -451,7 +503,7 @@ function Pandoc(doc)
         end
       end,
     }).content
-    if el.identifier ~= '' then targets[el.identifier] = label end
+    if el.identifier ~= '' then targets[el.identifier], numbers[el.identifier] = label, label:match('%S+$') end
     local first = el.caption.long[1]
     if first and (first.t == 'Plain' or first.t == 'Para') then
       first.content:insert(1, pandoc.Space())
@@ -465,16 +517,19 @@ function Pandoc(doc)
     Header = function(header)
       if header.classes:includes('unnumbered') then
         targets[header.identifier] = pandoc.utils.stringify(header.content)
+        numbers[header.identifier] = targets[header.identifier]
       else
         sections[header.level] = sections[header.level] + 1
         for i = header.level + 1, 6 do sections[i] = 0 end
-        targets[header.identifier] = 'Section ' .. table.concat(sections, '.', 1, header.level)
+        numbers[header.identifier] = table.concat(sections, '.', 1, header.level)
+        targets[header.identifier] = 'Section ' .. numbers[header.identifier]
       end
     end,
     Figure = function(fig)
       figures = figures + 1
       for i, id in ipairs(SUBFIGURES[fig.identifier] or {}) do
-        targets[id] = 'Figure ' .. figures .. string.char(96 + i)
+        numbers[id] = figures .. string.char(96 + i)
+        targets[id] = 'Figure ' .. numbers[id]
       end
       return caption_target(fig, 'Figure ' .. figures)
     end,
@@ -490,7 +545,8 @@ function Pandoc(doc)
     if raw.format ~= 'tex' and raw.format ~= 'latex' then return end
     local term = term_link(raw, targets)
     if term then return term end
-    local id = raw.text:match('^\\autoref{([^}]+)}$') or raw.text:match('^\\ref{([^}]+)}$')
+    local id, bare = raw.text:match('^\\autoref{([^}]+)}$'), raw.text:match('^\\ref{([^}]+)}$')
+    id = id or bare
     if id then
       -- a label that went away while the text is being restructured: build anyway, like
       -- LaTeX's "??", with a red placeholder and a warning naming it
@@ -498,7 +554,7 @@ function Pandoc(doc)
         warn('ref:' .. id, 'Unknown cross-reference: ' .. id .. ' (shown as a red ??)')
         return pandoc.Span({pandoc.Str('??' .. id)}, pandoc.Attr('', {'todo'}))
       end
-      return pandoc.Link(targets[id], '#' .. id)
+      return pandoc.Link(bare and numbers[id] or targets[id], '#' .. id)
     end
     -- a \TODO macro defined in the front matter arrives already expanded by pandoc
     local todo = raw.text:match('^{\\color{red}%[TODO: (.*)%]}$') or raw.text:match('^\\TODO{(.*)}$')

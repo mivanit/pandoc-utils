@@ -1,6 +1,7 @@
 """The demo paper, built by its own build.sh: what the build must produce (needs pandoc)."""
 
 import json
+import os
 import re
 import subprocess
 from html import unescape
@@ -8,7 +9,9 @@ from pathlib import Path
 
 import pytest
 
-from conftest import HTML_PAPERS, REPO, SHARED
+from hp_paths import HTML_PAPERS, REPO, SHARED
+
+pytest_plugins = ["hp_fixtures"]  # the built_demo fixture
 
 
 @pytest.fixture(scope="module")
@@ -50,15 +53,20 @@ def test_the_experiment_is_reproducible(built_demo: Path) -> None:
 
 
 def test_nothing_is_left_unresolved(html: str) -> None:
-    # the text itself names \autoref and \term, in code
-    body: str = html.replace("<code>\\autoref</code>", "")
-    assert "??" not in body and 'class="missing' not in body
-    for raw in ("\\label{", "\\TODO{", "interactive-src", "interactive-link"):
-        assert raw not in body, raw
-    assert body.count("\\autoref{") == 3  # the three in the cross-references example
-    assert (
-        body.count("\\term{") == 1 and body.count("\\term[") == 1
-    )  # the terms example
+    """Outside the code the paper prints, no construct is left as it was written."""
+    prose: str = re.sub(r"<pre\b.*?</pre>|<code\b.*?</code>", "", html)
+    assert "<pre" in html and "<pre" not in prose
+    for raw in (
+        "??",
+        "\\autoref",
+        "\\ref{",
+        "\\term",
+        "\\label",
+        "\\TODO",
+        "interactive-",
+    ):
+        assert raw not in prose, raw
+    assert '<a href="#tab:loss">Table 1</a>' in prose
 
 
 def test_the_included_files_are_the_real_ones(html: str) -> None:
@@ -68,7 +76,10 @@ def test_the_included_files_are_the_real_ones(html: str) -> None:
     for name, line in (
         ("build.sh", "run python -B experiment.py"),
         ("model.py", "class NGram:"),
-        ("experiment.py", "def words_of(markdown: str) -> list[str]:"),
+        (
+            "experiment.py",
+            "def split(words: list[str]) -> tuple[list[str], list[str]]:",
+        ),
         ("terms.yaml", "target: sec:loss"),
     ):
         assert line in (HTML_PAPERS / "demo" / name).read_text(), name
@@ -90,14 +101,85 @@ def test_each_construct_is_in_the_page(html: str) -> None:
         assert f'<script src="{name}" defer></script>' in html
 
 
-def test_published_copies_match_the_originals() -> None:
-    """docs/html-papers/ (the GitHub Pages copy) has the current scripts and stylesheets."""
+def test_published_copy_is_current(built_demo: Path) -> None:
+    """docs/html-papers/ (the GitHub Pages copy) is what the sources build now.
+
+    Its copies of the paper's sources and of the scripts and stylesheets match the originals,
+    and so does everything the experiment writes. (The page itself carries the commit it was
+    built from, so it is not compared.)
+    """
     site: Path = REPO / "docs" / "html-papers"
     if not site.exists():
         pytest.skip("docs/html-papers/ not built: make demo-html-papers")
-    stale: list[str] = [
+    demo: Path = HTML_PAPERS / "demo"
+    sources: dict[str, Path] = {
+        **{name: HTML_PAPERS / name for name in SHARED},
+        **{str(p.relative_to(demo)): p for p in demo.rglob("*") if p.is_file()},
+        **{
+            str(p.relative_to(built_demo)): p
+            for folder in ("generated", "figures", "live")
+            for p in (built_demo / folder).iterdir()
+            if p.suffix != ".pdf"
+        },
+    }
+    stale: list[str] = sorted(
         name
-        for name in SHARED
-        if (site / name).read_bytes() != (HTML_PAPERS / name).read_bytes()
-    ]
+        for name, original in sources.items()
+        if not (site / name).exists()
+        or (site / name).read_bytes() != original.read_bytes()
+    )
     assert not stale, f"rebuild with `make demo-html-papers`: {stale}"
+
+
+def test_the_page_says_which_sources_it_was_built_from(tmp_path: Path) -> None:
+    """review-doc-version: DOC_VERSION if given, else the commit, -dirty for a changed source."""
+
+    def run(*command: str, **env: str) -> subprocess.CompletedProcess[str]:
+        result: subprocess.CompletedProcess[str] = subprocess.run(
+            command,
+            cwd=tmp_path,
+            env={**os.environ, "DOC_VERSION": "", **env},
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        assert result.returncode == 0, result.stderr
+        return result
+
+    def stamp(**env: str) -> str:
+        filter_: str = str(HTML_PAPERS / "html-papers.lua")
+        built = run(
+            "pandoc", "doc.md", "--lua-filter", filter_, "-s", "-o", "page.html", **env
+        )
+        assert "fatal" not in built.stderr, (
+            built.stderr
+        )  # git's complaints stay out of the build
+        found = re.search(
+            r'<meta name="review-doc-version" content="([^"]*)">',
+            (tmp_path / "page.html").read_text(),
+        )
+        return found[1] if found else ""
+
+    (tmp_path / "doc.md").write_text("---\ntitle: T\n---\n\nSome text.\n")
+    assert (
+        stamp(GIT_CEILING_DIRECTORIES=str(tmp_path.parent)) == ""
+    )  # not in a checkout
+    assert stamp(DOC_VERSION="abc123-dirty") == "abc123-dirty"
+    git: tuple[str, ...] = (
+        "git",
+        "-c",
+        "user.name=t",
+        "-c",
+        "user.email=t@example.org",
+    )
+    run("git", "init", "-q")
+    stamp()
+    run("git", "add", "doc.md", "page.html")
+    run(*git, "commit", "-q", "-m", "one")
+    sha: str = run("git", "rev-parse", "HEAD").stdout.strip()
+    assert stamp() == sha
+    assert stamp() == sha  # the page it wrote is tracked and now modified: not a source
+    (tmp_path / "page.html").unlink()
+    assert stamp() == sha  # nor is a page the build cleared away first
+    (tmp_path / "doc.md").write_text("---\ntitle: T\n---\n\nOther text.\n")
+    assert stamp() == sha + "-dirty"

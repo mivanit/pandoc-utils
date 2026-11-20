@@ -86,7 +86,13 @@ def test_locate_exact_with_context_and_approximate() -> None:
         "suffix": "",
     }
     assert locate(q, text, lines) == (3, True)
+    # ... and it names the line the quote starts on, also at the start of a paragraph
+    q = {"exact": "Most papers report a number with a plain-language account"}
+    assert locate(q, text, lines) == (3, True)
     assert locate({"exact": "nothing like this in the source"}, text, lines) is None
+    # a couple of chance shingles are not a match
+    q = {"exact": "zzzz qqqq xxxx never in the source at all, though a script"}
+    assert locate(q, text, lines) is None
 
 
 def test_report_lists_in_source_order(tmp_path: Path) -> None:

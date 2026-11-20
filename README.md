@@ -7,7 +7,7 @@ Utilities for my pandoc/markdown/LaTeX workflows.
 ```
 pandoc-utils/
 |-- pandoc_md_pdf.sh                # markdown -> LaTeX -> PDF pipeline
-|-- Makefile                        # install, test, check-deps targets
+|-- Makefile                        # dep-install, dep-check, test, demo targets
 |-- pyproject.toml                  # Python deps managed via uv
 |-- markdown_get_defaults_yaml.py   # (internal) extract pandoc config from YAML front matter
 |-- filters/
@@ -119,9 +119,10 @@ YAML-driven table generation with reusable templates, configurable alignment and
 ## HTML papers
 
 [`html-papers/`](html-papers/README.md) builds a paper written in markdown as a web page with
-notes and previews in the margin (citations, footnotes, terms, cross-references), a contents
-sidebar, live figures, bibliography links, and a review mode for comments and suggested edits;
-the same source builds the PDF. A filter, two stylesheets, five drop-in scripts, and a script
+three columns: the contents, the text, and a side column with notes and previews (citations,
+footnotes, terms, cross-references) and, in review mode, comments and suggested edits. The
+columns resize, and on a phone the notes open in the text. Figures can be live. The same
+source builds the PDF. A filter, two stylesheets, five drop-in scripts, and a script
 that maps reviewers' comments back to lines of the source.
 
 The demo is [a paper that builds itself](https://mivanit.github.io/pandoc-utils/html-papers/):
@@ -137,7 +138,7 @@ make demo-html-papers-html   # the web page only, in a few seconds
 Dependencies are managed via `Makefile` and `pyproject.toml`:
 
 ```bash
-make install       # install system (apt), npm, and Python (uv) deps
+make dep-install   # install system (apt), npm, and Python (uv) deps
 make dep-check     # verify all required binaries are available
 make test          # run pytest
 make test-html     # html-papers/ in headless Chromium (once: uv run playwright install chromium)

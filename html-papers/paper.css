@@ -81,8 +81,9 @@ table caption { caption-side: top; font-size: 1rem; }
 .gen-prompt + .gen-row > div { border-top: 1.5px solid #d5d9e0; }  /* prompt | rows */
 .gen-label { text-align: right; color: #555; white-space: nowrap; }
 .gen-text { line-height: 1.75; font-family: "DejaVu Sans Mono", Menlo, Consolas, monospace; font-size: 0.8rem; min-width: 0; }
-/* inline-block: a row wraps between chips (a token keeps its own spaces, so never inside one) */
-.gen-text .tok { display: inline-block; line-height: 1.3; background: #eceef1; border-radius: 3px; padding: 0.05rem 1px; margin-right: 2.5px; white-space: pre; }
+/* inline-block: a row wraps between chips. A token keeps its own spaces, and breaks inside
+   only when it is longer than the row */
+.gen-text .tok { display: inline-block; max-width: 100%; box-sizing: border-box; vertical-align: top; line-height: 1.3; background: #eceef1; border-radius: 3px; padding: 0.05rem 1px; margin-right: 2.5px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .gen-prompt .tok { background: none; box-shadow: inset 0 0 0 1px #dde0e5; color: #555; }
 .gen-text .nl { color: #9aa1ad; }
 .tok-end { color: #9aa1ad; font-family: system-ui, sans-serif; font-size: 0.75rem; font-style: italic; margin-left: 0.2rem; }
@@ -91,7 +92,7 @@ table caption { caption-side: top; font-size: 1rem; }
 @media (max-width: 600px) {
   .generations { grid-template-columns: 1fr; }
   .gen-label { text-align: left; padding-bottom: 0; }
-  .gen-text { border-top: 0; padding-top: 0.1rem; }
+  .generations .gen-row > .gen-text { border-top: 0; padding-top: 0.1rem; }  /* also after the prompt */
 }
 
 /* the bibliography: [n] hanging, like the PDF */

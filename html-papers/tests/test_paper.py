@@ -2,15 +2,16 @@
 written by hand in the shape pandoc gives, so these tests need no build.
 
 Real pointer movement in headless Chromium: hover notes and previews, notes opened from notes,
-pinning (click, middle click) and closing, no overlaps, the contents sidebar, and review mode's
-comment lines passing behind the notes.
+pinning (click, middle click) and closing, no overlaps, the three columns and their edges that
+drag, review mode's comments sharing the side column, and, without a side column or without a
+pointer, notes that open on a tap (in the text on a phone) and the contents that open on a swipe.
 """
 
 from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from playwright.sync_api import Page, sync_playwright
+from playwright.sync_api import CDPSession, Page, sync_playwright
 
 PAPER: str = (Path(__file__).parent / "paper-fixture.html").absolute().as_uri()
 REST: int = 350  # ms: longer than the rest an anchor needs before its note opens
@@ -166,48 +167,249 @@ def test_click_pins_a_citation_and_a_table_note(page: Page) -> None:
     assert len(notes(page)) == 1
 
 
-def test_contents_lists_sections_and_pins(page: Page) -> None:
+RECT: str = "id => { const r = document.getElementById(id).getBoundingClientRect(); return {left: r.left, right: r.right, width: r.width} }"
+OVERFLOW: str = (
+    "document.documentElement.scrollWidth - document.documentElement.clientWidth"
+)
+
+
+def has_class(page: Page, name: str) -> bool:
+    return page.evaluate(f"document.documentElement.classList.contains('{name}')")
+
+
+def fresh_page(page: Page) -> Page:
+    """Another window of the same browser, with nothing stored: as a later visit would be."""
+    browser = page.context.browser
+    assert browser is not None
+    return browser.new_page(viewport={"width": 1600, "height": 900})
+
+
+def test_three_columns_fit_at_every_width(page: Page) -> None:
+    for width in (2200, 1600, 1280, 1040, 992, 900, 760, 759, 420):
+        page.set_viewport_size({"width": width, "height": 800})
+        page.wait_for_timeout(300)  # the contents slide in and out
+        assert page.evaluate(OVERFLOW) == 0, width
+        text: dict = page.evaluate(RECT, "p-intro")
+        nav: dict = page.evaluate(RECT, "toc-nav")
+        side: str = page.evaluate(
+            "getComputedStyle(document.getElementById('margin-notes')).display"
+        )
+        # the contents are a column from 62rem, the side column is there from 760px
+        assert (nav["right"] > 100) == (width >= 992), width
+        assert (side != "none") == (width >= 760), width
+        if width >= 992:
+            assert text["left"] >= nav["right"], width
+        if width >= 760:
+            margin: dict = page.evaluate(RECT, "margin-notes")
+            assert text["right"] < margin["left"] and margin["right"] <= width, width
+            assert text["width"] >= 22 * 16 - 1 and margin["width"] >= 12 * 16 - 1
+
+
+def test_contents_are_a_column_until_unpinned(page: Page) -> None:
     items: list[str] = page.eval_on_selector_all(
         "#toc-nav li a", "as => as.map(a => a.textContent.replace(/\\s+/g, ' ').trim())"
     )
     assert items == ["1 Introduction", "2 Method", "2.1 Details", "References"]
-    page.wait_for_timeout(300)  # the pointer left the edge: the panel slides back
-    assert (
-        page.evaluate(
-            "document.getElementById('toc-nav').getBoundingClientRect().right"
-        )
-        < 1
-    )
-    page.mouse.move(3, 400)
-    page.wait_for_timeout(300)
-    assert page.evaluate("document.documentElement.classList.contains('toc-open')")
-    left: float = page.evaluate("document.body.getBoundingClientRect().left")
+    # pinned as it starts: the left column, the text right of it
+    assert has_class(page, "toc-pinned")
+    nav: dict = page.evaluate(RECT, "toc-nav")
+    assert nav["left"] == 0 and nav["right"] > 150
+    assert page.evaluate(RECT, "p-intro")["left"] >= nav["right"]
+    # unpinned: gone, until the pointer is at the left edge
     page.click(".toc-pin")
     page.wait_for_timeout(300)
-    assert page.evaluate("document.documentElement.classList.contains('toc-pinned')")
-    nav_right: float = page.evaluate(
-        "document.getElementById('toc-nav').getBoundingClientRect().right"
-    )
-    assert page.evaluate("document.body.getBoundingClientRect().left") >= max(
-        left, nav_right
-    )
+    assert not has_class(page, "toc-pinned")
+    assert page.evaluate(RECT, "toc-nav")["right"] < 1
+    page.mouse.move(3, 400)
+    page.wait_for_timeout(300)
+    assert has_class(page, "toc-open")
+    page.mouse.move(700, 400)
+    page.wait_for_timeout(300)
+    assert not has_class(page, "toc-open")
+    # remembered: stored, and a page that finds it stored starts unpinned
+    assert page.evaluate("localStorage.getItem('toc-pinned')") == ""
+    later: Page = fresh_page(page)
+    later.add_init_script("localStorage.setItem('toc-pinned', '')")
+    later.goto(PAPER)
+    assert not has_class(later, "toc-pinned")
 
 
-def test_narrow_window_shows_the_note_in_a_bottom_panel(page: Page) -> None:
+def test_column_edges_drag_and_are_remembered(page: Page) -> None:
+    def drag(handle: str, by: int) -> float:
+        """Drag a column's edge sideways; returns where the pointer let go."""
+        box = page.locator(handle).bounding_box()
+        assert box is not None
+        x: float = box["x"] + box["width"] / 2
+        page.mouse.move(x, 300)
+        page.mouse.down()
+        page.mouse.move(x + by / 2, 300, steps=4)
+        page.mouse.move(x + by, 300, steps=4)
+        page.mouse.up()
+        return x + by
+
+    def middle(handle: str) -> float:
+        r: dict = page.evaluate(RECT, handle)
+        return (r["left"] + r["right"]) / 2
+
+    side: float = page.evaluate(RECT, "margin-notes")["width"]
+    toc: float = page.evaluate(RECT, "toc-nav")["width"]
+    let_go: float = drag("#side-handle", -60)
+    wider: float = page.evaluate(RECT, "margin-notes")["width"]
+    # the text and the column are centred together, so the column grew by more than the
+    # pointer moved, and the edge is still under the pointer
+    assert wider > side + 60 and abs(middle("side-handle") - let_go) < 3
+    let_go = drag("#toc-handle", 50)
+    assert abs(page.evaluate(RECT, "toc-nav")["width"] - (toc + 50)) < 2
+    assert abs(middle("toc-handle") - let_go) < 3
+    assert page.evaluate(OVERFLOW) == 0
+    # remembered: both widths are stored (in rem), and a page that finds them stored has them
+    stored: list[str] = page.evaluate(
+        "[localStorage.getItem('side-width'), localStorage.getItem('toc-width')]"
+    )
+    assert (
+        abs(float(stored[0]) * 16 - wider) < 2
+        and abs(float(stored[1]) * 16 - toc - 50) < 2
+    )
+    later: Page = fresh_page(page)
+    later.add_init_script(
+        f"localStorage.setItem('side-width', '{stored[0]}'); localStorage.setItem('toc-width', '{stored[1]}')"
+    )
+    later.goto(PAPER)
+    assert abs(later.evaluate(RECT, "margin-notes")["width"] - wider) < 2
+    assert abs(later.evaluate(RECT, "toc-nav")["width"] - (toc + 50)) < 2
+    later.close()
+    # a double click puts each back, and forgets it
+    page.locator("#side-handle").dblclick(position={"x": 4, "y": 300})
+    page.locator("#toc-handle").dblclick(position={"x": 4, "y": 300})
+    assert abs(page.evaluate(RECT, "margin-notes")["width"] - side) < 2
+    assert abs(page.evaluate(RECT, "toc-nav")["width"] - toc) < 2
+    assert page.evaluate(
+        "[localStorage.getItem('side-width'), localStorage.getItem('toc-width')]"
+    ) == [None, None]
+
+
+def test_a_figure_in_a_preview_is_scaled_not_scrolled(page: Page) -> None:
+    # a window so low that the figure's copy does not fit the height a preview may take
+    page.set_viewport_size({"width": 1600, "height": 260})
+    page.evaluate("scrollTo(0, 0)")
+    page.mouse.move(700, 250)
+    hover(page, "#ref-fig", park=False)
+    scale, scrolls, text = page.eval_on_selector(
+        ".margin-note.preview",
+        """n => [parseFloat(getComputedStyle(n.querySelector('.preview-fit')).getPropertyValue('--fit')),
+                 n.scrollHeight - n.clientHeight, n.textContent]""",
+    )
+    assert "The score rises with size" in text
+    assert 0.3 <= scale < 1 and scrolls <= 1
+    # a section is text: it flows at the note's width instead
+    page.set_viewport_size({"width": 1600, "height": 900})
+    hover(page, "#ref-method")
+    assert page.locator(".margin-note.preview .preview-fit").count() == 0
+
+
+def test_without_a_side_column_notes_open_in_the_text(page: Page) -> None:
     page.set_viewport_size({"width": 600, "height": 800})
     hover(page, "#term-widget")
-    assert notes(page) == []  # no hover notes without a margin
-    page.click("#term-widget")  # a tap opens the definition instead of jumping
-    assert (
-        page.evaluate(
-            "getComputedStyle(document.getElementById('margin-notes')).position"
-        )
-        == "fixed"
-    )
+    assert notes(page) == []  # nothing on hover
+    place: str = """() => [...document.querySelectorAll('.margin-note')].map(n =>
+        [n.classList.contains('inline'), n.previousElementSibling && (n.previousElementSibling.id || n.previousElementSibling.tagName)])"""
+    page.click("#term-widget")  # a tap opens the definition under its paragraph
+    assert page.evaluate(place) == [[True, "p-intro"]]
     assert "Go to the section" in notes(page)[0]["text"]
+    page.click("#ref-table")  # a cross-reference too, after the note already there
+    ns: list[dict] = notes(page)
+    assert len(ns) == 2 and ns[1]["preview"] and "Scores by size" in ns[1]["text"]
+    assert "Go to Table 1" in ns[1]["text"] and ns[1]["top"] >= ns[0]["bottom"]
+    assert page.evaluate("location.hash") == ""  # the tap did not jump
+    page.click("#ref-table")  # again: closes it
+    assert len(notes(page)) == 1
+    page.click("#cite-one")
+    page.click("#cell-noted")  # a table's note goes after the table
+    assert page.evaluate(place)[-1] == [True, "tab:scores"]
+    assert len(notes(page)) == 3 and page.evaluate(OVERFLOW) == 0
+    # the note's own link goes there, and closes the note
+    page.click("#p-intro ~ .margin-note .note-more")
+    assert page.evaluate("location.hash") == "#sec:method" and len(notes(page)) == 2
+    # a wider window: the same notes, now in the side column
+    page.set_viewport_size({"width": 1600, "height": 800})
+    page.wait_for_timeout(100)
+    assert [inline for inline, _ in page.evaluate(place)] == [False, False]
+    assert page.evaluate("document.getElementById('margin-notes').children.length") == 2
 
 
-def test_review_mode_lines_pass_behind_notes_and_notes_are_not_text(page: Page) -> None:
+def swipe(cdp: CDPSession, page: Page, x0: float, x1: float, y: float = 400) -> None:
+    cdp.send(
+        "Input.dispatchTouchEvent",
+        {"type": "touchStart", "touchPoints": [{"x": x0, "y": y}]},
+    )
+    for i in range(1, 6):
+        point: dict = {"x": x0 + (x1 - x0) * i / 5, "y": y}
+        cdp.send(
+            "Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [point]}
+        )
+    cdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
+    page.wait_for_timeout(300)
+
+
+def test_touch_a_tap_opens_the_note_and_a_swipe_the_contents() -> None:
+    errors: list[str] = []
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        # a tablet: a side column, but no pointer to rest on a link
+        tablet = browser.new_context(
+            viewport={"width": 1024, "height": 768}, has_touch=True, is_mobile=True
+        )
+        pg = tablet.new_page()
+        pg.on("pageerror", lambda e: errors.append(str(e)))
+        pg.goto(PAPER)
+        pg.tap("#ref-fig")
+        pg.wait_for_timeout(200)
+        (n,) = notes(pg)
+        assert n["preview"] and n["close"] and "Go to Figure 1" in n["text"]
+        assert pg.evaluate("location.hash") == ""
+        assert n["left"] >= pg.evaluate(RECT, "p-intro")["right"]  # in the side column
+        pg.tap("#ref-fig")  # a second tap closes it
+        assert notes(pg) == []
+        tablet.close()
+        # a phone: the contents are behind a button, and a swipe
+        phone = browser.new_context(
+            viewport={"width": 400, "height": 800}, has_touch=True, is_mobile=True
+        )
+        pg = phone.new_page()
+        pg.on("pageerror", lambda e: errors.append(str(e)))
+        pg.goto(PAPER)
+        cdp: CDPSession = phone.new_cdp_session(pg)
+        assert not has_class(pg, "toc-open")
+        swipe(cdp, pg, 60, 260)
+        assert has_class(pg, "toc-open")
+        assert pg.evaluate(RECT, "toc-nav")["left"] == 0
+        swipe(cdp, pg, 300, 80)
+        assert not has_class(pg, "toc-open")
+        swipe(cdp, pg, 200, 210)  # a tap that wanders is not a swipe
+        swipe(cdp, pg, 60, 260, y=400)
+        pg.touchscreen.tap(380, 300)  # a tap outside closes it
+        pg.wait_for_timeout(300)
+        assert not has_class(pg, "toc-open")
+        pg.tap("#toc-tab")  # the button opens it, once
+        pg.wait_for_timeout(300)
+        assert has_class(pg, "toc-open")
+        pg.tap("#toc-nav li a")  # a section: go there, and close
+        pg.wait_for_timeout(300)
+        assert (
+            not has_class(pg, "toc-open")
+            and pg.evaluate("location.hash") == "#sec:intro"
+        )
+        pg.tap("#term-widget")
+        pg.wait_for_timeout(200)
+        assert pg.evaluate(
+            "document.querySelector('.margin-note').classList.contains('inline')"
+        )
+        assert pg.evaluate(OVERFLOW) == 0
+        browser.close()
+    assert not errors, errors
+
+
+def test_review_mode_comments_share_the_side_column_with_notes(page: Page) -> None:
     page.goto(PAPER + "?review=1")
     page.wait_for_timeout(300)
     # a comment on the first words of the intro paragraph
@@ -222,20 +424,41 @@ def test_review_mode_lines_pass_behind_notes_and_notes_are_not_text(page: Page) 
     page.keyboard.type("a comment")
     page.mouse.click(700, 880)
     page.wait_for_timeout(200)
+    card: str = """() => { const r = document.querySelector('#rv-host').shadowRoot.querySelector('.card').getBoundingClientRect();
+        return {left: r.left, right: r.right, top: r.top, bottom: r.bottom} }"""
     line: str = "document.querySelector('#rv-host').shadowRoot.querySelector('svg path').getAttribute('d')"
-    assert page.evaluate(line).count("M") == 1
-    # a pinned preview level with the comment: the line breaks around it
-    page.click("#cite-one")
-    hover(page, "#ref-method")
-    (cite, preview) = sorted(notes(page), key=lambda n: n["preview"])
-    page.mouse.click(preview["left"] + 30, preview["top"] + 10)
-    page.wait_for_timeout(200)
-    assert page.evaluate(line).count("M") >= 2
-    # the note is right of the text and left of the comment column
-    card_left: float = page.evaluate(
-        "document.querySelector('#rv-host').shadowRoot.querySelector('.card').getBoundingClientRect().left"
+    # the card is in the page's side column, which needs no room of its own
+    margin: dict = page.evaluate(RECT, "margin-notes")
+    c: dict = page.evaluate(card)
+    assert margin["left"] - 1 <= c["left"] and c["right"] <= margin["right"] + 1
+    assert (
+        page.evaluate(
+            "getComputedStyle(document.documentElement).getPropertyValue('--review-width')"
+        )
+        == "0px"
     )
-    assert all(n["right"] <= card_left for n in notes(page))
+    assert page.evaluate(line).count("M") == 1 and page.evaluate(OVERFLOW) == 0
+    level: float = c["top"]
+    # a pinned note level with the comment: the card moves below it
+    page.click("#cite-one")
+    page.wait_for_timeout(200)
+    (cite,) = notes(page)
+    c = page.evaluate(card)
+    assert cite["top"] < level + 60 and c["top"] >= cite["bottom"]
+    # a hover note goes over the cards; whatever it moves, the card stays clear of pinned notes
+    hover(page, "#ref-method")
+    c = page.evaluate(card)
+    pinned: list[dict] = [n for n in notes(page) if n["key"] != "hover"]
+    assert len(notes(page)) == 2 and len(pinned) == 1
+    assert all(c["top"] >= n["bottom"] or c["bottom"] <= n["top"] for n in pinned)
+    page.mouse.move(700, 880, steps=5)
+    page.click(
+        ".margin-note .note-close"
+    )  # nothing pinned: the card is back level with its text
+    page.wait_for_timeout(200)
+    assert notes(page) == [] and page.evaluate(card)["top"] == level
+    page.click("#cite-one")
+    page.wait_for_timeout(200)
     # Suggest mode: the page is editable, the notes are not
     page.evaluate("ReviewMode.setMode(true)")
     assert (

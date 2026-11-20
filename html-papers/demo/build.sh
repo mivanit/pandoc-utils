@@ -5,9 +5,11 @@
 # The html-papers scripts and stylesheets must be beside it (`make demo-html-papers` copies
 # them), and pandoc-utils two folders up or at $PANDOC_UTILS.
 set -euo pipefail
-cd "$(dirname "${BASH_SOURCE[0]}")"
-PANDOC_UTILS="${PANDOC_UTILS:-$(cd ../.. && pwd)}"
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PANDOC_UTILS="$(cd "${PANDOC_UTILS:-$here/../..}" && pwd)"
+cd "$here"
 what="${1:-all}"
+case "$what" in html | pdf | all) ;; *) echo "usage: build.sh [html|pdf|all]" >&2; exit 2 ;; esac
 run() { uv run --project "$PANDOC_UTILS" "$@"; }
 
 if [[ ! -f popups.js || ! -f html-papers.css ]]; then

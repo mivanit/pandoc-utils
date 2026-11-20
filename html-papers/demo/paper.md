@@ -32,11 +32,11 @@ __defaults__:
     - $FILTERS$/../html-papers/html-papers.lua
     - $FILTERS$/svg_to_pdf.py
 abstract: |
-  A paper is usually written twice: once as text, and once as the code that produced what the text reports. This paper is written once. It is one markdown file, and building it runs its experiment, draws its figures, fills its table and prints the code that did so. The same build gives a web page and a PDF with the same numbering and references.
+  A paper is usually written twice: once as text, and once as the code that produced what the text reports. This paper is written once. It is one markdown file, and building it runs its experiment, draws its charts, fills its table and prints the code of the experiment. The same build gives a web page and a PDF with the same numbering and references.
 
   The experiment is a small one: word-counting language models fitted to the text of this paper, scored on the sentences they were not shown. Its results change when the text does, and the build keeps the two in step.
 
-  On the web page, hover a link to see what it points to, press **E** to comment, and move the pointer to the left edge for the contents.
+  On the web page, a link shows what it points to when the pointer rests on it, or on a tap. Press **E** to comment. The contents are the column at the left.
 ---
 
 # Introduction {#sec:intro}
@@ -55,7 +55,7 @@ The paper makes three points, each by doing it:
 
 # One source, two outputs {#sec:build}
 
-The source is `paper.md`, written in the markdown that pandoc reads [@macfarlane2006pandoc]. \autoref{fig:pipeline} shows the build. First the experiment runs. It reads the text of the paper and writes the figures, the table and the numbers behind the live figures. Then pandoc reads `paper.md` twice, once to write the web page and once to write LaTeX, which becomes the PDF. Both times pandoc runs \term{filter}, which turns each construct of the paper into what that output needs. A cross-reference becomes a numbered link on the page and stays a reference in LaTeX. A term becomes a link that carries its definition on the page and a tooltip in the PDF.
+The source is `paper.md`, written in the markdown that pandoc reads [@macfarlane2006pandoc]. \autoref{fig:pipeline}, the one figure here that is drawn by hand, shows the build. First the experiment runs. It reads the text of the paper and writes the charts, the table and the numbers behind the live figures. Then pandoc reads `paper.md` twice, once to write the web page and once to write LaTeX, which becomes the PDF. Both times pandoc runs \term{filter}, which turns each construct of the paper into what that output needs. A cross-reference becomes a numbered link on the page and stays a reference in LaTeX. A term becomes a link that carries its definition on the page and a tooltip in the PDF.
 
 ![The build. The text is also the data of the experiment, and the results of the experiment are included in the text.](figures/pipeline.svg){#fig:pipeline}
 
@@ -68,7 +68,7 @@ The script that does this is short enough to print. \autoref{fig:build} is not a
 The file `build.sh`, included from the folder it built. A captioned block of anything is a numbered figure.
 :::
 
-The settings are in the front matter of `paper.md`: the bibliography, the filters to run and the file of terms. The finished page needs five scripts and two stylesheets beside it and nothing else. It needs no server, and it loads nothing from the network. Its equations are MathML, which a browser draws on its own.
+The settings are in the front matter of `paper.md`: the bibliography, the filters to run and the file of terms. Besides its figures and the pages behind its live figures, the finished page needs five scripts and two stylesheets, and nothing else. It needs no server, and it loads nothing from the network. Its equations are MathML, which a browser draws on its own.
 
 # Writing {#sec:writing}
 
@@ -84,7 +84,7 @@ A heading, a figure or a table is given an id, and `\autoref` refers to it:
 See \autoref{sec:model}, \autoref{fig:loss} and \autoref{tab:loss}.
 ```
 
-This gives: see \autoref{sec:model}, \autoref{fig:loss} and \autoref{tab:loss}. The reference becomes the number of its target in both outputs, also when the target comes later in the text. On the web page, hovering the link shows a copy of the target in the margin, so a reader who wants to check a figure does not lose their place. A link inside that copy opens another copy below it. Clicking a copy keeps it open. A reference to an id that does not exist builds as a red question mark with a warning, as in LaTeX.
+This gives: see \autoref{sec:model}, \autoref{fig:loss} and \autoref{tab:loss}. The reference becomes the number of its target in both outputs, also when the target comes later in the text. On the web page, hovering the link shows a copy of the target in the margin, so a reader who wants to check a figure does not lose their place. A figure in a copy is made smaller until it fits, so a copy of a figure never has to be scrolled. A link inside a copy opens another copy below it. Clicking a copy keeps it open. A reference to an id that does not exist still builds. On the web page it shows in red, and the build warns. In the PDF it is the pair of question marks that LaTeX prints.
 
 ## Terms {#sec:terms}
 
@@ -97,7 +97,7 @@ Writing `\term{loss}` in the text then gives \term{loss}. The word is a link to 
 
 ## Citations, notes and equations {#sec:cites}
 
-Citations are the ones pandoc has. Writing `[@knuth1984literate]` gives [@knuth1984literate], and two keys in one bracket give [@mikolov2013efficient; @vaswani2017attention]. On the web page a citation shows its references in the margin, and in the list of references the title and the arXiv number are links. Footnotes show in the margin in the same way.[^second] Equations are written as in LaTeX, as in \autoref{sec:loss}. A note from the author to the author is hard to miss in both outputs: \TODO{take this out before the paper is sent}
+Citations are the ones pandoc has. Writing `[@knuth1984literate]` gives [@knuth1984literate], and two keys in one bracket give [@mikolov2013efficient; @vaswani2017attention]. On the web page a citation shows its references in the margin. In the list of references a title that has a web address is a link, and so is an arXiv number. Footnotes show in the margin in the same way.[^second] Equations are written as in LaTeX, as in \autoref{sec:loss}. A note from the author to the author is hard to miss in both outputs: \TODO{take this out before the paper is sent}
 
 [^second]: A second footnote, so that there are two to compare.
 
@@ -105,7 +105,7 @@ Citations are the ones pandoc has. Writing `[@knuth1984literate]` gives [@knuth1
 
 ## Data {#sec:data}
 
-The data is this paper. The experiment reads `paper.md` and keeps the prose as words in lower case, with a mark at the end of each sentence. It drops the code, the equations and the citations. Every fifth sentence is set aside as the \term{heldout}. The other sentences are the \term{training}. The models count only the training text. Because the text is the data, changing a sentence of this paper changes its results, and the next build reports the new ones.
+The data is this paper. The experiment reads `paper.md` and keeps the prose as words in lower case, with a mark at the end of each sentence. It drops the code, the equations and the citations. A caption keeps its words, and a term counts as the words it shows. Every fifth sentence is set aside as the \term{heldout}. The other sentences are the \term{training}. The models count only the training text. Because the text is the data, changing a sentence of this paper changes its results, and the next build reports the new ones.
 
 ## Model {#sec:model}
 
@@ -140,7 +140,7 @@ The build writes everything in this section except the prose. The prose makes cl
 
 ## Loss by order {#sec:loss-by-order}
 
-\autoref{tab:loss} gives the \term{loss} of each model. On the \term{training}, a higher \term{order} is always better. On the \term{heldout} it is not. One word of context helps, so the model of order 2 is the best. Each word of context after that makes the model worse, and the model of order 4 is hardly better than guessing every word equally. The last column of the table says why. The longer the context, the less often the model has seen it, and a model that has not seen the context knows nothing about the next word.
+\autoref{tab:loss} gives the \term{loss} of each model, at one \term{smoothing} constant. There, on the \term{training}, a higher \term{order} is always better. On the \term{heldout} it is not. One word of context helps, so the model of order 2 is the best. Each word of context after that makes the model worse, and the model of order 4 is hardly better than guessing every word equally. The last column of the table says why. The longer the context, the less often the model has seen it, and a model that has not seen the context knows nothing about the next word.
 
 ```{.include}
 generated/results.md
@@ -148,13 +148,13 @@ generated/results.md
 
 The markdown of the table has two things that a plain table does not. A row whose first cell is bold joins the header, which is where the word counts are. A footnote in a cell shows as an asterisk on the web page, and its note shows in the margin while the pointer is anywhere in the cell.
 
-\autoref{fig:loss} draws the same numbers. On the web page the figure is a picture until it is clicked. Then it is a small live page with a slider for the \term{smoothing} constant, and nothing is loaded before the click.
+\autoref{fig:loss} draws the same numbers. On the web page the figure is a picture until it is clicked. Then it is a small live page with a slider for the \term{smoothing} constant, and nothing is loaded before the click. Moving the slider shows that the best order on the held-out text is not the same at every constant.
 
 ![The loss of each model on the two texts. The dashed line is the loss of guessing every word equally. On the web page, click the figure for a live version with a slider for $k$.](figures/loss-by-order.svg){#fig:loss interactive-src="live/curve.html" interactive-embed="live/curve.html#embed" interactive-height="330"}
 
 ## Smoothing {#sec:smoothing}
 
-How much \term{smoothing} is best depends on which text is asked about (\autoref{fig:smoothing}). On the training text less is always better (\autoref{fig:smoothing-train}), because every count given to a word that did not come is taken from a word that did. With almost none, the model of order 4 has a loss close to zero there: it has memorised the paper. On the held-out text the least smoothing is never the best (\autoref{fig:smoothing-heldout}). The constant matters less as the order goes up, because in a context the model has not seen, every word gets the same probability whatever the constant is.
+How much \term{smoothing} is best depends on which text is asked about (\autoref{fig:smoothing}). On the training text less is always better (\autoref{fig:smoothing-train}), because every count given to a word that did not come is taken from a word that did. With almost none, the model of order 4 has a loss close to zero there: it has memorised the paper. On the held-out text the least smoothing is never the best (\autoref{fig:smoothing-heldout}). From order 2 up, the constant matters less as the order goes up, because in a context the model has not seen, every word gets the same probability whatever the constant is.
 
 ::: {#fig:smoothing .subfigures}
 ![Training text.](figures/smoothing-train.svg){#fig:smoothing-train}
@@ -174,7 +174,7 @@ Each model continues the same prompt, one word on each chip. The rows are read f
 
 ## The words {#sec:words}
 
-\autoref{fig:words} counts how often each word of the paper is used. As in most text, a few words are used very often and most words only once or twice [@zipf1949human]. The page that lists every word with its count is too long to put inside a figure. So this figure stays a picture, with a link to that page under it.
+\autoref{fig:words} counts how often each word of the paper is used. As in most text, a few words are used very often and most words only once or twice [@zipf1949human]. Here the ten most used words are more than a fifth of the text. The page that lists every word with its count is too long to put inside a figure. So this figure stays a picture, with a link to that page under it.
 
 ![How often each word of the paper is used, against the rank of the word. Both axes are logarithmic.](figures/words.svg){#fig:words interactive-link="live/words.html"}
 
@@ -194,7 +194,7 @@ The command merges the files and keeps the newest version of each comment. It li
 
 - The numbers in the table and the figures come from the build. The numbers in a sentence do not. That is why the prose of \autoref{sec:results} quotes no numbers, and why the experiment checks its claims.
 - The scripts and stylesheets beside the page are copies. Nothing updates the copies when the originals change.
-- The notes in the margin need a pointer. A reader who uses only the keyboard gets the links and not the notes.
+- The notes are made for a pointer or a finger. From the keyboard, Enter opens the note of a citation or a footnote. On a term or a reference it only follows the link.
 - The experiment is a toy. One paper is far too little text to learn much about a language, and models of language stopped counting words long ago [@bengio2003neural; @mikolov2013efficient; @vaswani2017attention].
 
 # Appendix {#sec:appendix}
@@ -214,11 +214,12 @@ On the web page:
 - Click a note to keep it open. The cross in its corner closes it.
 - Hover a term such as \term{loss}, or a citation [@knuth1984literate].
 - Hover a cell of \autoref{tab:loss} that has an asterisk.
-- Move the pointer to the left edge for the contents. **Pin** keeps the contents open.
+- Drag the line between the text and the margin, or the edge of the contents, to make a column wider. A double click puts it back.
+- **Unpin** folds the contents into a tab at the left edge. They slide out when the pointer goes there.
 - Click \autoref{fig:loss} to make it live.
-- Press **E**, select some text, and comment on it or suggest a change.
-- Make the window narrow. The notes move to a panel at the bottom.
+- Press **E**, select some text, and comment on it or suggest a change. The comments share the margin with the notes.
+- Make the window narrow, or read on a phone. A tap on a link opens its note in the text, under the paragraph. A swipe to the right opens the contents.
 
 ## Starting your own {#sec:start}
 
-Copy this folder. Keep `build.sh`, the front matter of `paper.md`, and the scripts and stylesheets. Replace the text, the terms, the references and the experiment with your own. The repository of html-papers describes each file and each construct.
+Copy this folder. Keep `build.sh`, the front matter of `paper.md`, and the scripts and stylesheets. Replace the text, the terms, the references and the experiment with your own. The build script looks for html-papers two folders up, or where `PANDOC_UTILS` says. The repository of html-papers describes each file and each construct.

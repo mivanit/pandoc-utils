@@ -11,17 +11,17 @@
 <path d="M435.3 272 v5" stroke="#222"/><text x="435.3" y="292" text-anchor="middle" fill="#222">3</text>
 <path d="M622.0 272 v5" stroke="#222"/><text x="622.0" y="292" text-anchor="middle" fill="#222">4</text>
 <path d="M62 14 V272 H622" fill="none" stroke="#222" stroke-width="1.5"/><text x="342.0" y="312" text-anchor="middle" fill="#222">order (words of context + 1)</text><text x="16" y="143.0" text-anchor="middle" fill="#222" transform="rotate(-90 16 143.0)">loss (bits per word)</text>
-<path d="M62.0 89.4 L248.7 178.0 L435.3 206.3 L622.0 210.4" fill="none" stroke="#3b5a8c" stroke-width="2.2"/>
-<circle cx="62.0" cy="89.4" r="3.2" fill="#3b5a8c"/>
-<circle cx="248.7" cy="178.0" r="3.2" fill="#3b5a8c"/>
-<circle cx="435.3" cy="206.3" r="3.2" fill="#3b5a8c"/>
-<circle cx="622.0" cy="210.4" r="3.2" fill="#3b5a8c"/>
-<path d="M62.0 70.3 L248.7 82.9 L435.3 62.5 L622.0 52.7" fill="none" stroke="#a8842c" stroke-width="2.2"/>
-<circle cx="62.0" cy="70.3" r="3.2" fill="#a8842c"/>
-<circle cx="248.7" cy="82.9" r="3.2" fill="#a8842c"/>
-<circle cx="435.3" cy="62.5" r="3.2" fill="#a8842c"/>
-<circle cx="622.0" cy="52.7" r="3.2" fill="#a8842c"/>
-<path d="M62.0 46.6 L622.0 46.6" fill="none" stroke="#888888" stroke-width="2.2" stroke-dasharray="6 4"/>
+<path d="M62.0 90.9 L248.7 176.8 L435.3 204.9 L622.0 209.7" fill="none" stroke="#3b5a8c" stroke-width="2.2"/>
+<circle cx="62.0" cy="90.9" r="3.2" fill="#3b5a8c"/>
+<circle cx="248.7" cy="176.8" r="3.2" fill="#3b5a8c"/>
+<circle cx="435.3" cy="204.9" r="3.2" fill="#3b5a8c"/>
+<circle cx="622.0" cy="209.7" r="3.2" fill="#3b5a8c"/>
+<path d="M62.0 60.6 L248.7 76.0 L435.3 63.5 L622.0 53.9" fill="none" stroke="#a8842c" stroke-width="2.2"/>
+<circle cx="62.0" cy="60.6" r="3.2" fill="#a8842c"/>
+<circle cx="248.7" cy="76.0" r="3.2" fill="#a8842c"/>
+<circle cx="435.3" cy="63.5" r="3.2" fill="#a8842c"/>
+<circle cx="622.0" cy="53.9" r="3.2" fill="#a8842c"/>
+<path d="M62.0 45.5 L622.0 45.5" fill="none" stroke="#888888" stroke-width="2.2" stroke-dasharray="6 4"/>
 <rect x="70" y="195" width="160" height="63" fill="white" fill-opacity="0.9"/>
 <path d="M76 209 h28" stroke="#3b5a8c" stroke-width="2.2"/>
 <circle cx="90" cy="209" r="3.2" fill="#3b5a8c"/>

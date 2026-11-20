@@ -73,27 +73,36 @@ demo: clean-demo
 .PHONY: clean-demo
 clean-demo:
 	mkdir -p docs
-	find docs -mindepth 1 -maxdepth 1 ! -name html-papers ! -name index.html ! -name .nojekyll \
+	find docs -mindepth 1 -maxdepth 1 ! -name html-papers ! -name .html-papers-build ! -name index.html ! -name .nojekyll \
 		-exec rm -rf {} +
 
 # html-papers/demo/ -> docs/html-papers/: a paper as a web page (index.html) and a PDF
-# (paper.pdf). Starts the folder afresh, copies the paper's source and the html-papers scripts
-# and stylesheets there, then runs the paper's own build.sh in that folder.
+# (paper.pdf). The paper's source and the html-papers scripts and stylesheets are copied to a
+# folder beside the published one, the paper's own build.sh runs there, and the result replaces
+# the published folder only if the build succeeds (a claim of the paper that stopped holding
+# stops the build). DOC_VERSION tells the page which sources it was built from: the commit,
+# -dirty when html-papers/ has uncommitted changes.
 HTML_PAPERS_SITE := docs/html-papers
-.PHONY: demo-html-papers
-demo-html-papers:
-	rm -rf $(HTML_PAPERS_SITE)
-	$(MAKE) demo-html-papers-copy
-	bash $(HTML_PAPERS_SITE)/build.sh all
+HTML_PAPERS_BUILD := docs/.html-papers-build
+HTML_PAPERS_VERSION = $(shell git rev-parse HEAD 2>/dev/null)$(shell git diff --quiet HEAD -- html-papers 2>/dev/null || echo -dirty)
 
-# the web page only: a few seconds, no LaTeX. Copies over what is there, so the PDF stays
-# (as it was last built).
+.PHONY: demo-html-papers
+demo-html-papers: demo-html-papers-copy
+	DOC_VERSION="$(HTML_PAPERS_VERSION)" bash $(HTML_PAPERS_BUILD)/build.sh all
+	rm -rf $(HTML_PAPERS_SITE)
+	mv $(HTML_PAPERS_BUILD) $(HTML_PAPERS_SITE)
+
+# the web page only: a few seconds, no LaTeX. The PDF stays as it was last built.
 .PHONY: demo-html-papers-html
 demo-html-papers-html: demo-html-papers-copy
-	bash $(HTML_PAPERS_SITE)/build.sh html
+	if [ -f $(HTML_PAPERS_SITE)/paper.pdf ]; then cp -p $(HTML_PAPERS_SITE)/paper.pdf $(HTML_PAPERS_BUILD)/; fi
+	DOC_VERSION="$(HTML_PAPERS_VERSION)" bash $(HTML_PAPERS_BUILD)/build.sh html
+	rm -rf $(HTML_PAPERS_SITE)
+	mv $(HTML_PAPERS_BUILD) $(HTML_PAPERS_SITE)
 
 .PHONY: demo-html-papers-copy
 demo-html-papers-copy:
-	mkdir -p $(HTML_PAPERS_SITE)
-	cp -r html-papers/demo/. $(HTML_PAPERS_SITE)/
-	cp html-papers/*.js html-papers/*.css html-papers/numeric.csl $(HTML_PAPERS_SITE)/
+	rm -rf $(HTML_PAPERS_BUILD)
+	mkdir -p $(HTML_PAPERS_BUILD)
+	cp -r html-papers/demo/. $(HTML_PAPERS_BUILD)/
+	cp html-papers/*.js html-papers/*.css html-papers/numeric.csl html-papers/README.md $(HTML_PAPERS_BUILD)/

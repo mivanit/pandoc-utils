@@ -35,7 +35,9 @@ class NGram:
 
     def loss(self, words: list[str]) -> float:
         """Cross-entropy in bits per word: lower is a better prediction."""
-        bits: float = sum(math.log2(self.probability(g)) for g in self.grams(words))
+        bits: float = math.fsum(
+            math.log2(self.probability(g)) for g in self.grams(words)
+        )
         return -bits / len(words)
 
     def continuation(self, prompt: list[str], length: int) -> list[str]:
