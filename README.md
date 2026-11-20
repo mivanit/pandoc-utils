@@ -27,6 +27,7 @@ pandoc-utils/
     |-- contents.js                 # contents sidebar
     |-- live-figures.js             # click a static figure for its live version
     |-- arxiv-links.js              # links in the bibliography
+    |-- menu.js                     # the reader's settings (M)
     |-- review.js                   # comments and suggested edits, exported as JSON
     +-- collect_reviews.py          # merge reviewers' files, list comments by source line
 ```

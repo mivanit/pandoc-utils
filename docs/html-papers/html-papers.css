@@ -12,20 +12,24 @@
 
    Shared between the scripts and this file:
    - on <html>: --toc and --side (the outer columns' widths, set by dragging), --gap, --pad,
-     --text-min, --text-max (here); .toc-pinned and .toc-open (contents.js); .review-on
-     (review.js);
+     --text-min, --text-max (here; menu.js sets --text-max); .toc-pinned and .toc-open
+     (contents.js); .review-on (review.js); .lines-off (menu.js: no lines to notes or comments);
    - --doc-side-left and --doc-side-width (here): where the side column is. review.js puts its
      comments there instead of in a column of its own;
    - data-doc-chrome on anything a script adds to the page (not the document's text);
    - data-doc-avoid on a box that review.js's comment lines pass behind, data-doc-reserve on
-     one its comment cards keep clear of (a pinned note);
-   - a `doclayout` event on document after such boxes move.
+     one its comment cards keep clear of (a note);
+   - a `doclayout` event on document after such boxes, or the text, move; a `doccolumn` event
+     from popups.js, which lays out the side column, asking other scripts for their boxes;
+   - window.DocOptions: what the reader can change, listed by menu.js.
    The breakpoints live only here: popups.js reads the layout it finds (is there a side
    column?) instead of repeating them. */
 
 :root {
   --toc: 15rem;       /* contents column: drag its right edge */
-  --side: 20rem;      /* side column: drag its left edge */
+  --side: 26rem;      /* side column: drag its left edge */
+  --side-share: 0.36; /* of what text and side column share, when there is not room for both in
+                         full; 1 once the reader set a width (popups.js): the text gives way */
   --gap: 2.5rem;      /* between the text and the side column */
   --pad: 1.5rem;      /* the text's own side padding */
   --text-min: 22rem;
@@ -41,16 +45,17 @@ body {
   margin: 0 auto;
   padding: 2rem var(--pad);
 }
-/* Text and side column, centred as one in what the contents leave. The side column is as wide
-   as it was dragged while the text has its full width beside it. With less room than that it
-   takes at most 36% of what the two share, so both narrow together with the window; it stops
-   at 12rem, the text at --text-min. Whatever widths were dragged, the three fit. The 2rem is
-   the least margin left and right. */
+/* Text and side column, centred as one in what the contents leave. The side column has its
+   width (--side) while the text has its full width beside it. With less room than that it
+   takes at most 36% of what the two share, so both narrow together with the window, unless the
+   reader dragged it: then it keeps the width asked for and the text narrows, down to
+   --text-min. The side column stops at 10rem. Whatever widths were dragged, the three fit.
+   The 2rem is the least margin left and right. */
 @media (width >= 760px) {
   :root {
     --fixed: calc(var(--gap) + 2 * var(--pad) + 2rem);
     --room: calc(100vw - var(--toc-w) - var(--fixed));  /* for the text and the side column */
-    --side-w: max(12rem, min(var(--side), max(calc(var(--room) * 0.36), calc(var(--room) - var(--text-max))), calc(var(--room) - var(--text-min))));
+    --side-w: max(10rem, min(var(--side), max(calc(var(--room) * var(--side-share)), calc(var(--room) - var(--text-max))), calc(var(--room) - var(--text-min))));
     --text: clamp(var(--text-min), calc(var(--room) - var(--side-w)), var(--text-max));
     --body-left: calc(var(--toc-w) + max(1rem, (100vw - var(--toc-w) - var(--text) - var(--side-w) - var(--gap) - 2 * var(--pad)) / 2));
     --doc-side-left: calc(var(--body-left) + var(--text) + 2 * var(--pad) + var(--gap));
@@ -59,7 +64,8 @@ body {
   body { margin-left: var(--body-left); margin-right: 0; }
 }
 @media (width >= 62rem) {
-  html.toc-pinned { --toc-w: clamp(10rem, var(--toc), 24vw); }
+  /* as wide as it was dragged, while the text and the side column keep their least widths */
+  html.toc-pinned { --toc-w: clamp(8rem, var(--toc), calc(100vw - var(--fixed) - var(--text-min) - 10rem)); }
 }
 @media (max-width: 600px) { :root { --pad: 1rem; } body { padding-top: 1rem; padding-bottom: 1rem; } }
 
@@ -90,9 +96,10 @@ html.col-dragging, html.col-dragging * { cursor: col-resize !important; user-sel
   font-size: 0.82rem; line-height: 1.35; transform: translateX(-100%); transition: transform 0.15s ease;
 }
 .toc-open #toc-nav { transform: none; box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08); }
-.toc-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.6rem; }
+.toc-top { display: flex; justify-content: space-between; align-items: baseline; gap: 0.3rem; margin-bottom: 0.6rem; }
+.toc-title { flex: 1; }
 .toc-title { font-weight: 600; color: #222; text-decoration: none; font-size: 0.9rem; }
-.toc-pin {
+.toc-pin, .toc-menu {
   border: 1px solid #d5d9e0; border-radius: 3px; background: white; color: #555;
   font: inherit; font-size: 0.75rem; padding: 0.05rem 0.45rem; cursor: pointer;
 }
@@ -118,7 +125,7 @@ html.col-dragging, html.col-dragging * { cursor: col-resize !important; user-sel
   #toc-tab::before { content: '\2630'; }
   html.review-on #toc-tab { bottom: calc(45vh + 0.9rem); }  /* above review.js's sheet */
 }
-@media print { #toc-tab, #toc-nav, #margin-notes, #note-lines, .col-handle { display: none; } }
+@media print { #toc-tab, #toc-nav, #margin-notes, #note-lines, .col-handle, #doc-menu { display: none; } }
 
 /* margin notes (popups.js) */
 #margin-notes { position: absolute; top: 0; left: calc(100% + var(--gap)); width: var(--side-w); }
@@ -158,9 +165,17 @@ html.col-dragging, html.col-dragging * { cursor: col-resize !important; user-sel
 .preview-subs { border-top: 1px solid #e4e6ea; margin-top: 0.5rem; padding-top: 0.3rem; }
 .preview-subs a { display: block; text-decoration: none; padding: 0.1rem 0; }
 .preview-subs .preview-sub-h3, .preview-subs .preview-sub-h4 { padding-left: 1.2rem; }
-/* the lines from each anchor to its note (popups.js draw) */
+/* the line to each note (popups.js draw): from a dot at the end of the anchor's line of text,
+   through the gutter, to the note. The anchor of an open note is tinted; under the pointer,
+   or with the pointer on its note, anchor and line are stronger */
 #note-lines { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: visible; pointer-events: none; z-index: 4; }
-#note-lines path { fill: none; stroke: #c9ced6; stroke-width: 1; }
+#note-lines path { fill: none; stroke: #c3c9d3; stroke-width: 1; }
+#note-lines circle { fill: #b0b8c5; }
+#note-lines path.active { stroke: #5b78a8; stroke-width: 1.5; }
+#note-lines circle.active { fill: #5b78a8; }
+.note-open { background: #eef1f6; border-radius: 2px; }
+.note-active { background: #dbe4f3; }
+html.lines-off #note-lines { display: none; }
 /* a table note's * (a footnote in a cell) hangs past the number, so right-aligned digits line
    up; the whole cell shows the note on hover */
 .cell-note { position: absolute; }
@@ -188,10 +203,24 @@ button.open-full { background: white; color: #3b5a8c; font: inherit; cursor: poi
 .sheet-bar .open-full { margin: 0; }
 body.sheet-open { overflow: hidden; }
 
-/* review mode (review.js: html.review-on): its comment cards share the side column. A hover
-   note goes over them; a pinned one they move clear of (data-doc-reserve) */
-html.review-on #margin-notes { z-index: 2147483001; }  /* above review.js's layer (2147483000) */
-html.review-on .margin-note { background: white; box-shadow: 0 1px 8px rgba(0, 0, 0, 0.14); padding-right: 0.5rem; }
+/* the menu (menu.js): what the reader can change, on M or from the contents' ⚙ */
+#doc-menu {
+  position: fixed; z-index: 2147483002; top: 3rem; left: 50%; transform: translateX(-50%); box-sizing: border-box;
+  width: min(26rem, calc(100vw - 1.5rem)); max-height: calc(100vh - 4.5rem); overflow-y: auto;
+  background: white; border: 1px solid #cfd4dc; border-radius: 8px; box-shadow: 0 6px 30px rgba(0, 0, 0, 0.2);
+  padding: 0.8rem 1rem 0.9rem; font: 0.85rem/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; color: #222;
+}
+#doc-menu[hidden] { display: none; }
+.menu-top { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.5rem; }
+.menu-top b { font-size: 1rem; }
+.menu-close { border: 0; background: none; color: #777; cursor: pointer; font-size: 1.2rem; line-height: 1; padding: 0 0.2rem; }
+.menu-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.3rem 0; }
+.menu-row > span { flex: 1; }
+.menu-row input[type="range"] { flex: 1; min-width: 6rem; }
+.menu-row output { min-width: 4.2em; text-align: right; color: #555; font-variant-numeric: tabular-nums; }
+.menu-foot { display: flex; align-items: center; justify-content: space-between; gap: 0.6rem; margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid #e4e6ea; color: #666; font-size: 0.78rem; }
+.menu-foot button { border: 1px solid #d5d9e0; border-radius: 4px; background: white; color: #333; font: inherit; padding: 0.15rem 0.6rem; cursor: pointer; }
+.menu-foot kbd, .menu-row kbd { border: 1px solid #cfd4dc; border-radius: 3px; padding: 0 0.3em; background: #f7f8fa; font: inherit; }
 
 /* a phone: no side column. A note goes in the text, under the block its link is in (popups.js) */
 @media (width < 760px) {

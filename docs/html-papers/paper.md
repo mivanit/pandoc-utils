@@ -36,7 +36,7 @@ abstract: |
 
   The experiment is a small one: word-counting language models fitted to the text of this paper, scored on the sentences they were not shown. Its results change when the text does, and the build keeps the two in step.
 
-  On the web page, a link shows what it points to when the pointer rests on it, or on a tap. Press **E** to comment. The contents are the column at the left.
+  On the web page, a link shows what it points to when the pointer rests on it, or on a tap. Press **E** to comment and **M** for the settings. The contents are the column at the left.
 ---
 
 # Introduction {#sec:intro}
@@ -68,7 +68,7 @@ The script that does this is short enough to print. \autoref{fig:build} is not a
 The file `build.sh`, included from the folder it built. A captioned block of anything is a numbered figure.
 :::
 
-The settings are in the front matter of `paper.md`: the bibliography, the filters to run and the file of terms. Besides its figures and the pages behind its live figures, the finished page needs five scripts and two stylesheets, and nothing else. It needs no server, and it loads nothing from the network. Its equations are MathML, which a browser draws on its own.
+The settings are in the front matter of `paper.md`: the bibliography, the filters to run and the file of terms. Besides its figures and the pages behind its live figures, the finished page needs six scripts and two stylesheets, and nothing else. It needs no server, and it loads nothing from the network. Its equations are MathML, which a browser draws on its own.
 
 # Writing {#sec:writing}
 
@@ -211,13 +211,14 @@ This is `experiment.py`, included from the file. It imports the model of \autore
 On the web page:
 
 - Hover a reference to a section, figure or table. A copy of it opens in the margin. Hover a link inside the copy for another copy below it.
-- Click a note to keep it open. The cross in its corner closes it.
+- Click a note to keep it open. The cross in its corner closes it. The notes you kept open are there on your next visit.
 - Hover a term such as \term{loss}, or a citation [@knuth1984literate].
 - Hover a cell of \autoref{tab:loss} that has an asterisk.
 - Drag the line between the text and the margin, or the edge of the contents, to make a column wider. A double click puts it back.
+- Press **M** for the settings. They set how wide the text and the columns are, whether lines join the text to the notes, and whether a note opens when the pointer rests on a link.
 - **Unpin** folds the contents into a tab at the left edge. They slide out when the pointer goes there.
 - Click \autoref{fig:loss} to make it live.
-- Press **E**, select some text, and comment on it or suggest a change. The comments share the margin with the notes.
+- Press **E**, select some text, and comment on it or suggest a change. The comments share the margin with the notes, and both are in the order of the text.
 - Make the window narrow, or read on a phone. A tap on a link opens its note in the text, under the paragraph. A swipe to the right opens the contents.
 
 ## Starting your own {#sec:start}

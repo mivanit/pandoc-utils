@@ -43,6 +43,7 @@ PANDOC_VERSION:must_be_at_least('3.1.1')  -- pandoc.json
 
 local HTML = FORMAT:match('html') ~= nil
 local SCRIPTS = {'arxiv-links.js', 'popups.js', 'contents.js', 'live-figures.js'}
+local LAST_SCRIPT = 'menu.js'  -- after review.js: it lists what the others let the reader change
 
 -- ---------------------------------------------------------------------------------------
 -- live figures
@@ -481,6 +482,7 @@ function Pandoc(doc)
   end
   head[#head + 1] = pandoc.RawBlock('html', '<script src="' .. dir .. 'review.js"'
     .. (email ~= '' and (' data-review-email="' .. email .. '"') or '') .. ' defer></script>')
+  head[#head + 1] = pandoc.RawBlock('html', '<script src="' .. dir .. LAST_SCRIPT .. '" defer></script>')
   if version ~= '' then
     head[#head + 1] = pandoc.RawBlock('html', '<meta name="review-doc-version" content="' .. version .. '">')
   end

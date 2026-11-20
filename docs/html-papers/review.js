@@ -43,7 +43,10 @@
  * `--doc-side-width` on `<html>` (lengths; html-papers.css does): the comments then go in that
  * column, and `--review-width` is 0.
  * Lines pass behind the page's boxes marked `data-doc-avoid`, and cards keep clear of those
- * marked `data-doc-reserve` (both laid out again on a `doclayout` event on document).
+ * marked `data-doc-reserve` (both laid out again on a `doclayout` event on document). A page
+ * that lays out its side column itself (`window.MarginNotes.column`) places the cards among
+ * its own boxes: it asks for them with a `doccolumn` event (see `layout`). `lines-off` on
+ * <html> hides the lines.
  * Below 760px the cards go in a bottom sheet instead. The panel lives in a shadow root, so
  * page styles do not reach it.
  *
@@ -177,7 +180,7 @@
 	// The page's own scripts can mark what they add without configuring this one:
 	// `data-doc-chrome` on an element = not document text (as data-review-ignore);
 	// `data-doc-avoid` = a box (a margin note, say) that comment lines pass behind, not
-	// through; `data-doc-reserve` = a box that cards keep clear of (a pinned note in the
+	// through; `data-doc-reserve` = a box that cards keep clear of (a note in the
 	// column the cards share). A page that moves such boxes dispatches `doclayout` on document.
 	const OUTSIDE =
 		"script,style,noscript,template,annotation,#rv-host,[data-doc-chrome]" +
@@ -915,6 +918,11 @@ input, textarea { font: inherit; color: #222; border: 1px solid #ccc; border-rad
 .panel { position: fixed; top: 8px; right: 8px; width: ${COLUMN - 16}px; pointer-events: auto; background: #fff;
   border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 3px 14px rgba(0,0,0,.12); padding: 9px 10px; z-index: 2; }
 .panel.drop { outline: 3px dashed #3b5a8c; }
+/* in the page's own side column (layout): only its title row, so it does not cover the cards
+   under it; the rest while the pointer or the focus is in it, in Suggest mode, or after a
+   click on the title row (.open) */
+.panel.compact:not(.sheet, .open, .suggesting, .drop, :hover, :focus-within) > :not(.title) { display: none; }
+.panel.compact:not(.sheet) .title { cursor: pointer; }
 .title { display: flex; align-items: center; gap: 4px; }
 .title b { font-size: 14.5px; }
 .count { flex: 1; color: #666; font-size: 12px; margin-left: 4px; }
@@ -1118,7 +1126,12 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 			{ class: "panel" },
 			h(
 				"div",
-				{ class: "title" },
+				{
+					class: "title",
+					onclick: (e) => {
+						if (!e.target.closest("button")) panel.classList.toggle("open");
+					},
+				},
 				h("b", {}, "Review"),
 				countEl,
 				h(
@@ -1544,27 +1557,115 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 	 * Place the cards in the column: each level with its text, pushed down past the card above
 	 * and clear of the page's reserved boxes, with a line from the text's line to it. Narrow
 	 * screens: the bottom sheet, no lines.
+	 *
+	 * A page whose own script lays out the side column (`window.MarginNotes.column`) places the
+	 * cards instead, in one order with its own boxes: its `doccolumn` event collects them
+	 * (`{top, left, height, place(top)}`, page coordinates), and the `doclayout` event after it
+	 * draws them where it put them.
 	 */
 	function layout() {
 		if (!on) return;
 		const wide = innerWidth >= NARROW;
 		panel.classList.toggle("sheet", !wide);
+		panel.classList.toggle("compact", wide && !!sideColumn());
 		layer.hidden = !wide;
 		reserveWidth();
 		if (!wide) return;
+		if (managed()) {
+			window.MarginNotes.place(); // asks for the cards (measure), then draws (doclayout)
+			return;
+		}
+		measure();
+		const { x0, cardWidth } = column();
+		// the page's boxes in the cards' column that cards keep clear of (RESERVE)
+		const sy = scrollY;
+		const reserved = [...document.querySelectorAll(RESERVE)]
+			.map((el) => el.getBoundingClientRect())
+			.filter((r) => r.height && r.right > x0 && r.left < x0 + cardWidth)
+			.map((r) => ({ t: r.top + sy - 6, b: r.bottom + sy + 6 }))
+			.sort((a, b) => a.t - b.t);
+		let floor = 0;
+		for (const p of placed) {
+			let y = Math.max(p.top, floor);
+			// below any reserved box it would lie on (sorted, so one pass)
+			for (const r of reserved) if (y < r.b && y + p.height > r.t) y = r.b;
+			p.y = y;
+			floor = y + p.height + 8;
+		}
+		draw();
+	}
+	/** @returns {boolean} whether the page's own script places the cards in its side column */
+	const managed = () =>
+		!!(
+			window.MarginNotes &&
+			window.MarginNotes.column &&
+			!window.MarginNotes.narrow() &&
+			sideColumn()
+		);
+	/** @returns {{x0: number, cardWidth: number}} where the cards go: the page's side column, or the window's right edge */
+	function column() {
 		const side = sideColumn();
-		const cw = document.documentElement.clientWidth,
-			x0 = side ? side.left : cw - COLUMN + 8,
-			cardWidth = side ? side.width - 4 : COLUMN - 16,
-			sy = scrollY;
-		const rootBox = idx.root.getBoundingClientRect(),
-			rootPad = parseFloat(getComputedStyle(idx.root).paddingRight) || 0;
-		const textRight = Math.min(rootBox.right - rootPad, x0 - 24);
+		return {
+			x0: side ? side.left : document.documentElement.clientWidth - COLUMN + 8,
+			cardWidth: side ? side.width - 4 : COLUMN - 16,
+		};
+	}
+	/** The cards that have a place in the text, in its order: `placed`, with where each wants to be. */
+	let placed = [];
+	function measure() {
+		const { x0, cardWidth } = column();
+		layer.style.setProperty("--x0", x0 + "px");
+		layer.style.setProperty("--cw", cardWidth + "px"); // before the heights are read
+		const sy = scrollY;
 		// all reads, then all writes: a read after a write costs a full reflow, once per card
 		const items = [...layer.querySelectorAll(".card")].map((el) => ({
 			el,
 			box: anchorBox(el.dataset.id),
 		}));
+		for (const it of items) it.el.hidden = !it.box; // nowhere to sit: hidden, not stranded at the corner
+		placed = items.filter((it) => it.box);
+		for (const p of placed) {
+			p.top = p.box.top + sy - 4;
+			p.height = p.el.offsetHeight;
+		}
+		placed.sort((a, b) => a.top - b.top || a.box.left - b.box.left);
+	}
+	document.addEventListener("doccolumn", (e) => {
+		if (!on || innerWidth < NARROW || !managed()) return;
+		measure();
+		// the panel stays at the window's top (its title row, while compact): at the top of the
+		// page, the column starts below it
+		const box = panel.firstElementChild.getBoundingClientRect(),
+			{ x0, cardWidth } = column();
+		if (box.right > x0 && box.left < x0 + cardWidth)
+			e.detail.items.push({
+				top: 0,
+				left: 0,
+				height: box.bottom + 10,
+				place: () => {},
+			});
+		for (const p of placed)
+			e.detail.items.push({
+				top: p.top,
+				left: p.box.left,
+				height: p.height,
+				place: (y) => {
+					p.y = y;
+				},
+			});
+	});
+	/**
+	 * Put each card where it was placed (`y`), with its line: a dot at the end of the text's
+	 * line, straight across towards the column, then a curve to the card's edge.
+	 */
+	function draw() {
+		const { x0 } = column();
+		const cw = document.documentElement.clientWidth,
+			sy = scrollY;
+		const rootBox = idx.root.getBoundingClientRect(),
+			rootPad = parseFloat(getComputedStyle(idx.root).paddingRight) || 0;
+		const textRight = Math.min(rootBox.right - rootPad, x0 - 24);
+		const lines = !document.documentElement.classList.contains("lines-off");
 		// the page's boxes that lines pass behind (AVOID), in page coordinates
 		const avoid = [...document.querySelectorAll(AVOID)].map((el) => {
 			const r = el.getBoundingClientRect();
@@ -1587,33 +1688,21 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 			}
 			return x < x1 ? d + `M${x},${y} H${x1}` : d + `M${x1},${y}`;
 		};
-		layer.style.setProperty("--x0", x0 + "px");
-		layer.style.setProperty("--cw", cardWidth + "px");
-		// the page's boxes in the cards' column that cards keep clear of (RESERVE)
-		const reserved = [...document.querySelectorAll(RESERVE)]
-			.map((el) => el.getBoundingClientRect())
-			.filter((r) => r.height && r.right > x0 && r.left < x0 + cardWidth)
-			.map((r) => ({ t: r.top + sy - 6, b: r.bottom + sy + 6 }))
-			.sort((a, b) => a.t - b.t);
-		for (const it of items) it.el.hidden = !it.box; // nowhere to sit: hidden, not stranded at the corner
-		const placed = items.filter((it) => it.box);
-		for (const p of placed) {
-			p.top = p.box.top + sy;
-			p.height = p.el.offsetHeight;
-		}
-		placed.sort((a, b) => a.top - b.top);
 		let floor = 0,
 			paths = "";
 		for (const p of placed) {
-			let y = Math.max(p.top - 4, floor);
-			// below any reserved box it would lie on (sorted, so one pass)
-			for (const r of reserved) if (y < r.b && y + p.height > r.t) y = r.b;
-			p.el.style.top = y + "px";
-			floor = y + p.height + 8;
+			if (p.y === undefined) continue; // not placed yet
+			p.el.style.top = p.y + "px";
+			floor = Math.max(floor, p.y + p.height + 8);
+			if (!lines) continue;
 			const cls = p.el.dataset.id === active ? ' class="active"' : "";
-			const ay = p.box.top + sy + p.box.height / 2,
-				sx = Math.max(p.box.right, Math.min(textRight, x0 - 24)) + 6;
-			paths += `<circle${cls} cx="${sx}" cy="${ay}" r="2"/><path${cls} d="${across(sx, x0 - 10, ay)} L${x0},${y + 12}"/>`;
+			// the anchor's line was measured at p.top + 4 (page coordinates)
+			const ay = p.top + 4 + p.box.height / 2,
+				sx = Math.max(p.box.right, Math.min(textRight, x0 - 24)) + 6,
+				bend = Math.max(sx, x0 - 52), // where the straight part ends
+				mid = (bend + x0) / 2,
+				to = p.y + 14;
+			paths += `<circle${cls} cx="${sx}" cy="${ay}" r="2.2"/><path${cls} d="${across(sx, bend, ay)} C${mid},${ay} ${mid},${to} ${x0},${to}"/>`;
 		}
 		svg.setAttribute("width", cw);
 		svg.setAttribute(
@@ -1631,7 +1720,10 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 	};
 	const resizeObserver = new ResizeObserver(layoutSoon);
 	document.addEventListener("doclayout", () => {
-		if (on) layoutSoon();
+		if (!on) return;
+		if (innerWidth >= NARROW && managed())
+			draw(); // the page has just placed the cards
+		else layoutSoon();
 	});
 
 	// ==================================================================
@@ -2272,6 +2364,7 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 			if (host) {
 				toast("Fill in your name at the top right first.");
 				nameInput.classList.add("missing");
+				panel.classList.add("open"); // compact: the field has to be there to take the focus
 				nameInput.focus();
 				menu.hidden = true;
 			}
@@ -2492,6 +2585,7 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 		else restoreAttr(root, "contenteditable", rootAttrs.ce);
 		modeButtons.comment.setAttribute("aria-pressed", String(!suggesting));
 		modeButtons.suggest.setAttribute("aria-pressed", String(suggesting));
+		panel.classList.toggle("suggesting", suggesting);
 		hint.textContent = suggesting
 			? "Click into the text and type: your edits become suggestions. Ctrl/Cmd+click follows a link; Esc goes back to Comment."
 			: "Select text to comment or suggest an edit" +

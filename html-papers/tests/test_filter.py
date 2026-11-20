@@ -140,8 +140,16 @@ def latex(folder: Path) -> str:
 
 
 def test_head_has_the_scripts_with_their_prefix(html: str) -> None:
-    for name in ("arxiv-links.js", "popups.js", "contents.js", "live-figures.js"):
+    for name in (
+        "arxiv-links.js",
+        "popups.js",
+        "contents.js",
+        "live-figures.js",
+        "menu.js",
+    ):
         assert f'<script src="../{name}" defer></script>' in html
+    # the menu lists what the others registered, so it comes last
+    assert html.index("review.js") < html.index("menu.js")
     assert (
         '<script src="../review.js" data-review-email="me@example.org" defer></script>'
         in html

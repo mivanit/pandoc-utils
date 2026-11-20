@@ -17,7 +17,9 @@
  *
  * On <html>: `toc-open` while the panel is out, `toc-pinned` while pinned, `--toc` its width
  * (html-papers.css makes it a column where there is room). The panel, tab and edge are
- * `data-doc-chrome`: not the document's text, to review.js and popups.js.
+ * `data-doc-chrome`: not the document's text, to review.js and popups.js. When the column
+ * changes, the text moves: a `doclayout` event on document tells the scripts that placed
+ * things beside it. Pin and the width are in `window.DocOptions`, for menu.js.
  */
 (function () {
   const CFG = (document.currentScript && document.currentScript.dataset) || {};
@@ -61,17 +63,18 @@
   const pin = nav.querySelector('.toc-pin');
   const remember = (key, value) => { try { value === null ? localStorage.removeItem(key) : localStorage.setItem(key, value); } catch (e) { /* no storage: not remembered */ } };
   const recall = (key) => { try { return localStorage.getItem(key); } catch (e) { return null; } };
+  const moved = () => document.dispatchEvent(new Event('doclayout'));  // the text is somewhere else now
   function setPinned(on, keep) {
     root.classList.toggle('toc-pinned', on);
     pin.setAttribute('aria-pressed', on);
     pin.textContent = on ? 'Unpin' : 'Pin';
-    if (keep) remember('toc-pinned', on ? '1' : '');
+    if (keep) { remember('toc-pinned', on ? '1' : ''); moved(); }
   }
   setPinned(recall('toc-pinned') !== '', false);  // pinned until the reader unpins it
 
   // The column's right edge drags (--toc, html-papers.css), remembered; a double click puts it
   // back. It shows only while the contents are a column (html-papers.css).
-  const TOC_MIN = 10, TOC_MAX = 30;  // rem
+  const TOC_MIN = 8, TOC_MAX = 60;  // rem (html-papers.css keeps room for the other two columns)
   const handle = chrome(document.createElement('div'));
   handle.id = 'toc-handle';
   handle.className = 'col-handle';
@@ -83,6 +86,7 @@
   const docked = () => getComputedStyle(handle).display !== 'none';
   const rem = () => parseFloat(getComputedStyle(root).fontSize);
   const setWidth = (px) => root.style.setProperty('--toc', Math.max(TOC_MIN, Math.min(TOC_MAX, px / rem())).toFixed(2) + 'rem');
+  const resetWidth = () => { root.style.removeProperty('--toc'); remember('toc-width', null); moved(); };
   if (parseFloat(recall('toc-width'))) setWidth(parseFloat(recall('toc-width')) * rem());
   handle.addEventListener('pointerdown', (event) => {
     if (event.button) return;
@@ -90,19 +94,27 @@
     handle.setPointerCapture(event.pointerId);
     handle.classList.add('dragging');
     root.classList.add('col-dragging');
-    const move = (e) => setWidth(e.clientX);
+    const move = (e) => { setWidth(e.clientX); moved(); };
     const up = () => {
       handle.removeEventListener('pointermove', move);
       handle.classList.remove('dragging');
       root.classList.remove('col-dragging');
       setWidth(nav.offsetWidth);  // what it came to, not what was asked for
       remember('toc-width', (nav.offsetWidth / rem()).toFixed(2));
+      moved();
     };
     handle.addEventListener('pointermove', move);
     handle.addEventListener('pointerup', up, { once: true });
     handle.addEventListener('pointercancel', up, { once: true });
   });
-  handle.addEventListener('dblclick', () => { root.style.removeProperty('--toc'); remember('toc-width', null); });
+  handle.addEventListener('dblclick', resetWidth);
+  // what the reader can change: menu.js lists whatever the page's scripts add to DocOptions
+  (window.DocOptions = window.DocOptions || []).push(
+    { label: 'Contents as a column', type: 'toggle', default: true,
+      get: () => root.classList.contains('toc-pinned'), set: (on) => setPinned(on, true) },
+    { label: 'Contents width', type: 'range', min: TOC_MIN, max: 40, step: 0.5, unit: 'rem', available: docked,
+      get: () => nav.offsetWidth / rem(), set: (v) => { setWidth(v * rem()); remember('toc-width', String(v)); moved(); }, reset: resetWidth },
+  );
   const open = (on) => root.classList.toggle('toc-open', on);
   // a mouse over the tab opens the panel (a tap is the click below, alone)
   tab.addEventListener('pointerenter', (event) => { if (event.pointerType === 'mouse') open(true); });

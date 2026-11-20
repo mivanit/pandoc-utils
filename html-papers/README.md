@@ -69,6 +69,7 @@ Without the filter, the scripts still work on any pandoc page built with
 <script src="contents.js" defer></script>
 <script src="live-figures.js" defer></script>
 <script src="review.js" defer data-review-email="me@example.org"></script>
+<script src="menu.js" defer></script>  <!-- last: it lists what the others let the reader change -->
 ```
 
 Each script is one file with no dependencies; take the ones you want.
@@ -116,6 +117,7 @@ Each script is one file with no dependencies; take the ones you want.
 | `contents.js` | The contents, from the headings: the left column, or unpinned a tab that slides out; on a phone a button and a swipe. The current section is highlighted. |
 | `live-figures.js` | A figure with a live version: the static image until clicked, then an iframe of the live page, with links to the full page and back. |
 | `arxiv-links.js` | In the bibliography, `arXiv:<id>` becomes a link, and so does the title of an entry that has an address. |
+| `menu.js` | The settings, on <kbd>M</kbd> or the ⚙ beside the contents' Pin: the widths of the text and the columns, lines on or off, hover notes on or off, whether open notes are remembered. |
 | `review.js` | Review mode: readers press <kbd>E</kbd>, select text, and comment or suggest edits; they export a JSON file and send it to you. Works on any web page, with or without the rest. |
 | `collect_reviews.py` | Merges the files reviewers send and lists each comment with the line of the markdown source it is about. |
 
@@ -152,20 +154,35 @@ the notes and previews and, in review mode, the comments.
 - **Resizing.** The right edge of the contents and the left edge of the side column drag; a
   double click puts one back. Both widths (and the pin) are remembered in the browser. The
   text takes what is left, up to `--text-max`; text and side column are centred together.
-  When the window narrows, the side column and the text narrow together, down to 12rem and
-  `--text-min`, so whatever was dragged, nothing runs off the page.
+  A column can be dragged as wide as the window allows: the text gives way down to
+  `--text-min` (22rem), the side column down to 10rem, the contents down to 8rem, so whatever
+  was dragged, nothing runs off the page. Until the side column is dragged, it and the text
+  narrow together with the window.
+- **One column, in the order of the text.** Notes, previews and comments are one stack: each
+  sits level with the place in the text it belongs to, or below the one before it. A note
+  opened from a note goes right under that note.
+- **Lines.** The link of an open note is tinted. A dot at the end of its line of text starts a
+  line that curves through the gutter to the note; it never runs over the text, and because
+  the column is in the order of the text, lines do not cross. With the pointer on a note, its
+  link and its line are stronger. Comments have the same lines.
+- **Remembered.** The notes a reader pinned are there on the next visit (per page, in the
+  browser's storage).
+- **Settings.** <kbd>M</kbd>, or the ⚙ beside Pin, opens a menu: the text's width, each
+  column's width, lines on or off, whether a note opens when the pointer rests on a link (off:
+  a click opens it), whether open notes are remembered, and Reset.
 - **Touch.** Where no pointer can rest on a link (`hover: none`), one tap opens the note, with
   the link itself ("Go to Figure 3") inside it.
 - **Previews.** A copy of a figure or table is laid out as wide as it is in the text and
   scaled to fit the note, down to 30%, so it has no scrollbar. A copy of a section is text
   and scrolls.
-- **Comments.** review.js puts its cards in the side column. A hover note goes over them; a
-  pinned note they move clear of.
+- **Comments.** review.js puts its cards in the side column, in the same stack as the notes.
+  Its panel is only its title row there, so it does not cover them; it opens under the
+  pointer, or on a click.
 
 To change the defaults, set the variables after `html-papers.css`:
 
 ```css
-:root { --toc: 13rem; --side: 24rem; --text-max: 40rem; }
+:root { --toc: 13rem; --side: 22rem; --text-max: 40rem; }
 ```
 
 ## Figures with a live version
@@ -216,12 +233,21 @@ past the margin.
   the document's text, popups.js does not look for anchors in it (other than in its own
   notes), and it is `contenteditable="false"`, so review.js's Suggest mode cannot edit it.
   (review.js's own panel is `#rv-host`, which it leaves out itself.)
-- Each note carries `data-doc-avoid`: review.js's comment lines pass behind it. A pinned note
-  also carries `data-doc-reserve`: review.js's cards keep clear of it.
+- Each note carries `data-doc-avoid`: review.js's comment lines pass behind it, and
+  `data-doc-reserve`: review.js's cards keep clear of it.
 - `html-papers.css` says where the side column is, in `--doc-side-left` and
   `--doc-side-width`: review.js puts its cards there instead of in a column of its own.
-- popups.js dispatches `doclayout` on `document` after laying notes out; review.js redraws its
-  lines then.
+- popups.js lays out the whole side column (`window.MarginNotes.column`). Before it does, it
+  dispatches `doccolumn` on `document` with `detail.items`, an empty list: a script with boxes
+  of its own for the column adds `{top, left, height, place(top)}` for each (where its anchor
+  is and how tall it is, page coordinates), and `place` is called with where it goes.
+  review.js gives its cards this way. Without popups.js it places them itself.
+- `doclayout` on `document` says that things beside the text moved: popups.js dispatches it
+  after every layout (review.js draws its lines then), and contents.js and menu.js when they
+  move the text (popups.js lays the column out again).
+- A script adds what the reader can change to `window.DocOptions` (`{label, type, get, set,
+  ...}`, described in `menu.js`); menu.js lists them. Each script applies and remembers its
+  own, so all of it works without the menu. `html.lines-off` turns the lines off.
 - review.js sets `html.review-on`; contents.js sets `html.toc-pinned`, `html.toc-open` and
   `--toc`; popups.js sets `--side`. Only `html-papers.css` turns these into positions, and it
   has the breakpoints: popups.js and contents.js read the layout they find. review.js has one
@@ -230,6 +256,8 @@ past the margin.
 - popups.js dispatches `popups:preview` (`detail: {box, target}`) before showing a preview's
   copy, so another script can fix the copy up (live-figures.js puts the static image back).
 - `window.MarginNotes` (`show`, `hide`, `place`, `narrow`) puts a note of your own in the margin.
+- In the browser's storage: `toc-pinned`, `toc-width`, `side-width`, `text-width`, `lines`,
+  `notes-hover`, `notes-remember`, and `notes-open:<path of the page>`.
 
 Your own additions to the page should follow the first two rules.
 
@@ -258,7 +286,7 @@ Load it with `defer`, or put the tag after the content.
 **Using it:**
 - Review mode starts in **Comment** mode: the page reads as usual. Select text, then Comment or Suggest edit.
 - In **Suggest** mode (the switch in the panel, Suggest edit, or a double-click) the text is editable: typing inserts, Backspace strikes, typing over a selection replaces it. Each edit becomes a suggestion; the page's text never changes. Ctrl/Cmd+Z undoes suggestions (it never touches comments), Ctrl/Cmd+click follows a link, Esc goes back to Comment.
-- Comments sit in a column at the right, level with their text. With `html-papers.css` that is the page's side column, shared with the notes. On a page without it, review.js makes a column of its own: while review mode is on, `<html>` has the class `review-on` and the CSS property `--review-width`, so the page can move its content clear:
+- Comments sit in a column at the right, level with their text. With `html-papers.css` that is the page's side column, shared with the notes: popups.js places the cards among them, and the panel shrinks to its title row (the pointer, the focus, a click on the title, or Suggest mode opens it). On a page without it, review.js makes a column of its own: while review mode is on, `<html>` has the class `review-on` and the CSS property `--review-width`, so the page can move its content clear:
 
 ```css
 html.review-on body { margin-right: calc(var(--review-width) + 2rem); }

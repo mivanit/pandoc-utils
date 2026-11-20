@@ -114,7 +114,8 @@
   <script src="contents.js" defer></script>
   <script src="live-figures.js" defer></script>
   <script src="review.js" data-review-email="me@example.org" defer></script>
-  <meta name="review-doc-version" content="706f327416b5a0aa8943bde3e85ad0465436e669-dirty">
+  <script src="menu.js" defer></script>
+  <meta name="review-doc-version" content="c5014284a1f4b7d2e6240dd48263c4a2a42efef5-dirty">
 </head>
 <body>
 <header id="title-block-header">
@@ -146,8 +147,9 @@ to the text of this paper, scored on the sentences they were not shown.
 Its results change when the text does, and the build keeps the two in
 step.</p>
 <p>On the web page, a link shows what it points to when the pointer
-rests on it, or on a tap. Press <strong>E</strong> to comment. The
-contents are the column at the left.</p>
+rests on it, or on a tap. Press <strong>E</strong> to comment and
+<strong>M</strong> for the settings. The contents are the column at the
+left.</p>
 </div>
 </header>
 <h1 data-number="1" id="sec:intro"><span
@@ -266,7 +268,7 @@ figure.</figcaption>
 <p>The settings are in the front matter of <code>paper.md</code>: the
 bibliography, the filters to run and the file of terms. Besides its
 figures and the pages behind its live figures, the finished page needs
-five scripts and two stylesheets, and nothing else. It needs no server,
+six scripts and two stylesheets, and nothing else. It needs no server,
 and it loads nothing from the network. Its equations are MathML, which a
 browser draws on its own.</p>
 <h1 data-number="3" id="sec:writing"><span
@@ -495,7 +497,7 @@ title="A model that predicts each word from the few words before it, by counting
 model</a> on the two texts, with <a href="#sec:model" class="term"
 title="Counting every word k more times than it was seen, so that no word is impossible.">smoothing</a>
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi><mo>=</mo><mn>0.01</mn></mrow><annotation encoding="application/x-tex">k = 0.01</annotation></semantics></math>.
-The models know 437 different words. The last column is the share of
+The models know 441 different words. The last column is the share of
 held-out words whose context the model had counted. </caption>
 <thead>
 <tr>
@@ -506,39 +508,39 @@ held-out words whose context the model had counted. </caption>
 </tr>
 <tr>
 <th style="text-align: left;"><strong>words</strong></th>
-<th style="text-align: right;">2,037</th>
-<th style="text-align: right;">461</th>
+<th style="text-align: right;">2,060</th>
+<th style="text-align: right;">496</th>
 <th style="text-align: right;"></th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td style="text-align: left;">1</td>
-<td style="text-align: right;">7.02</td>
-<td style="text-align: right;">8.19</td>
+<td style="text-align: right;">7.03</td>
+<td style="text-align: right;">8.16</td>
 <td style="text-align: right;">100%</td>
 </tr>
 <tr>
 <td style="text-align: left;">2</td>
-<td style="text-align: right;">3.69</td>
-<td style="text-align: right;">7.59</td>
+<td style="text-align: right;">3.70</td>
+<td style="text-align: right;">7.47</td>
 <td style="text-align: right;">86%</td>
 </tr>
 <tr>
 <td style="text-align: left;">3</td>
-<td style="text-align: right;">2.60</td>
-<td style="text-align: right;">8.08</td>
-<td style="text-align: right;">43%</td>
+<td style="text-align: right;">2.61</td>
+<td style="text-align: right;">8.00</td>
+<td style="text-align: right;">45%</td>
 </tr>
 <tr>
 <td style="text-align: left;">4</td>
-<td style="text-align: right;">2.41</td>
+<td style="text-align: right;">2.43</td>
 <td style="text-align: right;">8.45<span
 class="cell-note"><sup>*</sup><span class="cell-note-body"
-hidden="">Hardly better than guessing equally among the 439 things a
+hidden="">Hardly better than guessing equally among the 443 things a
 model can predict (its words, the end of a sentence and a stand-in for
-any other word), which costs 8.78 bits.</span></span></td>
-<td style="text-align: right;">15%</td>
+any other word), which costs 8.79 bits.</span></span></td>
+<td style="text-align: right;">17%</td>
 </tr>
 </tbody>
 </table>
@@ -1048,8 +1050,8 @@ class="header-section-number">8.2</span> What to try</h2>
 <li>Hover a reference to a section, figure or table. A copy of it opens
 in the margin. Hover a link inside the copy for another copy below
 it.</li>
-<li>Click a note to keep it open. The cross in its corner closes
-it.</li>
+<li>Click a note to keep it open. The cross in its corner closes it. The
+notes you kept open are there on your next visit.</li>
 <li>Hover a term such as <a href="#sec:loss" class="term"
 title="How surprised a model is by a text, in bits per word. Lower is better.">loss</a>,
 or a citation <span class="citation" data-cites="knuth1984literate">[<a
@@ -1058,11 +1060,15 @@ href="#ref-knuth1984literate" role="doc-biblioref">3</a>]</span>.</li>
 asterisk.</li>
 <li>Drag the line between the text and the margin, or the edge of the
 contents, to make a column wider. A double click puts it back.</li>
+<li>Press <strong>M</strong> for the settings. They set how wide the
+text and the columns are, whether lines join the text to the notes, and
+whether a note opens when the pointer rests on a link.</li>
 <li><strong>Unpin</strong> folds the contents into a tab at the left
 edge. They slide out when the pointer goes there.</li>
 <li>Click <a href="#fig:loss">Figure 4</a> to make it live.</li>
 <li>Press <strong>E</strong>, select some text, and comment on it or
-suggest a change. The comments share the margin with the notes.</li>
+suggest a change. The comments share the margin with the notes, and both
+are in the order of the text.</li>
 <li>Make the window narrow, or read on a phone. A tap on a link opens
 its note in the text, under the paragraph. A swipe to the right opens
 the contents.</li>

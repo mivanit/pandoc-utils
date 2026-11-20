@@ -11,7 +11,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from playwright.sync_api import CDPSession, Page, sync_playwright
+from playwright.sync_api import CDPSession, Locator, Page, sync_playwright
 
 PAPER: str = (Path(__file__).parent / "paper-fixture.html").absolute().as_uri()
 REST: int = 350  # ms: longer than the rest an anchor needs before its note opens
@@ -117,12 +117,7 @@ def test_notes_open_from_notes_without_moving_them(page: Page) -> None:
     assert page.eval_on_selector(link, "a => a.getBoundingClientRect().top") == y_before
     assert ns[1]["top"] >= ns[0]["bottom"] and overlaps(ns) == 0
     # a line for each note
-    assert (
-        page.eval_on_selector(
-            "#note-lines path", "p => p.getAttribute('d').split('M').length - 1"
-        )
-        == 2
-    )
+    assert page.locator("#note-lines path").count() == 2
     # a click on the lower note pins both; the pointer leaving closes neither
     page.mouse.click(ns[1]["right"] - 20, ns[1]["top"] + 8)
     page.mouse.move(700, 880, steps=5)
@@ -202,7 +197,7 @@ def test_three_columns_fit_at_every_width(page: Page) -> None:
         if width >= 760:
             margin: dict = page.evaluate(RECT, "margin-notes")
             assert text["right"] < margin["left"] and margin["right"] <= width, width
-            assert text["width"] >= 22 * 16 - 1 and margin["width"] >= 12 * 16 - 1
+            assert text["width"] >= 22 * 16 - 1 and margin["width"] >= 10 * 16 - 1
 
 
 def test_contents_are_a_column_until_unpinned(page: Page) -> None:
@@ -278,6 +273,16 @@ def test_column_edges_drag_and_are_remembered(page: Page) -> None:
     assert abs(later.evaluate(RECT, "margin-notes")["width"] - wider) < 2
     assert abs(later.evaluate(RECT, "toc-nav")["width"] - (toc + 50)) < 2
     later.close()
+    # dragged as far as they go: the side column takes room from the text, down to the
+    # text's least width (22rem); the contents leave room for both, and nothing overflows
+    drag("#side-handle", -900)
+    assert abs(page.evaluate(RECT, "p-intro")["width"] - 22 * 16) < 2
+    assert page.evaluate(RECT, "margin-notes")["width"] > 40 * 16
+    drag("#toc-handle", 900)
+    assert page.evaluate(RECT, "toc-nav")["width"] > 30 * 16
+    assert page.evaluate(RECT, "p-intro")["width"] >= 22 * 16 - 1
+    assert page.evaluate(RECT, "margin-notes")["width"] >= 10 * 16 - 1
+    assert page.evaluate(OVERFLOW) == 0
     # a double click puts each back, and forgets it
     page.locator("#side-handle").dblclick(position={"x": 4, "y": 300})
     page.locator("#toc-handle").dblclick(position={"x": 4, "y": 300})
@@ -409,27 +414,193 @@ def test_touch_a_tap_opens_the_note_and_a_swipe_the_contents() -> None:
     assert not errors, errors
 
 
-def test_review_mode_comments_share_the_side_column_with_notes(page: Page) -> None:
-    page.goto(PAPER + "?review=1")
-    page.wait_for_timeout(300)
-    # a comment on the first words of the intro paragraph
+CARD: str = """() => { const r = document.querySelector('#rv-host').shadowRoot.querySelector('.card').getBoundingClientRect();
+    return {left: r.left, right: r.right, top: r.top, bottom: r.bottom} }"""
+# each line to a note: its box, in the window
+LINES: str = """() => [...document.querySelectorAll('#note-lines path')].map(p => { const r = p.getBoundingClientRect();
+    return {left: r.left, right: r.right, top: r.top, bottom: r.bottom, active: p.classList.contains('active')} })"""
+
+
+def comment(page: Page, css: str, text: str) -> None:
+    """In review mode: a comment on the first 20 characters of an element."""
     page.evaluate(
-        """() => { const t = document.querySelector('#p-intro').firstChild, r = document.createRange();
-        r.setStart(t, 0); r.setEnd(t, 20); getSelection().removeAllRanges(); getSelection().addRange(r); }"""
+        """css => { const t = document.querySelector(css).firstChild, r = document.createRange();
+        r.setStart(t, 0); r.setEnd(t, 20); getSelection().removeAllRanges(); getSelection().addRange(r); }""",
+        css,
     )
     page.wait_for_timeout(300)
     page.evaluate(
         "document.querySelector('#rv-host').shadowRoot.querySelector('.toolbar button').click()"
     )
-    page.keyboard.type("a comment")
+    page.keyboard.type(text)
     page.mouse.click(700, 880)
     page.wait_for_timeout(200)
-    card: str = """() => { const r = document.querySelector('#rv-host').shadowRoot.querySelector('.card').getBoundingClientRect();
-        return {left: r.left, right: r.right, top: r.top, bottom: r.bottom} }"""
-    line: str = "document.querySelector('#rv-host').shadowRoot.querySelector('svg path').getAttribute('d')"
+
+
+def test_lines_stay_in_the_gutter_and_the_anchor_is_marked(page: Page) -> None:
+    page.click("#cite-one")
+    page.click("#fnref1")
+    page.mouse.move(700, 880)
+    text_right: float = page.evaluate(
+        "document.body.getBoundingClientRect().right - parseFloat(getComputedStyle(document.body).paddingRight)"
+    )
+    margin: dict = page.evaluate(RECT, "margin-notes")
+    lines: list[dict] = page.evaluate(LINES)
+    ns: list[dict] = notes(page)
+    assert len(lines) == 2 and not any(line["active"] for line in lines)
+    for line, n in zip(lines, ns):
+        # from just right of the text to the note's edge, near its top: never over the text
+        assert text_right < line["left"] and abs(line["right"] - margin["left"]) < 1.5
+        assert n["top"] < line["bottom"] <= n["top"] + 16
+    # the column is in the order of the text, so the lines do not cross
+    assert (
+        lines[0]["top"] <= lines[1]["top"] and lines[0]["bottom"] < lines[1]["bottom"]
+    )
+    marked: str = "[...document.querySelectorAll('.note-open')].map(e => e.id + (e.classList.contains('note-active') ? '!' : ''))"
+    assert page.evaluate(marked) == ["cite-one", "fnref1"]
+    # the pointer on a note: its anchor and its line are the strong ones
+    page.mouse.move(ns[1]["left"] + 30, ns[1]["top"] + 12, steps=4)
+    assert page.evaluate(marked) == ["cite-one", "fnref1!"]
+    assert [line["active"] for line in page.evaluate(LINES)] == [False, True]
+    page.mouse.move(700, 880)
+    page.click(".margin-note .note-close")
+    assert page.evaluate(marked) == ["fnref1"] and len(page.evaluate(LINES)) == 1
+
+
+def test_pinned_notes_are_remembered(page: Page) -> None:
+    key: str = "'notes-open:' + location.pathname"
+    page.click("#cite-one")
+    hover(page, "#ref-method")
+    hover(page, ".margin-note.preview a[href='#tab:scores']", park=False)
+    page.click(
+        ".margin-note.preview:last-child caption"
+    )  # pins the table and the section it came from
+    page.mouse.move(700, 880, steps=5)
+    before: list[dict] = notes(page)
+    assert len(before) == 3 and all(n["key"] != "hover" for n in before)
+    stored: str = page.evaluate(f"localStorage.getItem({key})")
+    assert stored.count("#tab:scores") == 1 and "doe2020" in stored
+    # a later visit that finds them stored has the same notes, the table's under the section's
+    later: Page = fresh_page(page)
+    later.add_init_script(f"localStorage.setItem({key}, {stored!r})")
+    later.goto(PAPER)
+    later.wait_for_timeout(200)
+    after: list[dict] = notes(later)
+    assert [(n["text"], n["parent"], n["close"]) for n in after] == [
+        (n["text"], n["parent"], n["close"]) for n in before
+    ]
+    assert overlaps(after) == 0
+    later.close()
+    # closing one forgets it; closing all, or turning it off in the menu, forgets everything
+    page.click(".margin-note .note-close")
+    assert "doe2020" not in page.evaluate(f"localStorage.getItem({key})")
+    page.keyboard.press("m")
+    page.locator("#doc-menu .menu-row", has_text="Remember").locator("input").click()
+    assert (
+        page.evaluate(f"localStorage.getItem({key})") is None and len(notes(page)) == 2
+    )
+
+
+def test_the_menu_lists_what_the_scripts_let_the_reader_change(page: Page) -> None:
+    hidden: str = "document.getElementById('doc-menu').hidden"
+
+    def row(label: str) -> Locator:
+        """The control of the menu's row with this label."""
+        return page.locator("#doc-menu .menu-row", has_text=label).locator("input")
+
+    assert page.evaluate(hidden)
+    page.keyboard.press("m")
+    assert not page.evaluate(hidden)
+    labels: str = " | ".join(page.locator("#doc-menu .menu-row").all_text_contents())
+    for part in (
+        "Text width",
+        "Lines",
+        "Notes column width",
+        "pointer rests",
+        "Remember",
+        "Contents as a column",
+        "Contents width",
+        "Review mode",
+    ):
+        assert part in labels, part
+    # lines off: none drawn, to notes or to comments
+    page.click("#cite-one")
+    assert len(page.evaluate(LINES)) == 1
+    page.keyboard.press("m")
+    row("Lines").click()
+    assert has_class(page, "lines-off") and page.evaluate(LINES) == []
+    assert page.evaluate("localStorage.getItem('lines')") == "0"
+    # the text's width: as asked, where the window has the room
+    row("Text width").fill("50")
+    assert abs(page.evaluate(RECT, "p-intro")["width"] - 50 * 16) < 2
+    assert page.evaluate("localStorage.getItem('text-width')") == "50"
+    # hover notes off: nothing opens under a resting pointer; a click opens the note instead
+    row("pointer rests").click()
+    page.keyboard.press("Escape")
+    assert page.evaluate(hidden)
+    page.click(".margin-note .note-close")
+    hover(page, "#term-widget")
+    assert notes(page) == []
+    page.click("#term-widget")
+    (n,) = notes(page)
+    assert (
+        "A small part" in n["text"] and "Go to the section" in n["text"] and n["close"]
+    )
+    page.click("#term-widget")
+    assert notes(page) == []
+    # the contents: unpinned from the menu, opened with the button beside Pin
+    page.keyboard.press("m")
+    row("Contents as a column").click()
+    assert not has_class(page, "toc-pinned")
+    row("Contents as a column").click()
+    # Reset puts everything back and forgets it
+    page.click("#doc-menu .menu-foot button")
+    assert not has_class(page, "lines-off") and has_class(page, "toc-pinned")
+    assert abs(page.evaluate(RECT, "p-intro")["width"] - 44 * 16) < 2
+    assert (
+        page.evaluate(
+            "['lines', 'text-width', 'notes-hover', 'side-width', 'toc-width'].map(k => localStorage.getItem(k))"
+        )
+        == [None] * 5
+    )
+    page.keyboard.press("Escape")
+    page.mouse.move(700, 880)
+    hover(page, "#term-widget")
+    assert len(notes(page)) == 1
+    page.mouse.move(700, 880)
+    page.click(".toc-menu")
+    assert not page.evaluate(hidden)
+    page.mouse.click(700, 880)  # a press outside closes it
+    assert page.evaluate(hidden)
+    # M typed into a field is a letter
+    page.goto(PAPER + "?review=1")
+    page.wait_for_timeout(300)
+    page.evaluate(
+        "document.querySelector('#rv-host').shadowRoot.querySelector('.panel').classList.add('open')"
+    )
+    page.evaluate(
+        "document.querySelector('#rv-host').shadowRoot.querySelector('.who input').focus()"
+    )
+    page.keyboard.type("Mm")
+    assert page.evaluate(hidden)
+    assert (
+        page.evaluate(
+            "document.querySelector('#rv-host').shadowRoot.querySelector('.who input').value"
+        )
+        == "Mm"
+    )
+
+
+def test_review_mode_comments_share_the_side_column_with_notes(page: Page) -> None:
+    page.goto(PAPER + "?review=1")
+    page.wait_for_timeout(300)
+    comment(page, "#p-intro", "a comment")
+    line: str = (
+        "document.querySelector('#rv-host').shadowRoot.querySelector('svg path')"
+    )
     # the card is in the page's side column, which needs no room of its own
     margin: dict = page.evaluate(RECT, "margin-notes")
-    c: dict = page.evaluate(card)
+    c: dict = page.evaluate(CARD)
     assert margin["left"] - 1 <= c["left"] and c["right"] <= margin["right"] + 1
     assert (
         page.evaluate(
@@ -437,28 +608,50 @@ def test_review_mode_comments_share_the_side_column_with_notes(page: Page) -> No
         )
         == "0px"
     )
-    assert page.evaluate(line).count("M") == 1 and page.evaluate(OVERFLOW) == 0
+    assert page.evaluate(OVERFLOW) == 0
+    # its line: one stroke, through the gutter to the card's edge
+    assert page.evaluate(line + ".getAttribute('d')").count("M") == 1
+    assert abs(page.evaluate(line + ".getBoundingClientRect().right") - c["left"]) < 1.5
+    # review.js's panel is only its title row here, so it does not cover the column
+    panel: str = "document.querySelector('#rv-host').shadowRoot.querySelector('.panel')"
+    assert page.evaluate(panel + ".classList.contains('compact')")
+    assert page.evaluate(panel + ".querySelector('.who').offsetHeight") == 0
+    assert page.evaluate(panel + ".getBoundingClientRect().bottom") < c["top"]
     level: float = c["top"]
-    # a pinned note level with the comment: the card moves below it
+    # One column, in the order of the text. The comment is on the paragraph's first words: a
+    # note from further on in the paragraph goes below the card, which stays where it is
     page.click("#cite-one")
     page.wait_for_timeout(200)
     (cite,) = notes(page)
-    c = page.evaluate(card)
-    assert cite["top"] < level + 60 and c["top"] >= cite["bottom"]
-    # a hover note goes over the cards; whatever it moves, the card stays clear of pinned notes
+    c = page.evaluate(CARD)
+    assert c["top"] == level and cite["top"] >= c["bottom"]
+    # a hover note from the first line, right of the comment: between the two
     hover(page, "#ref-method")
-    c = page.evaluate(card)
-    pinned: list[dict] = [n for n in notes(page) if n["key"] != "hover"]
-    assert len(notes(page)) == 2 and len(pinned) == 1
-    assert all(c["top"] >= n["bottom"] or c["bottom"] <= n["top"] for n in pinned)
+    page.wait_for_timeout(200)
+    c = page.evaluate(CARD)
+    cite, hovering = sorted(notes(page), key=lambda n: n["key"] == "hover")
+    assert hovering["key"] == "hover" and c["top"] == level
+    assert c["bottom"] <= hovering["top"] and hovering["bottom"] <= cite["top"]
     page.mouse.move(700, 880, steps=5)
-    page.click(
-        ".margin-note .note-close"
-    )  # nothing pinned: the card is back level with its text
+    page.click(".margin-note .note-close")
     page.wait_for_timeout(200)
-    assert notes(page) == [] and page.evaluate(card)["top"] == level
+    assert notes(page) == [] and page.evaluate(CARD)["top"] == level
+    # a comment further down than a note is below it: here the note is the one that stays
     page.click("#cite-one")
-    page.wait_for_timeout(200)
+    comment(page, "#p-intro + p", "a second comment")
+    (cite,) = notes(page)
+    cards: list[dict] = page.evaluate(
+        """() => [...document.querySelector('#rv-host').shadowRoot.querySelectorAll('.card')].map(c => c.getBoundingClientRect()).map(r => ({top: r.top, bottom: r.bottom})).sort((a, b) => a.top - b.top)"""
+    )
+    assert cards[0]["bottom"] <= cite["top"] and cite["bottom"] <= cards[1]["top"]
+    # the contents column goes: the text moves, and the cards and their lines with it
+    page.click(".toc-pin")
+    page.mouse.move(700, 880)
+    page.wait_for_timeout(300)
+    margin = page.evaluate(RECT, "margin-notes")
+    c = page.evaluate(CARD)
+    assert abs(c["left"] - margin["left"]) < 1.5
+    assert abs(page.evaluate(line + ".getBoundingClientRect().right") - c["left"]) < 1.5
     # Suggest mode: the page is editable, the notes are not
     page.evaluate("ReviewMode.setMode(true)")
     assert (
@@ -467,4 +660,7 @@ def test_review_mode_comments_share_the_side_column_with_notes(page: Page) -> No
     )
     assert (
         page.evaluate("document.getElementById('toc-nav').isContentEditable") is False
+    )
+    assert (
+        page.evaluate("document.getElementById('doc-menu').isContentEditable") is False
     )

@@ -97,7 +97,13 @@ def test_each_construct_is_in_the_page(html: str) -> None:
     assert '<a href="live/words.html" class="open-full"' in html
     assert '<span class="todo">' in html
     assert '<a href="#sec:loss" class="term" title="How surprised a model is' in html
-    for name in ("arxiv-links.js", "popups.js", "contents.js", "live-figures.js"):
+    for name in (
+        "arxiv-links.js",
+        "popups.js",
+        "contents.js",
+        "live-figures.js",
+        "menu.js",
+    ):
         assert f'<script src="{name}" defer></script>' in html
 
 
