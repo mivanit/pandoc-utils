@@ -1,0 +1,632 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>Review Mode Tests</title>
+	</head>
+	<body>
+		<h1>Review Mode Tests</h1>
+		<p>Check console for results...</p>
+
+		<!-- the reviewed document: review.js anchors in #doc only -->
+		<div id="doc">
+			<h2 id="intro">Intro</h2>
+			<p id="p1">
+				The quick brown fox jumps over the lazy dog near the riverbank
+				today.
+			</p>
+			<p id="p2">
+				Programs read only the prefix, guaranteeing autoregressivity.
+			</p>
+			<p id="p3">
+				A third paragraph about nothing in particular, for padding.
+			</p>
+		</div>
+
+		<script src="test-framework.js"></script>
+		<script>
+			// a clean slate, and no help window in the way
+			localStorage.clear();
+			localStorage.setItem("review:v1:help-seen", "1");
+		</script>
+		<!-- included twice on purpose: the second copy must do nothing -->
+		<script src="../review.js" data-review-root="#doc"></script>
+		<script src="../review.js" data-review-root="#doc"></script>
+
+		<script>
+			const KEY = "review:v1:doc:" + location.pathname;
+			const T0 = "2026-01-01T00:00:00.000Z";
+			const now = () => new Date().toISOString();
+			const shadow = () => document.querySelector("#rv-host").shadowRoot;
+			const stored = () =>
+				JSON.parse(localStorage.getItem(KEY) || '{"annotations": []}');
+			const docText = () =>
+				document
+					.querySelector("#doc")
+					.textContent.replace(/\s+/g, " ")
+					.trim();
+			// the page's own text: what review.js must never change
+			const pageText = (el) =>
+				[...el.childNodes]
+					.filter(
+						(n) => !(n.classList && n.classList.contains("rv-ins")),
+					)
+					.map((n) => n.textContent)
+					.join("")
+					.replace(/\s+/g, " ")
+					.trim();
+			const highlighted = (name) =>
+				[...(CSS.highlights.get(name) || [])].map((r) =>
+					r.toString().replace(/\s+/g, " "),
+				);
+
+			/** review mode re-entered with these stored annotations */
+			function reset(annotations = [], exported = null, name = "") {
+				ReviewMode.exit();
+				localStorage.setItem(
+					KEY,
+					JSON.stringify({ annotations, exported }),
+				);
+				localStorage.setItem("review:v1:name", name);
+				ReviewMode.enter();
+			}
+
+			/** a stored annotation on `exact`, found in the fixture text */
+			function annotation(exact, fields = {}) {
+				const t = docText();
+				const start = t.indexOf(exact);
+				return {
+					id: "a" + Math.random().toString(36).slice(2, 8),
+					kind: "comment",
+					quote: {
+						exact,
+						prefix: t.slice(Math.max(0, start - 32), start),
+						suffix: t.slice(
+							start + exact.length,
+							start + exact.length + 32,
+						),
+					},
+					position: { start, end: start + exact.length },
+					section: { id: "intro", text: "Intro" },
+					body: "a comment",
+					status: "open",
+					author: "someone",
+					created: T0,
+					updated: T0,
+					commit: "",
+					...fields,
+				};
+			}
+
+			/** select `needle` inside element `el` (one text node), or put the caret after it */
+			function select(el, needle, caretAfter = false) {
+				const node = [...el.childNodes].find(
+					(n) =>
+						n.nodeType === 3 &&
+						n.data.replace(/\s+/g, " ").includes(needle),
+				);
+				const m = new RegExp(needle.split(" ").join("\\s+")).exec(
+					node.data,
+				);
+				const r = document.createRange();
+				r.setStart(node, m.index);
+				r.setEnd(node, m.index + m[0].length);
+				if (caretAfter) r.collapse(false);
+				getSelection().removeAllRanges();
+				getSelection().addRange(r);
+			}
+
+			/** what a keystroke sends: a cancelable beforeinput at the selection */
+			function input(inputType, data = null) {
+				const target = getSelection().anchorNode.parentElement;
+				target.dispatchEvent(
+					new InputEvent("beforeinput", {
+						inputType,
+						data,
+						bubbles: true,
+						cancelable: true,
+					}),
+				);
+			}
+			const type = (s) => [...s].forEach((c) => input("insertText", c));
+			/** Ctrl+Z on the page (Ctrl+Shift+Z with redo) */
+			const undoKey = (redo = false) =>
+				document.dispatchEvent(
+					new KeyboardEvent("keydown", {
+						key: "z",
+						ctrlKey: true,
+						shiftKey: redo,
+						bubbles: true,
+						cancelable: true,
+					}),
+				);
+			const cardOf = (id) =>
+				shadow().querySelector(`.card[data-id="${id}"]`);
+			/** type into a card's comment field, as a user would */
+			function write(id, text) {
+				const ta = cardOf(id).querySelector("textarea");
+				ta.value = text;
+				ta.dispatchEvent(new Event("input"));
+			}
+			const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+			const p1 = () => document.querySelector("#p1");
+			const p2 = () => document.querySelector("#p2");
+
+			describe("loading", () => {
+				it("exposes the API", () => {
+					for (const f of [
+						"enter",
+						"exit",
+						"setMode",
+						"exportData",
+						"importData",
+					])
+						assert.strictEqual(typeof ReviewMode[f], "function", f);
+				});
+
+				it("included twice: one panel", () => {
+					reset();
+					assert.strictEqual(
+						document.querySelectorAll("#rv-host").length,
+						1,
+					);
+				});
+			});
+
+			describe("modes", () => {
+				it("enters in Comment mode: page not editable, layout hooks set", () => {
+					reset();
+					const html = document.documentElement;
+					assert.ok(html.classList.contains("review-on"));
+					assert.ok(html.style.getPropertyValue("--review-width"));
+					assert.strictEqual(
+						document
+							.querySelector("#doc")
+							.getAttribute("contenteditable"),
+						null,
+					);
+				});
+
+				it("Suggest mode makes the root editable, Comment mode undoes it", () => {
+					reset();
+					const doc = document.querySelector("#doc");
+					ReviewMode.setMode(true);
+					assert.strictEqual(
+						doc.getAttribute("contenteditable"),
+						"true",
+					);
+					ReviewMode.setMode(false);
+					assert.strictEqual(
+						doc.getAttribute("contenteditable"),
+						null,
+					);
+				});
+
+				it("exit leaves the page as it was", () => {
+					reset([
+						annotation("", {
+							kind: "suggestion",
+							replacement: " here",
+							quote: {
+								exact: "",
+								prefix: "near the riverbank",
+								suffix: " today.",
+							},
+							position: { start: 0, end: 0 },
+						}),
+					]);
+					ReviewMode.setMode(true);
+					ReviewMode.exit();
+					assert.strictEqual(
+						document.querySelectorAll(".rv-ins").length,
+						0,
+					);
+					assert.ok(
+						!document.documentElement.classList.contains(
+							"review-on",
+						),
+					);
+					assert.strictEqual(
+						document
+							.querySelector("#doc")
+							.getAttribute("contenteditable"),
+						null,
+					);
+					assert.strictEqual(
+						pageText(p1()),
+						"The quick brown fox jumps over the lazy dog near the riverbank today.",
+					);
+				});
+			});
+
+			describe("re-attaching", () => {
+				it("at its old offsets", () => {
+					reset([annotation("jumps over the lazy dog")]);
+					assert.deepStrictEqual(highlighted("rv-comment"), [
+						"jumps over the lazy dog",
+					]);
+				});
+
+				it("moved: the quote found elsewhere", () => {
+					const a = annotation("guaranteeing autoregressivity");
+					a.position = { start: 3, end: 3 + a.quote.exact.length };
+					reset([a]);
+					assert.deepStrictEqual(highlighted("rv-comment"), [
+						"guaranteeing autoregressivity",
+					]);
+					assert.strictEqual(
+						shadow().querySelectorAll(".card .note").length,
+						0,
+					);
+				});
+
+				it("reworded: the closest match, marked as changed", () => {
+					const a = annotation("jumps over the lazy dog");
+					a.quote.exact = "jumps over the lazy cat";
+					reset([a]);
+					assert.deepStrictEqual(highlighted("rv-comment"), [
+						"jumps over the lazy dog",
+					]);
+					assert.ok(
+						highlighted("rv-fuzzy").length === 1,
+						"drawn as fuzzy",
+					);
+					assert.ok(
+						shadow()
+							.querySelector(".card .note")
+							.textContent.includes("changed"),
+					);
+				});
+
+				it("gone: listed as not found, not highlighted", () => {
+					const a = annotation("jumps over the lazy dog");
+					a.quote = {
+						exact: "zebras crossing a motorway at dawn",
+						prefix: "nothing like this",
+						suffix: "anywhere at all",
+					};
+					reset([a]);
+					assert.deepStrictEqual(highlighted("rv-comment"), []);
+					assert.ok(
+						shadow().querySelector(".lost .card"),
+						"in the not-found list",
+					);
+				});
+
+				it("a short quote goes to the copy its context matches, not the one at its old offsets", () => {
+					const t = docText(),
+						start = t.indexOf("dog") + 1,
+						wrong = t.indexOf("fox") + 1;
+					reset([
+						annotation("o", {
+							quote: {
+								exact: "o",
+								prefix: t.slice(start - 32, start),
+								suffix: t.slice(start + 1, start + 33),
+							},
+							position: { start: wrong, end: wrong + 1 },
+						}),
+					]);
+					const [r] = [...CSS.highlights.get("rv-comment")];
+					assert.ok(
+						r.startContainer.data
+							.slice(0, r.startOffset)
+							.endsWith("lazy d"),
+						"on the o of dog",
+					);
+				});
+
+				it("a short quote with no matching context is not found", () => {
+					const wrong = docText().indexOf("fox") + 1;
+					reset([
+						annotation("o", {
+							quote: {
+								exact: "o",
+								prefix: "nothing like this ",
+								suffix: " anywhere at all",
+							},
+							position: { start: wrong, end: wrong + 1 },
+						}),
+					]);
+					assert.deepStrictEqual(highlighted("rv-comment"), []);
+					assert.ok(shadow().querySelector(".lost .card"));
+				});
+
+				it("a long quote is found even with all its context rewritten", () => {
+					reset([
+						annotation("guaranteeing autoregressivity", {
+							quote: {
+								exact: "guaranteeing autoregressivity",
+								prefix: "nothing like this ",
+								suffix: " anywhere at all",
+							},
+							position: { start: 3, end: 32 },
+						}),
+					]);
+					assert.deepStrictEqual(highlighted("rv-comment"), [
+						"guaranteeing autoregressivity",
+					]);
+					assert.strictEqual(
+						shadow().querySelectorAll(".card .note").length,
+						0,
+					);
+				});
+
+				it("an insertion: shown after its prefix", () => {
+					reset([
+						annotation("", {
+							kind: "suggestion",
+							replacement: " here",
+							quote: {
+								exact: "",
+								prefix: "near the riverbank",
+								suffix: " today.",
+							},
+							position: { start: 0, end: 0 },
+						}),
+					]);
+					const ins = document.querySelector(".rv-ins");
+					assert.strictEqual(ins.textContent, " here");
+					assert.ok(
+						ins.previousSibling.data.trim().endsWith("riverbank"),
+					);
+				});
+			});
+
+			describe("suggesting", () => {
+				it("typing inserts text; the page's own text is unchanged", () => {
+					reset();
+					ReviewMode.setMode(true);
+					select(p1(), "riverbank", true);
+					type(" there");
+					input("deleteContentBackward");
+					const s = stored().annotations;
+					assert.strictEqual(s.length, 1);
+					assert.strictEqual(s[0].replacement, " ther");
+					assert.strictEqual(s[0].quote.exact, "");
+					assert.strictEqual(
+						pageText(p1()),
+						"The quick brown fox jumps over the lazy dog near the riverbank today.",
+					);
+				});
+
+				it("backspace strikes, and keeps extending the same suggestion", () => {
+					reset();
+					ReviewMode.setMode(true);
+					select(p2(), "prefix", true);
+					for (let i = 0; i < 3; i++) input("deleteContentBackward");
+					const s = stored().annotations;
+					assert.strictEqual(s.length, 1);
+					assert.strictEqual(s[0].quote.exact, "fix");
+					assert.deepStrictEqual(highlighted("rv-strike"), ["fix"]);
+				});
+
+				it("typing over a selection replaces it", () => {
+					reset();
+					ReviewMode.setMode(true);
+					select(p1(), "quick");
+					type("slow");
+					const s = stored().annotations;
+					assert.strictEqual(s.length, 1);
+					assert.strictEqual(s[0].quote.exact, "quick");
+					assert.strictEqual(s[0].replacement, "slow");
+				});
+
+				it("nothing happens in Comment mode", () => {
+					reset();
+					select(p1(), "riverbank", true);
+					type("x");
+					assert.strictEqual(stored().annotations.length, 0);
+				});
+			});
+
+			describe("export and import", () => {
+				it("no export until a name is given", () => {
+					reset([annotation("quick brown")]);
+					assert.strictEqual(ReviewMode.exportData(), null);
+				});
+
+				it("exports everything under the current name", () => {
+					reset(
+						[annotation("quick brown", { author: "old name" })],
+						null,
+						"new name",
+					);
+					const data = ReviewMode.exportData();
+					assert.strictEqual(data.format, "review/v1");
+					assert.strictEqual(data.reviewer, "new name");
+					assert.deepStrictEqual(
+						data.annotations.map((a) => a.author),
+						["new name"],
+					);
+				});
+
+				it("imports others read-only, skipping malformed ones", () => {
+					reset();
+					const good = annotation("lazy dog", { author: "other" });
+					const result = ReviewMode.importData({
+						format: "review/v1",
+						reviewer: "other",
+						annotations: [
+							good,
+							{ id: "bad", kind: "comment", updated: T0 },
+							{
+								...annotation("fox"),
+								position: { start: -1, end: 2 },
+							},
+						],
+					});
+					assert.deepStrictEqual(result, [1, 2]);
+					assert.strictEqual(
+						shadow().querySelectorAll(".card.other").length,
+						1,
+					);
+					assert.strictEqual(
+						shadow().querySelector(".card.other textarea"),
+						null,
+						"read-only",
+					);
+				});
+
+				it("rejects a file that is not a review", () => {
+					reset();
+					assert.throws(
+						() => ReviewMode.importData({ hello: 1 }),
+						/not a review file/,
+					);
+				});
+			});
+
+			describe("undo", () => {
+				it("never touches comments", () => {
+					reset([], null, "me");
+					ReviewMode.setMode(true);
+					select(p1(), "quick");
+					type("slow");
+					select(p2(), "prefix");
+					shadow().querySelector(".toolbar button").click(); // Comment
+					write(
+						shadow().querySelector(".card.comment:not(.other)")
+							.dataset.id,
+						"keep me",
+					);
+					undoKey();
+					assert.deepStrictEqual(
+						stored().annotations.map((a) => [a.kind, a.body]),
+						[["comment", "keep me"]],
+					);
+					undoKey(true);
+					assert.deepStrictEqual(
+						stored()
+							.annotations.map((a) => a.kind)
+							.sort(),
+						["comment", "suggestion"],
+					);
+				});
+
+				it("keeps a suggestion's note and resolved state", () => {
+					reset([], null, "me");
+					ReviewMode.setMode(true);
+					select(p1(), "quick");
+					type("slow");
+					const { id } = stored().annotations[0];
+					select(p2(), "prefix", true);
+					type("x"); // this step's snapshot: the suggestion, no note, open
+					write(id, "why");
+					cardOf(id).querySelector(".acts button").click(); // Resolve
+					undoKey();
+					const s = stored().annotations;
+					assert.strictEqual(s.length, 1);
+					assert.strictEqual(s[0].body, "why");
+					assert.strictEqual(s[0].status, "resolved");
+				});
+
+				it("after an export leaves tombstones, newer than the copy sent, however far back it goes", async () => {
+					reset([], null, "me");
+					ReviewMode.setMode(true);
+					select(p1(), "quick");
+					type("slow");
+					select(p2(), "prefix", true);
+					type("x");
+					shadow().querySelectorAll(".menu button")[1].click(); // Export > Download
+					const exported = stored().exported;
+					assert.ok(exported, "marked exported");
+					await sleep(5);
+					undoKey();
+					undoKey();
+					const s = stored().annotations;
+					assert.strictEqual(s.length, 2);
+					for (const a of s) {
+						assert.ok(
+							a.deleted,
+							"a tombstone, not a silent removal",
+						);
+						assert.ok(
+							a.updated > exported,
+							"stamped after the export",
+						);
+					}
+				});
+			});
+
+			describe("deleting", () => {
+				const del = (id) =>
+					cardOf(id).querySelector('button[title="Delete"]').click();
+				const toastUndo = () => shadow().querySelector(".toast button");
+
+				it("a comment: at once, and Undo brings it back", () => {
+					const a = annotation("lazy dog", { body: "hello" });
+					reset([a], null, "me");
+					del(a.id); // a confirm() would be dismissed here, and delete nothing
+					assert.strictEqual(stored().annotations.length, 0);
+					toastUndo().click();
+					assert.deepStrictEqual(
+						stored().annotations.map((x) => [x.id, x.body]),
+						[[a.id, "hello"]],
+					);
+				});
+
+				it("a suggestion: Ctrl+Z brings it back, and a late Undo adds no second copy", () => {
+					reset([], null, "me");
+					ReviewMode.setMode(true);
+					select(p1(), "quick");
+					type("slow");
+					const { id } = stored().annotations[0];
+					del(id);
+					assert.strictEqual(stored().annotations.length, 0);
+					undoKey();
+					toastUndo().click();
+					assert.deepStrictEqual(
+						stored().annotations.map((x) => [x.id, x.replacement]),
+						[[id, "slow"]],
+					);
+				});
+
+				it("an exported comment, emptied: exported as deleted", async () => {
+					const a = annotation("lazy dog", { body: "hello" });
+					reset([a], now(), "me");
+					write(a.id, "");
+					cardOf(a.id)
+						.querySelector("textarea")
+						.dispatchEvent(new Event("blur"));
+					await sleep(10);
+					assert.deepStrictEqual(
+						ReviewMode.exportData().annotations.map((x) => [
+							x.id,
+							x.deleted,
+						]),
+						[[a.id, true]],
+					);
+				});
+			});
+
+			describe("importing files", () => {
+				it("reads every file, skipping one that is not a review", async () => {
+					reset();
+					const before =
+						shadow().querySelectorAll(".card.other").length;
+					const file = (name, text) =>
+						new File([text], name, { type: "application/json" });
+					const review = (exact) =>
+						JSON.stringify({
+							format: "review/v1",
+							reviewer: "ann",
+							annotations: [annotation(exact)],
+						});
+					const dt = new DataTransfer();
+					dt.items.add(file("a.json", review("lazy dog")));
+					dt.items.add(file("bad.json", "not json"));
+					dt.items.add(file("c.json", review("quick brown")));
+					const picker = shadow().querySelector("input[type=file]");
+					picker.files = dt.files;
+					picker.dispatchEvent(new Event("change"));
+					await sleep(100);
+					assert.strictEqual(
+						shadow().querySelectorAll(".card.other").length,
+						before + 2,
+					);
+				});
+			});
+		</script>
+	</body>
+</html>

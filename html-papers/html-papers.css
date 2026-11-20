@@ -1,0 +1,167 @@
+/* Layout for a paper as a web page: a text column (body), a right margin for notes
+   (popups.js), a contents sidebar at the left (contents.js), and room for review.js's comment
+   column. Load it before the page's own stylesheet, which sets type, colours and the rest.
+   From https://github.com/mivanit/pandoc-utils, html-papers/.
+
+   Shared between the three scripts and this file:
+   - on <html>: --text, --gap, --note, --toc (widths, here); --review-width and .review-on
+     (review.js); .toc-pinned and .toc-open (contents.js);
+   - data-doc-chrome on anything a script adds to the page (not the document's text);
+   - data-doc-avoid on a box that review.js's comment lines pass behind;
+   - a `doclayout` event on document after such boxes move.
+   The breakpoints live only here: popups.js reads the layout it finds (is the notes column a
+   bottom panel?) instead of repeating them. */
+
+/* text column + a right margin for notes */
+:root { --text: 44rem; --gap: 2.5rem; --note: 17rem; --toc: 16rem; }
+body {
+  position: relative;
+  max-width: var(--text);
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+/* With room for the margin, the text sits left of centre; as the window narrows (or the
+   browser zooms in) the text column gives way first (44rem down to 30rem), so the margin
+   lasts down to 56rem. Review mode has its own widths (below). */
+@media (width >= 56rem) {
+  html:not(.review-on) { --text: clamp(30rem, calc(100vw - var(--gap) - var(--note) - 7rem), 44rem); }
+  html:not(.review-on) body { margin-left: max(2rem, calc((100vw - var(--text) - var(--gap) - var(--note)) / 2)); }
+}
+
+/* contents sidebar (contents.js): a thin tab at the left edge; the panel slides out while the
+   pointer is left of the text (or on the tab), or stays out when pinned. Pinned, the text
+   moves right of it (narrowing, as above); where even that has no room (below 71rem, e.g.
+   zoomed in), the pin waits and the panel only slides out, so it never covers the text. */
+#toc-tab {
+  position: fixed; left: 0; top: 0; bottom: 0; width: 1.1rem; z-index: 19;
+  border: 0; border-right: 1px solid #e4e6ea; padding: 0; background: #fafbfc; cursor: pointer;
+  color: #8a909b; font: inherit; font-size: 0.7rem; letter-spacing: 0.08em;
+}
+#toc-tab span { display: inline-block; writing-mode: vertical-rl; transform: rotate(180deg); }
+#toc-tab:hover { background: #f0f2f5; color: #444; }
+#toc-nav {
+  position: fixed; left: 0; top: 0; bottom: 0; width: var(--toc); z-index: 20; box-sizing: border-box;
+  overflow-y: auto; padding: 1rem 0.9rem 2rem 1rem; background: #fafbfc; border-right: 1px solid #dde0e5;
+  font-size: 0.82rem; line-height: 1.35; transform: translateX(-100%); transition: transform 0.15s ease;
+}
+.toc-open #toc-nav { transform: none; box-shadow: 2px 0 10px rgba(0, 0, 0, 0.08); }
+.toc-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.6rem; }
+.toc-title { font-weight: 600; color: #222; text-decoration: none; font-size: 0.9rem; }
+.toc-pin {
+  border: 1px solid #d5d9e0; border-radius: 3px; background: white; color: #555;
+  font: inherit; font-size: 0.75rem; padding: 0.05rem 0.45rem; cursor: pointer;
+}
+.toc-pin[aria-pressed="true"] { background: #e8ecf3; color: #222; }
+#toc-nav ol { list-style: none; margin: 0; padding: 0; }
+#toc-nav li a { display: block; padding: 0.18rem 0.4rem; border-radius: 3px; color: #444; text-decoration: none; }
+#toc-nav li a:hover { background: #eef0f4; color: #111; }
+#toc-nav li.toc-h1 { margin-top: 0.45rem; }
+#toc-nav li.toc-h1 a { font-weight: 600; color: #222; }
+#toc-nav li.toc-h2 a { padding-left: 1.4rem; }
+#toc-nav li.toc-h3 a { padding-left: 2.4rem; }
+#toc-nav a.current { background: #e4e9f2; color: #111; }
+.toc-num { color: #888; font-variant-numeric: tabular-nums; margin-right: 0.15rem; }
+@media (width >= 71rem) {
+  html.toc-pinned:not(.review-on) #toc-nav { transform: none; box-shadow: none; }
+  html.toc-pinned:not(.review-on) { --text: clamp(30rem, calc(100vw - var(--toc) - var(--gap) - var(--note) - 9rem), 44rem); }
+  html.toc-pinned:not(.review-on) body { margin-left: max(calc(var(--toc) + 2rem), calc((100vw - var(--text) - var(--gap) - var(--note)) / 2)); }
+}
+@media print { #toc-tab, #toc-nav, #margin-notes, #note-lines { display: none; } }
+
+/* margin notes (popups.js) */
+#margin-notes { position: absolute; top: 0; left: calc(100% + var(--gap)); width: var(--note); }
+.margin-note {
+  position: absolute; left: 0; right: 0;
+  font-size: 0.82rem; line-height: 1.45; color: #444;
+  border-left: 2px solid #d5d9e0; padding: 0.1rem 0 0.1rem 0.7rem;
+}
+.margin-note p { margin: 0 0 0.4rem; }
+.note-head { font-weight: 600; color: #222; }
+.note-ref + .note-ref { margin-top: 0.4rem; }
+.note-ref .csl-left-margin { display: inline; float: none; min-width: 0; font-weight: 600; margin-right: 0.3em; }
+.note-ref .csl-right-inline { display: inline; margin: 0; padding: 0; }
+.note-ref a { overflow-wrap: anywhere; }
+.note-close { float: right; border: 0; background: none; color: #888; cursor: pointer; font-size: 1rem; line-height: 1; padding: 0 0 0 0.4rem; }
+.note-more { white-space: nowrap; }
+.margin-note[data-key="hover"] { cursor: pointer; }  /* a click pins it */
+.margin-note[data-key="hover"] a { cursor: auto; }
+/* a cross-reference's preview: a copy of the section/figure/table in a box, as wide as the
+   window allows (popups.js place) */
+.margin-note.preview {
+  right: auto; z-index: 6; max-height: 70vh; overflow-y: auto; box-sizing: border-box;
+  background: white; border: 1px solid #d5d9e0; border-radius: 6px; padding: 0.5rem 0.8rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12); font-size: 0.78rem; color: #333;
+}
+.preview .note-close { position: sticky; top: 0; }
+.preview h1, .preview h2, .preview h3, .preview h4 { font-size: 1.05rem; margin: 0.2rem 0 0.4rem; }
+.preview figure { margin: 0.3rem 0; }
+.preview table { margin: 0.3rem 0; font-size: 1em; }
+.preview table caption { font-size: inherit; margin-top: 0; }
+.preview pre { padding: 0.5rem; }
+.preview-subs { border-top: 1px solid #e4e6ea; margin-top: 0.5rem; padding-top: 0.3rem; }
+.preview-subs a { display: block; text-decoration: none; padding: 0.1rem 0; }
+.preview-subs .preview-sub-h3, .preview-subs .preview-sub-h4 { padding-left: 1.2rem; }
+/* the lines from each anchor to its note (popups.js draw) */
+#note-lines { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: visible; pointer-events: none; z-index: 4; }
+#note-lines path { fill: none; stroke: #c9ced6; stroke-width: 1; }
+/* a table note's * (a footnote in a cell) hangs past the number, so right-aligned digits line
+   up; the whole cell shows the note on hover */
+.cell-note { position: absolute; }
+.cell-note-body { display: none; }
+td:has(.cell-note), th:has(.cell-note) { cursor: help; }
+
+/* a live figure (live-figures.js): the static image until clicked, then the page's chart */
+.fig-static.clickable { cursor: pointer; position: relative; }
+.fig-static.clickable::after {
+  content: 'Interactive ▸';
+  position: absolute; top: 0.3rem; right: 0.3rem;
+  font-size: 0.75rem; padding: 0.1rem 0.45rem; border-radius: 3px;
+  background: #3b5a8c; color: white; opacity: 0; transition: opacity 0.15s;
+}
+.fig-static.clickable:hover::after { opacity: 0.9; }
+.interactive-wrap { overflow: hidden; }
+.interactive-figure { display: block; width: 100%; border: 0; transform-origin: 0 0; }
+/* its buttons: in the margin note, or under the frame (.live-bar) without popups.js */
+.open-full { display: inline-block; padding: 0.25rem 0.6rem; margin: 0 0.4rem 0.4rem 0; border: 1px solid #3b5a8c; border-radius: 4px; text-decoration: none; }
+button.open-full { background: white; color: #3b5a8c; font: inherit; cursor: pointer; }
+.live-bar { margin-top: 0.4rem; }
+/* without a margin: a live figure opens in a screen-wide panel */
+.figure-sheet { position: fixed; inset: 0; z-index: 10; background: white; overflow-y: auto; }
+.sheet-bar { position: sticky; top: 0; display: flex; justify-content: space-between; gap: 0.5rem; padding: 0.6rem; background: white; border-bottom: 1px solid #ddd; }
+.sheet-bar .open-full { margin: 0; }
+body.sheet-open { overflow: hidden; }
+
+/* review mode (review.js: html.review-on, its comment column --review-width wide at the right):
+   text and notes move clear of the column; the text narrows when there is not room for all three */
+@media (width >= 70rem) {
+  html.review-on { --text: clamp(24rem, calc(100vw - var(--review-width) - var(--gap) - var(--note) - 7rem), 44rem); }
+  html.review-on body { margin-left: max(2rem, calc((100vw - var(--review-width) - var(--text) - var(--gap) - var(--note)) / 2)); }
+}
+/* review mode with the contents pinned: room for contents, text (24rem+), notes and comments
+   from 88rem; below that the pin waits, as above */
+@media (width >= 88rem) {
+  html.review-on.toc-pinned #toc-nav { transform: none; box-shadow: none; }
+  html.review-on.toc-pinned { --text: clamp(24rem, calc(100vw - var(--review-width) - var(--toc) - var(--gap) - var(--note) - 9rem), 44rem); }
+  html.review-on.toc-pinned body { margin-left: max(calc(var(--toc) + 2rem), calc((100vw - var(--review-width) - var(--text) - var(--gap) - var(--note)) / 2)); }
+}
+@media (width < 70rem) {
+  html.review-on body { margin-right: calc(var(--review-width) + 1rem); }
+  /* above review.js's layer (2147483000): on a phone its bottom sheet is in the same place,
+     and the note just asked for goes on top until closed */
+  html.review-on #margin-notes { position: fixed; top: auto; left: 0; right: var(--review-width); bottom: 0; width: auto; max-height: 45vh; overflow-y: auto; z-index: 2147483001; background: #fafafa; border-top: 1px solid #d5d9e0; box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15); }
+  html.review-on #margin-notes:empty, html.review-on #note-lines { display: none; }
+  html.review-on .margin-note { position: static; border: 0; padding: 0.9rem 1rem 1.1rem; font-size: 0.95rem; }
+  html.review-on .note-close { font-size: 1.4rem; padding: 0 0 0.4rem 0.8rem; }
+  html.review-on .margin-note:not(:last-child) { display: none; }
+}
+
+@media (width < 56rem) {
+  /* no room for a margin: the newest note in a panel at the bottom (same in review mode
+     below 70rem, above) */
+  #margin-notes { position: fixed; top: auto; left: 0; right: 0; bottom: 0; width: auto; max-height: 45vh; overflow-y: auto; z-index: 5; background: #fafafa; border-top: 1px solid #d5d9e0; box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15); }
+  #margin-notes:empty, #note-lines { display: none; }
+  .margin-note { position: static; border: 0; padding: 0.9rem 1rem 1.1rem; font-size: 0.95rem; }
+  .note-close { font-size: 1.4rem; padding: 0 0 0.4rem 0.8rem; }
+  .margin-note:not(:last-child) { display: none; }
+}
+@media (max-width: 600px) { body { padding: 1rem; } }

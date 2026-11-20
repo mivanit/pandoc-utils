@@ -10,14 +10,25 @@ pandoc-utils/
 |-- Makefile                        # install, test, check-deps targets
 |-- pyproject.toml                  # Python deps managed via uv
 |-- markdown_get_defaults_yaml.py   # (internal) extract pandoc config from YAML front matter
-+-- filters/
-    |-- svg_to_pdf.py               # convert SVG images to PDF for LaTeX
-    |-- mermaid.py                  # render mermaid diagrams to SVG/PDF
-    |-- csv_tex_table.py            # CSV code blocks to tables
-    |-- include-files.lua           # include external markdown files
-    |-- include-code-files.lua      # include source code snippets
-    |-- columns.lua                 # multi-column layout (HTML + LaTeX)
-    +-- table.lua                   # YAML-driven table templating
+|-- filters/
+|   |-- svg_to_pdf.py               # convert SVG images to PDF for LaTeX
+|   |-- mermaid.py                  # render mermaid diagrams to SVG/PDF
+|   |-- csv_tex_table.py            # CSV code blocks to tables
+|   |-- include-files.lua           # include external markdown files
+|   |-- include-code-files.lua      # include source code snippets
+|   |-- columns.lua                 # multi-column layout (HTML + LaTeX)
+|   +-- table.lua                   # YAML-driven table templating
++-- html-papers/                    # a markdown paper as a web page and a PDF (see its README)
+    |-- html-papers.lua             # the filter: numbered references, terms, subfigures, ...
+    |-- demo/                       # a paper that builds itself: paper.md, build.sh, its experiment
+    |-- html-papers.css             # the layout: text, notes margin, contents, comments
+    |-- paper.css                   # the look: title block, tables, figures, bibliography
+    |-- popups.js                   # margin notes and previews on hover
+    |-- contents.js                 # contents sidebar
+    |-- live-figures.js             # click a static figure for its live version
+    |-- arxiv-links.js              # links in the bibliography
+    |-- review.js                   # comments and suggested edits, exported as JSON
+    +-- collect_reviews.py          # merge reviewers' files, list comments by source line
 ```
 
 ## Core Scripts
@@ -105,6 +116,22 @@ Column 2 content
 
 YAML-driven table generation with reusable templates, configurable alignment and widths, auto-numbering, and horizontal orientation support.
 
+## HTML papers
+
+[`html-papers/`](html-papers/README.md) builds a paper written in markdown as a web page with
+notes and previews in the margin (citations, footnotes, terms, cross-references), a contents
+sidebar, live figures, bibliography links, and a review mode for comments and suggested edits;
+the same source builds the PDF. A filter, two stylesheets, five drop-in scripts, and a script
+that maps reviewers' comments back to lines of the source.
+
+The demo is [a paper that builds itself](https://mivanit.github.io/pandoc-utils/html-papers/):
+its build runs its experiment and prints the code that did.
+
+```bash
+make demo-html-papers        # html-papers/demo/ -> docs/html-papers/index.html and paper.pdf
+make demo-html-papers-html   # the web page only, in a few seconds
+```
+
 ## Setup
 
 Dependencies are managed via `Makefile` and `pyproject.toml`:
@@ -113,6 +140,7 @@ Dependencies are managed via `Makefile` and `pyproject.toml`:
 make install       # install system (apt), npm, and Python (uv) deps
 make dep-check     # verify all required binaries are available
 make test          # run pytest
+make test-html     # html-papers/ in headless Chromium (once: uv run playwright install chromium)
 ```
 
 ### Dependencies

@@ -27,6 +27,11 @@ clean:
 test: clean
 	uv run pytest tests/ -v
 
+# html-papers/: the page scripts in headless Chromium (once: uv run playwright install chromium)
+.PHONY: test-html
+test-html:
+	uv run pytest html-papers/tests -v
+
 .PHONY: dep-check
 dep-check:
 	@echo "Checking dependencies..."
@@ -63,6 +68,32 @@ demo: clean-demo
 		--defaults _pandoc_defaults.demo.yml \
 		demo.md -o demo.html
 
+# docs/ is the GitHub Pages site. Everything in it but the html-papers demo, the index page
+# and .nojekyll belongs to `demo`.
 .PHONY: clean-demo
 clean-demo:
-	rm -rf docs
+	mkdir -p docs
+	find docs -mindepth 1 -maxdepth 1 ! -name html-papers ! -name index.html ! -name .nojekyll \
+		-exec rm -rf {} +
+
+# html-papers/demo/ -> docs/html-papers/: a paper as a web page (index.html) and a PDF
+# (paper.pdf). Starts the folder afresh, copies the paper's source and the html-papers scripts
+# and stylesheets there, then runs the paper's own build.sh in that folder.
+HTML_PAPERS_SITE := docs/html-papers
+.PHONY: demo-html-papers
+demo-html-papers:
+	rm -rf $(HTML_PAPERS_SITE)
+	$(MAKE) demo-html-papers-copy
+	bash $(HTML_PAPERS_SITE)/build.sh all
+
+# the web page only: a few seconds, no LaTeX. Copies over what is there, so the PDF stays
+# (as it was last built).
+.PHONY: demo-html-papers-html
+demo-html-papers-html: demo-html-papers-copy
+	bash $(HTML_PAPERS_SITE)/build.sh html
+
+.PHONY: demo-html-papers-copy
+demo-html-papers-copy:
+	mkdir -p $(HTML_PAPERS_SITE)
+	cp -r html-papers/demo/. $(HTML_PAPERS_SITE)/
+	cp html-papers/*.js html-papers/*.css html-papers/numeric.csl $(HTML_PAPERS_SITE)/

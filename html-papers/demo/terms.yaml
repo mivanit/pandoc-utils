@@ -1,0 +1,33 @@
+terms:
+  loss:
+    text: loss
+    def: How surprised a model is by a text, in bits per word. Lower is better.
+    target: sec:loss
+  ngram:
+    text: n-gram model
+    def: A model that predicts each word from the few words before it, by counting what followed them in its training text.
+    target: sec:model
+  order:
+    text: order
+    def: How many words an n-gram model looks at. The word it predicts, and the order minus one words before it.
+    target: sec:model
+  smoothing:
+    text: smoothing
+    def: Counting every word k more times than it was seen, so that no word is impossible.
+    target: sec:model
+  training:
+    text: training text
+    def: Four of every five sentences of this paper. The models count these.
+    target: sec:data
+  heldout:
+    text: held-out text
+    def: Every fifth sentence of this paper. No model counts it. The models are only asked to predict it.
+    target: sec:data
+  filter:
+    text: the filter
+    def: html-papers.lua, which pandoc runs on the paper. It turns the paper's own constructs into what the web page and the PDF each need.
+    target: sec:build
+
+# Terms: named things defined once. In the text, \term{name} shows `text`, links to the id
+# `target`, and carries `def` (web page: shown in the margin on hover; PDF: a tooltip).
+# \term[other words]{name} shows other words. Read by html-papers.lua as metadata.

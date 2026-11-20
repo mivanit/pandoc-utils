@@ -1,0 +1,110 @@
+{
+ "prompt": [
+  "the",
+  "web",
+  "page"
+ ],
+ "rows": [
+  {
+   "label": "the paper",
+   "tokens": [
+    "a",
+    "reference",
+    "shows",
+    "what",
+    "it",
+    "refers",
+    "to",
+    "a",
+    "term",
+    "shows",
+    "its",
+    "definition",
+    "a",
+    "figure"
+   ],
+   "end": "cut",
+   "reference": true
+  },
+  {
+   "label": "order 1",
+   "tokens": [
+    "the",
+    "the",
+    "the",
+    "the",
+    "the",
+    "the",
+    "the",
+    "the",
+    "the",
+    "the",
+    "the",
+    "the",
+    "the",
+    "the"
+   ],
+   "end": "cut"
+  },
+  {
+   "label": "order 2",
+   "tokens": [
+    "and",
+    "the",
+    "experiment",
+    "checks",
+    "each",
+    "construct",
+    ".",
+    "the",
+    "experiment",
+    "checks",
+    "each",
+    "construct",
+    ".",
+    "the"
+   ],
+   "end": "cut"
+  },
+  {
+   "label": "order 3",
+   "tokens": [
+    "and",
+    "a",
+    "reader",
+    "who",
+    "skipped",
+    "the",
+    "definition",
+    "is",
+    "lost",
+    ".",
+    "here",
+    "a",
+    "term",
+    "becomes"
+   ],
+   "end": "cut"
+  },
+  {
+   "label": "order 4",
+   "tokens": [
+    "a",
+    "citation",
+    "shows",
+    "its",
+    "references",
+    "in",
+    "the",
+    "margin",
+    ".",
+    "hover",
+    "a",
+    "cell",
+    "of",
+    "that"
+   ],
+   "end": "cut"
+  }
+ ]
+}

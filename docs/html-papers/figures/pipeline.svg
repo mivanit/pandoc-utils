@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 230" width="640" height="230" font-family="Helvetica, Arial, sans-serif">
+  <rect width="640" height="230" fill="white"/>
+  <g fill="none" stroke-width="2">
+    <rect x="20" y="20" width="150" height="62" rx="8" fill="#eef2f8" stroke="#3b5a8c"/>
+    <rect x="20" y="148" width="150" height="62" rx="8" fill="#eef2f8" stroke="#3b5a8c"/>
+    <rect x="245" y="148" width="150" height="62" rx="8" fill="#f6f1e4" stroke="#a8842c"/>
+    <rect x="245" y="20" width="150" height="62" rx="8" fill="#f6f1e4" stroke="#a8842c"/>
+    <rect x="470" y="20" width="150" height="62" rx="8" fill="#eaf4ec" stroke="#3d7a4e"/>
+    <rect x="470" y="148" width="150" height="62" rx="8" fill="#eaf4ec" stroke="#3d7a4e"/>
+  </g>
+  <g fill="none" stroke="#666" stroke-width="2">
+    <path d="M176 51 H238 M230 44 l9 7 -9 7"/>
+    <path d="M95 88 V142 M88 134 l7 9 7 -9"/>
+    <path d="M176 179 H238 M230 172 l9 7 -9 7"/>
+    <path d="M320 142 V88 M313 96 l7 -9 7 9"/>
+    <path d="M401 51 H463 M455 44 l9 7 -9 7"/>
+    <path d="M401 66 L463 164 M452 160 l11 5 1 -12"/>
+  </g>
+  <g font-size="16" text-anchor="middle" fill="#222">
+    <text x="95" y="47">paper.md</text><text x="95" y="67" font-size="12.5" fill="#666">the text</text>
+    <text x="95" y="175">experiment.py</text><text x="95" y="195" font-size="12.5" fill="#666">the code</text>
+    <text x="320" y="175">results</text><text x="320" y="195" font-size="12.5" fill="#666">figures, table, data</text>
+    <text x="320" y="47">pandoc</text><text x="320" y="67" font-size="12.5" fill="#666">with html-papers.lua</text>
+    <text x="545" y="47">index.html</text><text x="545" y="67" font-size="12.5" fill="#666">the web page</text>
+    <text x="545" y="175">paper.pdf</text><text x="545" y="195" font-size="12.5" fill="#666">through LaTeX</text>
+  </g>
+  <g font-size="12" fill="#666">
+    <text x="101" y="119">is the data for</text>
+    <text x="326" y="119">included in</text>
+  </g>
+</svg>

@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <meta name="author" content="Claude Fable 5.2  with some guidance from Michael Ivanitskiy" />
+  <title>A Paper That Builds Itself</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { color: #008000; } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { color: #008000; font-weight: bold; } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+    /* CSS for citations */
+    div.csl-bib-body { }
+    div.csl-entry {
+      clear: both;
+      margin-bottom: 0em;
+    }
+    .hanging-indent div.csl-entry {
+      margin-left:2em;
+      text-indent:-2em;
+    }
+    div.csl-left-margin {
+      min-width:2em;
+      float:left;
+    }
+    div.csl-right-inline {
+      margin-left:2em;
+      padding-left:1em;
+    }
+    div.csl-indent {
+      margin-left: 2em;
+    }  </style>
+  <link rel="stylesheet" href="html-papers.css" />
+  <link rel="stylesheet" href="paper.css" />
+  <script src="arxiv-links.js" defer></script>
+  <script src="popups.js" defer></script>
+  <script src="contents.js" defer></script>
+  <script src="live-figures.js" defer></script>
+  <script src="review.js" data-review-email="me@example.org" defer></script>
+  <meta name="review-doc-version" content="e71ac040dd1f3c83fdd1af104d3c7dbb7721b3cf">
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">A Paper That Builds Itself</h1>
+<p class="author">Claude Fable 5.2 <span class="author-note">with some
+guidance from Michael Ivanitskiy</span></p>
+<p class="date">November 2026<br />
+One markdown file, built as <a
+href="https://mivanit.github.io/pandoc-utils/html-papers/">a web
+page</a> and as <a
+href="https://mivanit.github.io/pandoc-utils/html-papers/paper.pdf">a
+PDF</a><br />
+Source: <a
+href="https://mivanit.github.io/pandoc-utils/html-papers/paper.md">paper.md</a>,
+built by <a
+href="https://mivanit.github.io/pandoc-utils/html-papers/build.sh">build.sh</a>
+with <a
+href="https://github.com/mivanit/pandoc-utils/tree/main/html-papers">html-papers</a></p>
+<div class="abstract">
+<div class="abstract-title">Abstract</div>
+<p>A paper is usually written twice: once as text, and once as the code
+that produced what the text reports. This paper is written once. It is
+one markdown file, and building it runs its experiment, draws its
+figures, fills its table and prints the code that did so. The same build
+gives a web page and a PDF with the same numbering and references.</p>
+<p>The experiment is a small one: word-counting language models fitted
+to the text of this paper, scored on the sentences they were not shown.
+Its results change when the text does, and the build keeps the two in
+step.</p>
+<p>On the web page, hover a link to see what it points to, press
+<strong>E</strong> to comment, and move the pointer to the left edge for
+the contents.</p>
+</div>
+</header>
+<h1 data-number="1" id="sec:intro"><span
+class="header-section-number">1</span> Introduction</h1>
+<p>A paper has two parts that are kept in different places. One is the
+text. The other is the scripts and notebooks that produced the numbers
+and figures in the text. The two drift apart: a figure is redrawn and
+the sentence about it is not, or the code that made a table can no
+longer be found. For programs, Knuth proposed writing the explanation
+and the code as one document, in the order that suits the reader <span
+class="citation" data-cites="knuth1984literate">[<a
+href="#ref-knuth1984literate" role="doc-biblioref">3</a>]</span>. This
+paper does the same for a paper, and it is its own example.</p>
+<p>The file you are reading was built from one markdown file. The build
+ran an experiment, and the results of that experiment are the ones
+reported here. The experiment is small on purpose. We fit <a
+href="#sec:model" class="term"
+title="A model that predicts each word from the few words before it, by counting what followed them in its training text.">n-gram
+models</a> to the text of this paper and measure how well they predict
+the sentences they were not shown.<a href="#fn1" class="footnote-ref"
+id="fnref1" role="doc-noteref"><sup>1</sup></a> Nothing in it is new
+<span class="citation"
+data-cites="shannon1948mathematical shannon1951prediction">[<a
+href="#ref-shannon1948mathematical" role="doc-biblioref">6</a>, <a
+href="#ref-shannon1951prediction" role="doc-biblioref">7</a>]</span>. It
+is here because it needs everything a paper needs: definitions,
+equations, a table, figures, code and references.</p>
+<p>The paper makes three points, each by doing it:</p>
+<ul>
+<li><strong>One source, two outputs.</strong> The same file builds a web
+page and a PDF, with the same numbers on the sections, figures and
+references (<a href="#sec:build">Section 2</a>).</li>
+<li><strong>The page helps the reader.</strong> On the web page a
+reference shows what it refers to, a term shows its definition, a figure
+can become live, and a reader can leave comments (<a
+href="#sec:writing">Section 3</a> and <a href="#sec:review">Section
+6</a>).</li>
+<li><strong>The results come from the build.</strong> The numbers in <a
+href="#tab:loss">Table 1</a>, the figures of <a
+href="#sec:results">Section 5</a> and the code in <a
+href="#fig:model">Figure 3</a> are made or included by the build, so
+they cannot disagree with the code that ran (<a
+href="#sec:experiment">Section 4</a>).</li>
+</ul>
+<h1 data-number="2" id="sec:build"><span
+class="header-section-number">2</span> One source, two outputs</h1>
+<p>The source is <code>paper.md</code>, written in the markdown that
+pandoc reads <span class="citation"
+data-cites="macfarlane2006pandoc">[<a href="#ref-macfarlane2006pandoc"
+role="doc-biblioref">4</a>]</span>. <a href="#fig:pipeline">Figure 1</a>
+shows the build. First the experiment runs. It reads the text of the
+paper and writes the figures, the table and the numbers behind the live
+figures. Then pandoc reads <code>paper.md</code> twice, once to write
+the web page and once to write LaTeX, which becomes the PDF. Both times
+pandoc runs <a href="#sec:build" class="term"
+title="html-papers.lua, which pandoc runs on the paper. It turns the paper’s own constructs into what the web page and the PDF each need.">the
+filter</a>, which turns each construct of the paper into what that
+output needs. A cross-reference becomes a numbered link on the page and
+stays a reference in LaTeX. A term becomes a link that carries its
+definition on the page and a tooltip in the PDF.</p>
+<figure id="fig:pipeline">
+<img src="figures/pipeline.svg"
+alt="The build. The text is also the data of the experiment, and the results of the experiment are included in the text." />
+<figcaption>Figure 1: The build. The text is also the data of the
+experiment, and the results of the experiment are included in the
+text.</figcaption>
+</figure>
+<p>The script that does this is short enough to print. <a
+href="#fig:build">Figure 2</a> is not a copy of it. The build includes
+the file, so the script you read is the script that ran.</p>
+<figure id="fig:build">
+<div>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/usr/bin/env bash</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Build this paper in the folder it is in:  ./build.sh [html|pdf|all]</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co">#   html  the web page, index.html (a few seconds)</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">#   pdf   paper.pdf (LaTeX, biber, inkscape)</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co"># The html-papers scripts and stylesheets must be beside it (`make demo-html-papers` copies</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co"># them), and pandoc-utils two folders up or at $PANDOC_UTILS.</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span> <span class="at">-euo</span> pipefail</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> <span class="st">&quot;</span><span class="va">$(</span><span class="fu">dirname</span> <span class="st">&quot;</span><span class="va">${BASH_SOURCE</span><span class="op">[</span><span class="dv">0</span><span class="op">]</span><span class="va">}</span><span class="st">&quot;</span><span class="va">)</span><span class="st">&quot;</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="va">PANDOC_UTILS</span><span class="op">=</span><span class="st">&quot;</span><span class="va">${PANDOC_UTILS</span><span class="op">:-</span><span class="va">$(</span><span class="bu">cd</span> ../.. <span class="kw">&amp;&amp;</span> <span class="bu">pwd</span><span class="va">)}</span><span class="st">&quot;</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="va">what</span><span class="op">=</span><span class="st">&quot;</span><span class="va">${1</span><span class="op">:-</span>all<span class="va">}</span><span class="st">&quot;</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="fu">run()</span> <span class="kw">{</span> <span class="ex">uv</span> run <span class="at">--project</span> <span class="st">&quot;</span><span class="va">$PANDOC_UTILS</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$@</span><span class="st">&quot;</span><span class="kw">;</span> <span class="kw">}</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="kw">[[</span> <span class="ot">!</span> <span class="ot">-f</span> popups.js <span class="kw">||</span> <span class="ot">!</span> <span class="ot">-f</span> html-papers.css <span class="kw">]];</span> <span class="cf">then</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>	<span class="bu">echo</span> <span class="st">&quot;build.sh: copy </span><span class="va">$PANDOC_UTILS</span><span class="st">/html-papers/{*.js,*.css,numeric.csl} to </span><span class="va">$PWD</span><span class="st"> first&quot;</span> <span class="op">&gt;&amp;</span><span class="dv">2</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>	<span class="bu">exit</span> 1</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="cf">fi</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. The experiment: reads paper.md, writes figures/, generated/ and live/data.js.</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="ex">run</span> python <span class="at">-B</span> experiment.py</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. The web page. The front matter&#39;s __defaults__ block names the filters and the terms file.</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="kw">[[</span> <span class="va">$what</span> <span class="ot">==</span> html <span class="kw">||</span> <span class="va">$what</span> <span class="ot">==</span> all <span class="kw">]];</span> <span class="cf">then</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>	<span class="ex">run</span> <span class="st">&quot;</span><span class="va">$PANDOC_UTILS</span><span class="st">/markdown_get_defaults_yaml.py&quot;</span> paper.md <span class="dt">\</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>		<span class="at">--defaults-file</span> _pandoc_defaults.paper.yml</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>	<span class="ex">run</span> pandoc paper.md <span class="at">--defaults</span> _pandoc_defaults.paper.yml <span class="dt">\</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>		<span class="at">--from</span> markdown+footnotes+inline_notes <span class="at">--to</span> html5 <span class="at">--standalone</span> <span class="dt">\</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>		<span class="at">--citeproc</span> <span class="at">--mathml</span> <span class="at">--css</span> html-papers.css <span class="at">--css</span> paper.css <span class="at">--output</span> index.html</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="cf">fi</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. The PDF, from the same file. SOURCE_DATE_EPOCH keeps today&#39;s date out of it, so the</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="co">#    PDF changes only when the paper does.</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="kw">[[</span> <span class="va">$what</span> <span class="ot">==</span> pdf <span class="kw">||</span> <span class="va">$what</span> <span class="ot">==</span> all <span class="kw">]];</span> <span class="cf">then</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>	<span class="va">SOURCE_DATE_EPOCH</span><span class="op">=</span>1 <span class="fu">bash</span> <span class="st">&quot;</span><span class="va">$PANDOC_UTILS</span><span class="st">/pandoc_md_pdf.sh&quot;</span> paper.md</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a><span class="cf">fi</span></span></code></pre></div>
+</div>
+<figcaption>Figure 2: The file <code>build.sh</code>, included from the
+folder it built. A captioned block of anything is a numbered
+figure.</figcaption>
+</figure>
+<p>The settings are in the front matter of <code>paper.md</code>: the
+bibliography, the filters to run and the file of terms. The finished
+page needs five scripts and two stylesheets beside it and nothing else.
+It needs no server, and it loads nothing from the network. Its equations
+are MathML, which a browser draws on its own.</p>
+<h1 data-number="3" id="sec:writing"><span
+class="header-section-number">3</span> Writing</h1>
+<p>Most of the source is plain markdown and reads like the text. This
+section shows the constructs that are not plain markdown, each beside
+its source.</p>
+<h2 data-number="3.1" id="sec:refs"><span
+class="header-section-number">3.1</span> Cross-references</h2>
+<p>A heading, a figure or a table is given an id, and
+<code>\autoref</code> refers to it:</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">## Cross-references {#sec:refs}</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>See \autoref{sec:model}, \autoref{fig:loss} and \autoref{tab:loss}.</span></code></pre></div>
+<p>This gives: see <a href="#sec:model">Section 4.2</a>, <a
+href="#fig:loss">Figure 4</a> and <a href="#tab:loss">Table 1</a>. The
+reference becomes the number of its target in both outputs, also when
+the target comes later in the text. On the web page, hovering the link
+shows a copy of the target in the margin, so a reader who wants to check
+a figure does not lose their place. A link inside that copy opens
+another copy below it. Clicking a copy keeps it open. A reference to an
+id that does not exist builds as a red question mark with a warning, as
+in LaTeX.</p>
+<h2 data-number="3.2" id="sec:terms"><span
+class="header-section-number">3.2</span> Terms</h2>
+<p>A paper names things, and a reader who skipped the definition is
+lost. Here a term is defined once, in a file of terms that begins:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">terms</span><span class="kw">:</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">loss</span><span class="kw">:</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">text</span><span class="kw">:</span><span class="at"> loss</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">def</span><span class="kw">:</span><span class="at"> How surprised a model is by a text, in bits per word. Lower is better.</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">target</span><span class="kw">:</span><span class="at"> sec:loss</span></span></code></pre></div>
+<p>Writing <code>\term{loss}</code> in the text then gives <a
+href="#sec:loss" class="term"
+title="How surprised a model is by a text, in bits per word. Lower is better.">loss</a>.
+The word is a link to the section that defines it, and the definition
+shows in the margin when the pointer is on the word. In the PDF it is a
+tooltip. Writing <code>\term[losses]{loss}</code> shows other words for
+the same term. A name that is not in the file stops the build and says
+which name it was.</p>
+<h2 data-number="3.3" id="sec:cites"><span
+class="header-section-number">3.3</span> Citations, notes and
+equations</h2>
+<p>Citations are the ones pandoc has. Writing
+<code>[@knuth1984literate]</code> gives <span class="citation"
+data-cites="knuth1984literate">[<a href="#ref-knuth1984literate"
+role="doc-biblioref">3</a>]</span>, and two keys in one bracket give
+<span class="citation"
+data-cites="mikolov2013efficient vaswani2017attention">[<a
+href="#ref-mikolov2013efficient" role="doc-biblioref">5</a>, <a
+href="#ref-vaswani2017attention" role="doc-biblioref">8</a>]</span>. On
+the web page a citation shows its references in the margin, and in the
+list of references the title and the arXiv number are links. Footnotes
+show in the margin in the same way.<a href="#fn2" class="footnote-ref"
+id="fnref2" role="doc-noteref"><sup>2</sup></a> Equations are written as
+in LaTeX, as in <a href="#sec:loss">Section 4.3</a>. A note from the
+author to the author is hard to miss in both outputs: <span
+class="todo">[TODO: take this out before the paper is sent]</span></p>
+<h1 data-number="4" id="sec:experiment"><span
+class="header-section-number">4</span> The experiment</h1>
+<h2 data-number="4.1" id="sec:data"><span
+class="header-section-number">4.1</span> Data</h2>
+<p>The data is this paper. The experiment reads <code>paper.md</code>
+and keeps the prose as words in lower case, with a mark at the end of
+each sentence. It drops the code, the equations and the citations. Every
+fifth sentence is set aside as the <a href="#sec:data" class="term"
+title="Every fifth sentence of this paper. No model counts it. The models are only asked to predict it.">held-out
+text</a>. The other sentences are the <a href="#sec:data" class="term"
+title="Four of every five sentences of this paper. The models count these.">training
+text</a>. The models count only the training text. Because the text is
+the data, changing a sentence of this paper changes its results, and the
+next build reports the new ones.</p>
+<h2 data-number="4.2" id="sec:model"><span
+class="header-section-number">4.2</span> Model</h2>
+<p>An <a href="#sec:model" class="term"
+title="A model that predicts each word from the few words before it, by counting what followed them in its training text.">n-gram
+model</a> of <a href="#sec:model" class="term"
+title="How many words an n-gram model looks at. The word it predicts, and the order minus one words before it.">order</a>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>
+predicts a word from the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">n - 1</annotation></semantics></math>
+words before it. It counts how often each word followed those words in
+the training text <span class="citation"
+data-cites="shannon1948mathematical">[<a
+href="#ref-shannon1948mathematical" role="doc-biblioref">6</a>]</span>.
+A word that never followed them would get a probability of zero, and
+then one new sentence would be impossible. So the model counts every
+word
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>
+more times than it was seen, which is called <a href="#sec:model"
+class="term"
+title="Counting every word k more times than it was seen, so that no word is impossible.">smoothing</a>
+<span class="citation" data-cites="chen1999empirical">[<a
+href="#ref-chen1999empirical" role="doc-biblioref">2</a>]</span>:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>P</mi><mo stretchy="false" form="prefix">(</mo><mi>w</mi><mo>∣</mo><mi>c</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mfrac><mrow><mrow><mi>count</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><mi>c</mi><mo>,</mo><mi>w</mi><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mi>k</mi></mrow><mrow><mrow><mi>count</mi><mo>&#8289;</mo></mrow><mo stretchy="false" form="prefix">(</mo><mi>c</mi><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mi>k</mi><mi>V</mi></mrow></mfrac></mrow><annotation encoding="application/x-tex">
+P(w \mid c) = \frac{\operatorname{count}(c, w) + k}{\operatorname{count}(c) + k V}
+</annotation></semantics></math></p>
+<p>Here
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>c</mi><annotation encoding="application/x-tex">c</annotation></semantics></math>
+is the context, the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">n - 1</annotation></semantics></math>
+words before the word
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>w</mi><annotation encoding="application/x-tex">w</annotation></semantics></math>,
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>V</mi><annotation encoding="application/x-tex">V</annotation></semantics></math>
+is the number of different words. <a href="#fig:model">Figure 3</a> is
+the whole model. It is the file that the experiment imports.</p>
+<figure id="fig:model">
+<div>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;An n-gram word model with add-k smoothing. This is the whole model.&quot;&quot;&quot;</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections <span class="im">import</span> Counter</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>START: <span class="bu">str</span> <span class="op">=</span> <span class="st">&quot;&lt;s&gt;&quot;</span>  <span class="co"># stands in for the words before the first one</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>UNKNOWN: <span class="bu">str</span> <span class="op">=</span> <span class="st">&quot;&lt;unk&gt;&quot;</span>  <span class="co"># stands in for any word the model never counted</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>Gram <span class="op">=</span> <span class="bu">tuple</span>[<span class="bu">str</span>, ...]  <span class="co"># a context and the word after it</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> NGram:</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;Predicts each word from the `order - 1` words before it, by counting.&quot;&quot;&quot;</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, order: <span class="bu">int</span>, k: <span class="bu">float</span>, words: <span class="bu">list</span>[<span class="bu">str</span>]) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.order: <span class="bu">int</span> <span class="op">=</span> order</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.k: <span class="bu">float</span> <span class="op">=</span> k</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.vocabulary: <span class="bu">set</span>[<span class="bu">str</span>] <span class="op">=</span> <span class="bu">set</span>(words) <span class="op">|</span> {UNKNOWN}</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.count: Counter[Gram] <span class="op">=</span> Counter()  <span class="co"># context and word -&gt; times seen</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.context: Counter[Gram] <span class="op">=</span> Counter()  <span class="co"># context -&gt; times seen</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> gram <span class="kw">in</span> <span class="va">self</span>.grams(words):</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.count[gram] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.context[gram[:<span class="op">-</span><span class="dv">1</span>]] <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> grams(<span class="va">self</span>, words: <span class="bu">list</span>[<span class="bu">str</span>]) <span class="op">-&gt;</span> <span class="bu">list</span>[Gram]:</span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>        <span class="co">&quot;&quot;&quot;Each word with the words before it; words never counted become UNKNOWN.&quot;&quot;&quot;</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>        known: <span class="bu">list</span>[<span class="bu">str</span>] <span class="op">=</span> [w <span class="cf">if</span> w <span class="kw">in</span> <span class="va">self</span>.vocabulary <span class="cf">else</span> UNKNOWN <span class="cf">for</span> w <span class="kw">in</span> words]</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>        padded: <span class="bu">list</span>[<span class="bu">str</span>] <span class="op">=</span> [START] <span class="op">*</span> (<span class="va">self</span>.order <span class="op">-</span> <span class="dv">1</span>) <span class="op">+</span> known</span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> [<span class="bu">tuple</span>(padded[i : i <span class="op">+</span> <span class="va">self</span>.order]) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(words))]</span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> probability(<span class="va">self</span>, gram: Gram) <span class="op">-&gt;</span> <span class="bu">float</span>:</span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>        <span class="co">&quot;&quot;&quot;Add-k smoothing: every word is counted k more times than it was seen.&quot;&quot;&quot;</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>        seen: <span class="bu">float</span> <span class="op">=</span> <span class="va">self</span>.count[gram] <span class="op">+</span> <span class="va">self</span>.k</span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> seen <span class="op">/</span> (<span class="va">self</span>.context[gram[:<span class="op">-</span><span class="dv">1</span>]] <span class="op">+</span> <span class="va">self</span>.k <span class="op">*</span> <span class="bu">len</span>(<span class="va">self</span>.vocabulary))</span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> loss(<span class="va">self</span>, words: <span class="bu">list</span>[<span class="bu">str</span>]) <span class="op">-&gt;</span> <span class="bu">float</span>:</span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>        <span class="co">&quot;&quot;&quot;Cross-entropy in bits per word: lower is a better prediction.&quot;&quot;&quot;</span></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>        bits: <span class="bu">float</span> <span class="op">=</span> <span class="bu">sum</span>(math.log2(<span class="va">self</span>.probability(g)) <span class="cf">for</span> g <span class="kw">in</span> <span class="va">self</span>.grams(words))</span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="op">-</span>bits <span class="op">/</span> <span class="bu">len</span>(words)</span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> continuation(<span class="va">self</span>, prompt: <span class="bu">list</span>[<span class="bu">str</span>], length: <span class="bu">int</span>) <span class="op">-&gt;</span> <span class="bu">list</span>[<span class="bu">str</span>]:</span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>        <span class="co">&quot;&quot;&quot;The likeliest next word (ties: first in the alphabet), up to `length` times.</span></span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a><span class="co">        Stops early when the last `order - 1` words were never seen together.</span></span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a><span class="co">        &quot;&quot;&quot;</span></span>
+<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>        words: <span class="bu">list</span>[<span class="bu">str</span>] <span class="op">=</span> <span class="bu">list</span>(prompt)</span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(length):</span>
+<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a>            context: Gram <span class="op">=</span> <span class="va">self</span>.grams(words <span class="op">+</span> [UNKNOWN])[<span class="op">-</span><span class="dv">1</span>][:<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> <span class="va">self</span>.order <span class="op">&gt;</span> <span class="dv">1</span> <span class="kw">and</span> <span class="va">self</span>.context[context] <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>                <span class="cf">break</span></span>
+<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a>            options: <span class="bu">list</span>[<span class="bu">str</span>] <span class="op">=</span> <span class="bu">sorted</span>(<span class="va">self</span>.vocabulary <span class="op">-</span> {UNKNOWN})</span>
+<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>            words.append(<span class="bu">max</span>(options, key<span class="op">=</span><span class="kw">lambda</span> w: <span class="va">self</span>.count[context <span class="op">+</span> (w,)]))</span>
+<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> words[<span class="bu">len</span>(prompt) :]</span></code></pre></div>
+</div>
+<figcaption>Figure 3: The file <code>model.py</code>: the model, its <a
+href="#sec:loss" class="term"
+title="How surprised a model is by a text, in bits per word. Lower is better.">loss</a>
+and how it continues a text.</figcaption>
+</figure>
+<h2 data-number="4.3" id="sec:loss"><span
+class="header-section-number">4.3</span> Loss</h2>
+<p>A model is scored on a text
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>w</mi><mn>1</mn></msub><mo>,</mo><mi>…</mi><mo>,</mo><msub><mi>w</mi><mi>N</mi></msub></mrow><annotation encoding="application/x-tex">w_1, \dots, w_N</annotation></semantics></math>
+by its <a href="#sec:loss" class="term"
+title="How surprised a model is by a text, in bits per word. Lower is better.">loss</a>,
+the cross-entropy in bits per word <span class="citation"
+data-cites="shannon1951prediction">[<a href="#ref-shannon1951prediction"
+role="doc-biblioref">7</a>]</span>:</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>L</mi><mo>=</mo><mi>−</mi><mfrac><mn>1</mn><mi>N</mi></mfrac><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>N</mi></munderover><msub><mrow><mi>log</mi><mo>&#8289;</mo></mrow><mn>2</mn></msub><mi>P</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>w</mi><mi>i</mi></msub><mo>∣</mo><msub><mi>c</mi><mi>i</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">
+L = -\frac{1}{N} \sum_{i=1}^{N} \log_2 P(w_i \mid c_i)
+</annotation></semantics></math></p>
+<p>A model that gave each of the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>V</mi><annotation encoding="application/x-tex">V</annotation></semantics></math>
+words the same probability would have a loss of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi>log</mi><mo>&#8289;</mo></mrow><mn>2</mn></msub><mi>V</mi></mrow><annotation encoding="application/x-tex">\log_2 V</annotation></semantics></math>
+on any text. A model has learned something when its loss on the held-out
+text is below that.</p>
+<h1 data-number="5" id="sec:results"><span
+class="header-section-number">5</span> Results</h1>
+<p>The build writes everything in this section except the prose. The
+prose makes claims about the numbers, and the experiment checks each
+claim before it writes anything (<a href="#sec:code">Section 8.1</a>).
+If a change to the text makes a claim false, the build stops.</p>
+<h2 data-number="5.1" id="sec:loss-by-order"><span
+class="header-section-number">5.1</span> Loss by order</h2>
+<p><a href="#tab:loss">Table 1</a> gives the <a href="#sec:loss"
+class="term"
+title="How surprised a model is by a text, in bits per word. Lower is better.">loss</a>
+of each model. On the <a href="#sec:data" class="term"
+title="Four of every five sentences of this paper. The models count these.">training
+text</a>, a higher <a href="#sec:model" class="term"
+title="How many words an n-gram model looks at. The word it predicts, and the order minus one words before it.">order</a>
+is always better. On the <a href="#sec:data" class="term"
+title="Every fifth sentence of this paper. No model counts it. The models are only asked to predict it.">held-out
+text</a> it is not. One word of context helps, so the model of order 2
+is the best. Each word of context after that makes the model worse, and
+the model of order 4 is hardly better than guessing every word equally.
+The last column of the table says why. The longer the context, the less
+often the model has seen it, and a model that has not seen the context
+knows nothing about the next word.</p>
+<table id="tab:loss">
+<caption>Table 1: <a href="#sec:loss" class="term"
+title="How surprised a model is by a text, in bits per word. Lower is better.">Loss</a>
+in bits per word of each <a href="#sec:model" class="term"
+title="A model that predicts each word from the few words before it, by counting what followed them in its training text.">n-gram
+model</a> on the two texts, with <a href="#sec:model" class="term"
+title="Counting every word k more times than it was seen, so that no word is impossible.">smoothing</a>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi><mo>=</mo><mn>0.01</mn></mrow><annotation encoding="application/x-tex">k = 0.01</annotation></semantics></math>
+and a vocabulary of 426 words. The last column is the share of held-out
+words whose context the model had counted. </caption>
+<thead>
+<tr>
+<th style="text-align: left;">order</th>
+<th style="text-align: right;">training text</th>
+<th style="text-align: right;">held-out text</th>
+<th style="text-align: right;">contexts seen in training</th>
+</tr>
+<tr>
+<th style="text-align: left;"><strong>words</strong></th>
+<th style="text-align: right;">1,770</th>
+<th style="text-align: right;">444</th>
+<th style="text-align: right;"></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">1</td>
+<td style="text-align: right;">7.08</td>
+<td style="text-align: right;">7.82</td>
+<td style="text-align: right;">100%</td>
+</tr>
+<tr>
+<td style="text-align: left;">2</td>
+<td style="text-align: right;">3.64</td>
+<td style="text-align: right;">7.33</td>
+<td style="text-align: right;">89%</td>
+</tr>
+<tr>
+<td style="text-align: left;">3</td>
+<td style="text-align: right;">2.55</td>
+<td style="text-align: right;">8.12</td>
+<td style="text-align: right;">47%</td>
+</tr>
+<tr>
+<td style="text-align: left;">4</td>
+<td style="text-align: right;">2.39</td>
+<td style="text-align: right;">8.50<span
+class="cell-note"><sup>*</sup><span class="cell-note-body"
+hidden="">Hardly better than guessing every word equally, which costs
+8.73 bits.</span></span></td>
+<td style="text-align: right;">14%</td>
+</tr>
+</tbody>
+</table>
+<p>The markdown of the table has two things that a plain table does not.
+A row whose first cell is bold joins the header, which is where the word
+counts are. A footnote in a cell shows as an asterisk on the web page,
+and its note shows in the margin while the pointer is anywhere in the
+cell.</p>
+<p><a href="#fig:loss">Figure 4</a> draws the same numbers. On the web
+page the figure is a picture until it is clicked. Then it is a small
+live page with a slider for the <a href="#sec:model" class="term"
+title="Counting every word k more times than it was seen, so that no word is impossible.">smoothing</a>
+constant, and nothing is loaded before the click.</p>
+<figure id="fig:loss">
+<div class="fig-static" data-embed="live/curve.html#embed"
+data-link="live/curve.html" data-height="330">
+<img src="figures/loss-by-order.svg"
+alt="The loss of each model on the two texts. The dashed line is the loss of guessing every word equally. On the web page, click the figure for a live version with a slider for k." />
+</div>
+<figcaption>Figure 4: The loss of each model on the two texts. The
+dashed line is the loss of guessing every word equally. On the web page,
+click the figure for a live version with a slider for
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>.</figcaption>
+</figure>
+<h2 data-number="5.2" id="sec:smoothing"><span
+class="header-section-number">5.2</span> Smoothing</h2>
+<p>How much <a href="#sec:model" class="term"
+title="Counting every word k more times than it was seen, so that no word is impossible.">smoothing</a>
+is best depends on which text is asked about (<a
+href="#fig:smoothing">Figure 5</a>). On the training text less is always
+better (<a href="#fig:smoothing-train">Figure 5a</a>), because every
+count given to a word that did not come is taken from a word that did.
+With almost none, the model of order 4 has a loss close to zero there:
+it has memorised the paper. On the held-out text the least smoothing is
+never the best (<a href="#fig:smoothing-heldout">Figure 5b</a>). The
+constant matters less as the order goes up, because in a context the
+model has not seen, every word gets the same probability whatever the
+constant is.</p>
+<figure id="fig:smoothing">
+<div class="subfigure-row">
+<div id="fig:smoothing-train" class="subfigure">
+<img src="figures/smoothing-train.svg" alt="Training text." />
+<div class="subcaption">
+(a) Training text.
+</div>
+</div>
+<div id="fig:smoothing-heldout" class="subfigure">
+<img src="figures/smoothing-heldout.svg" alt="Held-out text." />
+<div class="subcaption">
+(b) Held-out text.
+</div>
+</div>
+</div>
+<figcaption>Figure 5: Loss against the smoothing constant
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>,
+with one line for each order. Two images in one figure, each with its
+own number.</figcaption>
+</figure>
+<h2 data-number="5.3" id="sec:write"><span
+class="header-section-number">5.3</span> What the models write</h2>
+<p>A model can also write. Give it some words, take the word it finds
+most likely, and repeat. <a href="#fig:continue">Figure 6</a> starts
+every model with the same three words, the run of three words that is
+most common in the training text. The first row is how the paper goes on
+from there. The model of order 1 does not look at the prompt, and
+repeats the most common word. The models of higher order can only say
+what they have counted, so what they write is made of pieces of the
+paper.</p>
+<figure id="fig:continue">
+<div class="generations">
+<div class="gen-row gen-prompt">
+<div class="gen-label">
+<em>prompt</em>
+</div>
+<div class="gen-text">
+<span class="tok">the</span><span class="tok">web</span><span class="tok">page</span>
+</div>
+</div>
+<div class="gen-row gen-ref">
+<div class="gen-label">
+the paper
+</div>
+<div class="gen-text">
+<span class="tok">a</span><span class="tok">reference</span><span class="tok">shows</span><span class="tok">what</span><span class="tok">it</span><span class="tok">refers</span><span class="tok">to</span><span class="tok">a</span><span class="tok">term</span><span class="tok">shows</span><span class="tok">its</span><span class="tok">definition</span><span class="tok">a</span><span class="tok">figure</span><span class="tok-end">…</span>
+</div>
+</div>
+<div class="gen-row">
+<div class="gen-label">
+<a href="#sec:model" class="term"
+title="How many words an n-gram model looks at. The word it predicts, and the order minus one words before it.">order</a>
+1
+</div>
+<div class="gen-text">
+<span class="tok">the</span><span class="tok">the</span><span class="tok">the</span><span class="tok">the</span><span class="tok">the</span><span class="tok">the</span><span class="tok">the</span><span class="tok">the</span><span class="tok">the</span><span class="tok">the</span><span class="tok">the</span><span class="tok">the</span><span class="tok">the</span><span class="tok">the</span><span class="tok-end">…</span>
+</div>
+</div>
+<div class="gen-row">
+<div class="gen-label">
+<a href="#sec:model" class="term"
+title="How many words an n-gram model looks at. The word it predicts, and the order minus one words before it.">order</a>
+2
+</div>
+<div class="gen-text">
+<span class="tok">and</span><span class="tok">the</span><span class="tok">experiment</span><span class="tok">checks</span><span class="tok">each</span><span class="tok">construct</span><span class="tok">.</span><span class="tok">the</span><span class="tok">experiment</span><span class="tok">checks</span><span class="tok">each</span><span class="tok">construct</span><span class="tok">.</span><span class="tok">the</span><span class="tok-end">…</span>
+</div>
+</div>
+<div class="gen-row">
+<div class="gen-label">
+<a href="#sec:model" class="term"
+title="How many words an n-gram model looks at. The word it predicts, and the order minus one words before it.">order</a>
+3
+</div>
+<div class="gen-text">
+<span class="tok">and</span><span class="tok">a</span><span class="tok">reader</span><span class="tok">who</span><span class="tok">skipped</span><span class="tok">the</span><span class="tok">definition</span><span class="tok">is</span><span class="tok">lost</span><span class="tok">.</span><span class="tok">here</span><span class="tok">a</span><span class="tok">term</span><span class="tok">becomes</span><span class="tok-end">…</span>
+</div>
+</div>
+<div class="gen-row">
+<div class="gen-label">
+<a href="#sec:model" class="term"
+title="How many words an n-gram model looks at. The word it predicts, and the order minus one words before it.">order</a>
+4
+</div>
+<div class="gen-text">
+<span class="tok">a</span><span class="tok">citation</span><span class="tok">shows</span><span class="tok">its</span><span class="tok">references</span><span class="tok">in</span><span class="tok">the</span><span class="tok">margin</span><span class="tok">.</span><span class="tok">hover</span><span class="tok">a</span><span class="tok">cell</span><span class="tok">of</span><span class="tok">that</span><span class="tok-end">…</span>
+</div>
+</div>
+</div>
+<figcaption>Figure 6: Each model continues the same prompt, one word on
+each chip. The rows are read from a file that the experiment
+writes.</figcaption>
+</figure>
+<h2 data-number="5.4" id="sec:words"><span
+class="header-section-number">5.4</span> The words</h2>
+<p><a href="#fig:words">Figure 7</a> counts how often each word of the
+paper is used. As in most text, a few words are used very often and most
+words only once or twice <span class="citation"
+data-cites="zipf1949human">[<a href="#ref-zipf1949human"
+role="doc-biblioref">9</a>]</span>. The page that lists every word with
+its count is too long to put inside a figure. So this figure stays a
+picture, with a link to that page under it.</p>
+<figure id="fig:words">
+<img src="figures/words.svg"
+alt="How often each word of the paper is used, against the rank of the word. Both axes are logarithmic." /><br />
+<a href="live/words.html" class="open-full" target="_blank"
+rel="noopener">Open the interactive version ↗</a>
+<figcaption>Figure 7: How often each word of the paper is used, against
+the rank of the word. Both axes are logarithmic.</figcaption>
+</figure>
+<h1 data-number="6" id="sec:review"><span
+class="header-section-number">6</span> Reviewing</h1>
+<p>A draft gets comments. On the web page, pressing <strong>E</strong>
+turns on review mode. The reader selects some text and comments on it.
+The reader can also switch to suggesting, and then type into the text,
+which marks the change and leaves the text as it was. Nothing is sent
+anywhere. The comments stay in the browser of the reader until the
+reader exports them as a file and sends the file to the author.</p>
+<p>The author puts the files in a folder and runs one command:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run html-papers/collect_reviews.py reviews/ <span class="at">--md</span> paper.md <span class="at">-o</span> reviews/merged.json</span></code></pre></div>
+<p>The command merges the files and keeps the newest version of each
+comment. It lists every comment with the line of <code>paper.md</code>
+that the comment is about, which it finds from the words the reader
+selected. So a comment made on the page leads to the line to change. The
+merged file can be loaded back into the page, to read all the comments
+in place.</p>
+<h1 data-number="7" id="sec:limits"><span
+class="header-section-number">7</span> Limits</h1>
+<ul>
+<li>The numbers in the table and the figures come from the build. The
+numbers in a sentence do not. That is why the prose of <a
+href="#sec:results">Section 5</a> quotes no numbers, and why the
+experiment checks its claims.</li>
+<li>The scripts and stylesheets beside the page are copies. Nothing
+updates the copies when the originals change.</li>
+<li>The notes in the margin need a pointer. A reader who uses only the
+keyboard gets the links and not the notes.</li>
+<li>The experiment is a toy. One paper is far too little text to learn
+much about a language, and models of language stopped counting words
+long ago <span class="citation"
+data-cites="bengio2003neural mikolov2013efficient vaswani2017attention">[<a
+href="#ref-bengio2003neural" role="doc-biblioref">1</a>, <a
+href="#ref-mikolov2013efficient" role="doc-biblioref">5</a>, <a
+href="#ref-vaswani2017attention"
+role="doc-biblioref">8</a>]</span>.</li>
+</ul>
+<h1 data-number="8" id="sec:appendix"><span
+class="header-section-number">8</span> Appendix</h1>
+<h2 data-number="8.1" id="sec:code"><span
+class="header-section-number">8.1</span> The code of the experiment</h2>
+<p>This is <code>experiment.py</code>, included from the file. It
+imports the model of <a href="#fig:model">Figure 3</a> and a small
+module that draws the charts, <code>svgplot.py</code>, which is beside
+the page and is not printed here. The claims that the prose of <a
+href="#sec:results">Section 5</a> makes are the lines that begin with
+<code>assert</code>.</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;The paper&#39;s experiment: n-gram models of the paper&#39;s own text.</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">build.sh runs this before pandoc. It reads paper.md and writes everything the paper shows</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">about its results: the table (generated/results.md), the continuations</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">(generated/continuations.json), the figures (figures/*.svg) and the numbers behind the live</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co">figures (live/data.js). Standard library only, and no randomness: the same paper.md always</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co">gives the same files.</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections <span class="im">import</span> Counter</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> model <span class="im">import</span> NGram</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> svgplot <span class="im">import</span> Chart, Series</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>HERE: Path <span class="op">=</span> Path(<span class="va">__file__</span>).parent</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>ORDERS: <span class="bu">list</span>[<span class="bu">int</span>] <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>]</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>K: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.01</span>  <span class="co"># the smoothing constant of the table and the first figure</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>KS: <span class="bu">list</span>[<span class="bu">float</span>] <span class="op">=</span> [<span class="fl">0.0001</span>, <span class="fl">0.0003</span>, <span class="fl">0.001</span>, <span class="fl">0.003</span>, <span class="fl">0.01</span>, <span class="fl">0.03</span>, <span class="fl">0.1</span>, <span class="fl">0.3</span>, <span class="fl">1.0</span>, <span class="fl">3.0</span>, <span class="fl">10.0</span>]</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>HELD_OUT_EVERY: <span class="bu">int</span> <span class="op">=</span> <span class="dv">5</span>  <span class="co"># every fifth sentence is held out</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>CONTINUE: <span class="bu">int</span> <span class="op">=</span> <span class="dv">14</span>  <span class="co"># words each model adds to the prompt</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> words_of(markdown: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">list</span>[<span class="bu">str</span>]:</span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;The paper&#39;s prose as lowercase words, with &quot;.&quot; for the end of a sentence.</span></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a><span class="co">    Markup goes: the front matter, code, math, citations, attributes and link targets. A</span></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a><span class="co">    term keeps the words it shows.</span></span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a><span class="co">    &quot;&quot;&quot;</span></span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>    text: <span class="bu">str</span> <span class="op">=</span> markdown.split(<span class="st">&quot;</span><span class="ch">\n</span><span class="st">---</span><span class="ch">\n</span><span class="st">&quot;</span>, <span class="dv">1</span>)[<span class="dv">1</span>]</span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>    text <span class="op">=</span> re.sub(<span class="vs">r&quot;```</span><span class="dv">.</span><span class="op">*?</span><span class="vs">```</span><span class="cf">|</span><span class="ch">\$\$</span><span class="dv">.</span><span class="op">*?</span><span class="ch">\$\$</span><span class="vs">&quot;</span>, <span class="st">&quot; &quot;</span>, text, flags<span class="op">=</span>re.DOTALL)</span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>    text <span class="op">=</span> re.sub(<span class="vs">r&quot;`</span><span class="pp">[^`</span><span class="ch">\n</span><span class="pp">]</span><span class="op">*</span><span class="vs">`</span><span class="cf">|</span><span class="ch">\$</span><span class="pp">[^$</span><span class="ch">\n</span><span class="pp">]</span><span class="op">*</span><span class="ch">\$</span><span class="vs">&quot;</span>, <span class="st">&quot; &quot;</span>, text)</span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>    text <span class="op">=</span> re.sub(<span class="vs">r&quot;</span><span class="ch">\\</span><span class="vs">term</span><span class="ch">\[</span><span class="kw">(</span><span class="pp">[^</span><span class="ch">\]</span><span class="pp">]</span><span class="op">*</span><span class="kw">)</span><span class="ch">\]\{</span><span class="pp">[^}]</span><span class="op">*</span><span class="ch">\}</span><span class="cf">|</span><span class="ch">\\</span><span class="vs">term</span><span class="ch">\{</span><span class="kw">(</span><span class="pp">[^}]</span><span class="op">*</span><span class="kw">)</span><span class="ch">\}</span><span class="vs">&quot;</span>, <span class="vs">r&quot;</span><span class="ch">\1\2</span><span class="vs">&quot;</span>, text)</span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>    text <span class="op">=</span> re.sub(<span class="vs">r&quot;</span><span class="ch">\\</span><span class="pp">[A-Za-z]</span><span class="op">+</span><span class="kw">(</span><span class="ch">\{</span><span class="pp">[^}]</span><span class="op">*</span><span class="ch">\}</span><span class="kw">)</span><span class="op">?</span><span class="cf">|</span><span class="ch">\[\^</span><span class="op">?</span><span class="vs">@</span><span class="op">?</span><span class="pp">[^</span><span class="ch">\]</span><span class="pp">]</span><span class="op">*</span><span class="ch">\]</span><span class="vs">:</span><span class="op">?</span><span class="cf">|</span><span class="ch">\]\(</span><span class="pp">[^)]</span><span class="op">*</span><span class="ch">\)</span><span class="vs">&quot;</span>, <span class="st">&quot; &quot;</span>, text)</span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>    text <span class="op">=</span> re.sub(<span class="vs">r&quot;</span><span class="ch">\{</span><span class="pp">[^}]</span><span class="op">*</span><span class="ch">\}</span><span class="cf">|</span><span class="vs">https</span><span class="op">?</span><span class="vs">://</span><span class="dv">\S</span><span class="op">+</span><span class="vs">&quot;</span>, <span class="st">&quot; &quot;</span>, text)</span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> re.findall(<span class="vs">r&quot;</span><span class="pp">[a-z]</span><span class="op">+</span>(?:<span class="pp">[-&#39;][a-z]</span><span class="op">+</span>)<span class="op">*</span><span class="cf">|</span><span class="ch">\.</span><span class="vs">&quot;</span>, text.lower())</span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> split(words: <span class="bu">list</span>[<span class="bu">str</span>]) <span class="op">-&gt;</span> <span class="bu">tuple</span>[<span class="bu">list</span>[<span class="bu">str</span>], <span class="bu">list</span>[<span class="bu">str</span>]]:</span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;Training text and held-out text: every fifth sentence goes to the second.&quot;&quot;&quot;</span></span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a>    sentences: <span class="bu">list</span>[<span class="bu">list</span>[<span class="bu">str</span>]] <span class="op">=</span> [[]]</span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> word <span class="kw">in</span> words:</span>
+<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a>        sentences[<span class="op">-</span><span class="dv">1</span>].append(word)</span>
+<span id="cb6-47"><a href="#cb6-47" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> word <span class="op">==</span> <span class="st">&quot;.&quot;</span>:</span>
+<span id="cb6-48"><a href="#cb6-48" aria-hidden="true" tabindex="-1"></a>            sentences.append([])</span>
+<span id="cb6-49"><a href="#cb6-49" aria-hidden="true" tabindex="-1"></a>    train: <span class="bu">list</span>[<span class="bu">str</span>] <span class="op">=</span> []</span>
+<span id="cb6-50"><a href="#cb6-50" aria-hidden="true" tabindex="-1"></a>    held_out: <span class="bu">list</span>[<span class="bu">str</span>] <span class="op">=</span> []</span>
+<span id="cb6-51"><a href="#cb6-51" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, sentence <span class="kw">in</span> <span class="bu">enumerate</span>(sentences):</span>
+<span id="cb6-52"><a href="#cb6-52" aria-hidden="true" tabindex="-1"></a>        (held_out <span class="cf">if</span> i <span class="op">%</span> HELD_OUT_EVERY <span class="op">==</span> HELD_OUT_EVERY <span class="op">-</span> <span class="dv">1</span> <span class="cf">else</span> train).extend(</span>
+<span id="cb6-53"><a href="#cb6-53" aria-hidden="true" tabindex="-1"></a>            sentence</span>
+<span id="cb6-54"><a href="#cb6-54" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb6-55"><a href="#cb6-55" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> train, held_out</span>
+<span id="cb6-56"><a href="#cb6-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-57"><a href="#cb6-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-58"><a href="#cb6-58" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> seen_share(model: NGram, words: <span class="bu">list</span>[<span class="bu">str</span>]) <span class="op">-&gt;</span> <span class="bu">float</span>:</span>
+<span id="cb6-59"><a href="#cb6-59" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;The share of `words` whose context the model counted at least once.&quot;&quot;&quot;</span></span>
+<span id="cb6-60"><a href="#cb6-60" aria-hidden="true" tabindex="-1"></a>    grams <span class="op">=</span> model.grams(words)</span>
+<span id="cb6-61"><a href="#cb6-61" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">sum</span>(model.context[g[:<span class="op">-</span><span class="dv">1</span>]] <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">for</span> g <span class="kw">in</span> grams) <span class="op">/</span> <span class="bu">len</span>(grams)</span>
+<span id="cb6-62"><a href="#cb6-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-63"><a href="#cb6-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-64"><a href="#cb6-64" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> common_phrase(words: <span class="bu">list</span>[<span class="bu">str</span>], length: <span class="bu">int</span>) <span class="op">-&gt;</span> <span class="bu">list</span>[<span class="bu">str</span>]:</span>
+<span id="cb6-65"><a href="#cb6-65" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;The most frequent run of `length` words within a sentence (ties: alphabetical).&quot;&quot;&quot;</span></span>
+<span id="cb6-66"><a href="#cb6-66" aria-hidden="true" tabindex="-1"></a>    runs: Counter[<span class="bu">tuple</span>[<span class="bu">str</span>, ...]] <span class="op">=</span> Counter(</span>
+<span id="cb6-67"><a href="#cb6-67" aria-hidden="true" tabindex="-1"></a>        <span class="bu">tuple</span>(words[i : i <span class="op">+</span> length]) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(words) <span class="op">-</span> length <span class="op">+</span> <span class="dv">1</span>)</span>
+<span id="cb6-68"><a href="#cb6-68" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb6-69"><a href="#cb6-69" aria-hidden="true" tabindex="-1"></a>    best <span class="op">=</span> <span class="bu">max</span>(<span class="bu">sorted</span>(runs), key<span class="op">=</span><span class="kw">lambda</span> run: ((<span class="st">&quot;.&quot;</span> <span class="kw">not</span> <span class="kw">in</span> run), runs[run]))</span>
+<span id="cb6-70"><a href="#cb6-70" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">list</span>(best)</span>
+<span id="cb6-71"><a href="#cb6-71" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-72"><a href="#cb6-72" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-73"><a href="#cb6-73" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> main() <span class="op">-&gt;</span> <span class="va">None</span>:</span>
+<span id="cb6-74"><a href="#cb6-74" aria-hidden="true" tabindex="-1"></a>    words: <span class="bu">list</span>[<span class="bu">str</span>] <span class="op">=</span> words_of((HERE <span class="op">/</span> <span class="st">&quot;paper.md&quot;</span>).read_text())</span>
+<span id="cb6-75"><a href="#cb6-75" aria-hidden="true" tabindex="-1"></a>    train, held_out <span class="op">=</span> split(words)</span>
+<span id="cb6-76"><a href="#cb6-76" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> folder <span class="kw">in</span> (<span class="st">&quot;generated&quot;</span>, <span class="st">&quot;figures&quot;</span>, <span class="st">&quot;live&quot;</span>):</span>
+<span id="cb6-77"><a href="#cb6-77" aria-hidden="true" tabindex="-1"></a>        (HERE <span class="op">/</span> folder).mkdir(exist_ok<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb6-78"><a href="#cb6-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-79"><a href="#cb6-79" aria-hidden="true" tabindex="-1"></a>    <span class="co"># every model at every smoothing constant: {k: {order: (training loss, held-out loss)}}</span></span>
+<span id="cb6-80"><a href="#cb6-80" aria-hidden="true" tabindex="-1"></a>    losses: <span class="bu">dict</span>[<span class="bu">float</span>, <span class="bu">dict</span>[<span class="bu">int</span>, <span class="bu">tuple</span>[<span class="bu">float</span>, <span class="bu">float</span>]]] <span class="op">=</span> {}</span>
+<span id="cb6-81"><a href="#cb6-81" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> k <span class="kw">in</span> KS:</span>
+<span id="cb6-82"><a href="#cb6-82" aria-hidden="true" tabindex="-1"></a>        losses[k] <span class="op">=</span> {}</span>
+<span id="cb6-83"><a href="#cb6-83" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> order <span class="kw">in</span> ORDERS:</span>
+<span id="cb6-84"><a href="#cb6-84" aria-hidden="true" tabindex="-1"></a>            model <span class="op">=</span> NGram(order, k, train)</span>
+<span id="cb6-85"><a href="#cb6-85" aria-hidden="true" tabindex="-1"></a>            losses[k][order] <span class="op">=</span> (model.loss(train), model.loss(held_out))</span>
+<span id="cb6-86"><a href="#cb6-86" aria-hidden="true" tabindex="-1"></a>    models: <span class="bu">dict</span>[<span class="bu">int</span>, NGram] <span class="op">=</span> {order: NGram(order, K, train) <span class="cf">for</span> order <span class="kw">in</span> ORDERS}</span>
+<span id="cb6-87"><a href="#cb6-87" aria-hidden="true" tabindex="-1"></a>    vocabulary: <span class="bu">int</span> <span class="op">=</span> <span class="bu">len</span>(models[<span class="dv">1</span>].vocabulary)</span>
+<span id="cb6-88"><a href="#cb6-88" aria-hidden="true" tabindex="-1"></a>    uniform: <span class="bu">float</span> <span class="op">=</span> math.log2(vocabulary)  <span class="co"># the loss of guessing every word equally</span></span>
+<span id="cb6-89"><a href="#cb6-89" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-90"><a href="#cb6-90" aria-hidden="true" tabindex="-1"></a>    <span class="co"># What the prose of the Results section says. The text is the data, so an edit can make</span></span>
+<span id="cb6-91"><a href="#cb6-91" aria-hidden="true" tabindex="-1"></a>    <span class="co"># a sentence there false: then the build stops here instead of printing it.</span></span>
+<span id="cb6-92"><a href="#cb6-92" aria-hidden="true" tabindex="-1"></a>    at_k <span class="op">=</span> losses[K]</span>
+<span id="cb6-93"><a href="#cb6-93" aria-hidden="true" tabindex="-1"></a>    train_loss: <span class="bu">list</span>[<span class="bu">float</span>] <span class="op">=</span> [at_k[n][<span class="dv">0</span>] <span class="cf">for</span> n <span class="kw">in</span> ORDERS]</span>
+<span id="cb6-94"><a href="#cb6-94" aria-hidden="true" tabindex="-1"></a>    held_loss: <span class="bu">list</span>[<span class="bu">float</span>] <span class="op">=</span> [at_k[n][<span class="dv">1</span>] <span class="cf">for</span> n <span class="kw">in</span> ORDERS]</span>
+<span id="cb6-95"><a href="#cb6-95" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> train_loss <span class="op">==</span> <span class="bu">sorted</span>(train_loss, reverse<span class="op">=</span><span class="va">True</span>), (</span>
+<span id="cb6-96"><a href="#cb6-96" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;training: higher order is better&quot;</span></span>
+<span id="cb6-97"><a href="#cb6-97" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb6-98"><a href="#cb6-98" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> held_loss[<span class="dv">1</span>] <span class="op">==</span> <span class="bu">min</span>(held_loss), <span class="st">&quot;held-out: order 2 is the best&quot;</span></span>
+<span id="cb6-99"><a href="#cb6-99" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> held_loss[<span class="dv">1</span>:] <span class="op">==</span> <span class="bu">sorted</span>(held_loss[<span class="dv">1</span>:]), (</span>
+<span id="cb6-100"><a href="#cb6-100" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;held-out: worse with each order after 2&quot;</span></span>
+<span id="cb6-101"><a href="#cb6-101" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb6-102"><a href="#cb6-102" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> uniform <span class="op">-</span> <span class="fl">0.5</span> <span class="op">&lt;</span> held_loss[<span class="op">-</span><span class="dv">1</span>] <span class="op">&lt;</span> uniform, (</span>
+<span id="cb6-103"><a href="#cb6-103" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;held-out: order 4 barely beats guessing&quot;</span></span>
+<span id="cb6-104"><a href="#cb6-104" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb6-105"><a href="#cb6-105" aria-hidden="true" tabindex="-1"></a>    by_k: <span class="bu">dict</span>[<span class="bu">int</span>, <span class="bu">list</span>[<span class="bu">tuple</span>[<span class="bu">float</span>, <span class="bu">float</span>]]] <span class="op">=</span> {</span>
+<span id="cb6-106"><a href="#cb6-106" aria-hidden="true" tabindex="-1"></a>        n: [losses[k][n] <span class="cf">for</span> k <span class="kw">in</span> KS] <span class="cf">for</span> n <span class="kw">in</span> ORDERS</span>
+<span id="cb6-107"><a href="#cb6-107" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb6-108"><a href="#cb6-108" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> <span class="bu">all</span>(</span>
+<span id="cb6-109"><a href="#cb6-109" aria-hidden="true" tabindex="-1"></a>        [t <span class="cf">for</span> t, _ <span class="kw">in</span> by_k[n]] <span class="op">==</span> <span class="bu">sorted</span>(t <span class="cf">for</span> t, _ <span class="kw">in</span> by_k[n]) <span class="cf">for</span> n <span class="kw">in</span> ORDERS</span>
+<span id="cb6-110"><a href="#cb6-110" aria-hidden="true" tabindex="-1"></a>    ), <span class="st">&quot;training: less smoothing is always better&quot;</span></span>
+<span id="cb6-111"><a href="#cb6-111" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> by_k[ORDERS[<span class="op">-</span><span class="dv">1</span>]][<span class="dv">0</span>][<span class="dv">0</span>] <span class="op">&lt;</span> <span class="fl">0.5</span>, (</span>
+<span id="cb6-112"><a href="#cb6-112" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;training: order 4 memorises with little smoothing&quot;</span></span>
+<span id="cb6-113"><a href="#cb6-113" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb6-114"><a href="#cb6-114" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> <span class="bu">all</span>(<span class="bu">min</span>(h <span class="cf">for</span> _, h <span class="kw">in</span> by_k[n]) <span class="op">&lt;</span> by_k[n][<span class="dv">0</span>][<span class="dv">1</span>] <span class="cf">for</span> n <span class="kw">in</span> ORDERS), (</span>
+<span id="cb6-115"><a href="#cb6-115" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;held-out: the least smoothing is never the best&quot;</span></span>
+<span id="cb6-116"><a href="#cb6-116" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb6-117"><a href="#cb6-117" aria-hidden="true" tabindex="-1"></a>    spread: <span class="bu">list</span>[<span class="bu">float</span>] <span class="op">=</span> [</span>
+<span id="cb6-118"><a href="#cb6-118" aria-hidden="true" tabindex="-1"></a>        <span class="bu">max</span>(h <span class="cf">for</span> _, h <span class="kw">in</span> by_k[n]) <span class="op">-</span> <span class="bu">min</span>(h <span class="cf">for</span> _, h <span class="kw">in</span> by_k[n]) <span class="cf">for</span> n <span class="kw">in</span> ORDERS[<span class="dv">1</span>:]</span>
+<span id="cb6-119"><a href="#cb6-119" aria-hidden="true" tabindex="-1"></a>    ]</span>
+<span id="cb6-120"><a href="#cb6-120" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> spread <span class="op">==</span> <span class="bu">sorted</span>(spread, reverse<span class="op">=</span><span class="va">True</span>), (</span>
+<span id="cb6-121"><a href="#cb6-121" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;held-out: k matters less as order rises&quot;</span></span>
+<span id="cb6-122"><a href="#cb6-122" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb6-123"><a href="#cb6-123" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-124"><a href="#cb6-124" aria-hidden="true" tabindex="-1"></a>    <span class="co"># the table: markdown, included by paper.md</span></span>
+<span id="cb6-125"><a href="#cb6-125" aria-hidden="true" tabindex="-1"></a>    rows: <span class="bu">list</span>[<span class="bu">str</span>] <span class="op">=</span> [</span>
+<span id="cb6-126"><a href="#cb6-126" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;| order | training text | held-out text | contexts seen in training |&quot;</span>,</span>
+<span id="cb6-127"><a href="#cb6-127" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;|:--|--:|--:|--:|&quot;</span>,</span>
+<span id="cb6-128"><a href="#cb6-128" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f&quot;| **words** | </span><span class="sc">{</span><span class="bu">len</span>(train)<span class="sc">:,}</span><span class="ss"> | </span><span class="sc">{</span><span class="bu">len</span>(held_out)<span class="sc">:,}</span><span class="ss"> | |&quot;</span>,</span>
+<span id="cb6-129"><a href="#cb6-129" aria-hidden="true" tabindex="-1"></a>    ]</span>
+<span id="cb6-130"><a href="#cb6-130" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> order <span class="kw">in</span> ORDERS:</span>
+<span id="cb6-131"><a href="#cb6-131" aria-hidden="true" tabindex="-1"></a>        note: <span class="bu">str</span> <span class="op">=</span> <span class="st">&quot;[^guessing]&quot;</span> <span class="cf">if</span> order <span class="op">==</span> ORDERS[<span class="op">-</span><span class="dv">1</span>] <span class="cf">else</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb6-132"><a href="#cb6-132" aria-hidden="true" tabindex="-1"></a>        rows.append(</span>
+<span id="cb6-133"><a href="#cb6-133" aria-hidden="true" tabindex="-1"></a>            <span class="ss">f&quot;| </span><span class="sc">{</span>order<span class="sc">}</span><span class="ss"> | </span><span class="sc">{</span>at_k[order][<span class="dv">0</span>]<span class="sc">:.2f}</span><span class="ss"> | </span><span class="sc">{</span>at_k[order][<span class="dv">1</span>]<span class="sc">:.2f}{</span>note<span class="sc">}</span><span class="ss">&quot;</span></span>
+<span id="cb6-134"><a href="#cb6-134" aria-hidden="true" tabindex="-1"></a>            <span class="ss">f&quot; | </span><span class="sc">{</span>seen_share(models[order], held_out)<span class="sc">:.0%}</span><span class="ss"> |&quot;</span></span>
+<span id="cb6-135"><a href="#cb6-135" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb6-136"><a href="#cb6-136" aria-hidden="true" tabindex="-1"></a>    rows.append(</span>
+<span id="cb6-137"><a href="#cb6-137" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f&quot;</span><span class="ch">\n</span><span class="ss">: </span><span class="ch">\\</span><span class="ss">term[Loss]</span><span class="ch">{{</span><span class="ss">loss</span><span class="ch">}}</span><span class="ss"> in bits per word of each </span><span class="ch">\\</span><span class="ss">term</span><span class="ch">{{</span><span class="ss">ngram</span><span class="ch">}}</span><span class="ss"> on the two texts,&quot;</span></span>
+<span id="cb6-138"><a href="#cb6-138" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f&quot; with </span><span class="ch">\\</span><span class="ss">term</span><span class="ch">{{</span><span class="ss">smoothing</span><span class="ch">}}</span><span class="ss"> $k = </span><span class="sc">{</span>K<span class="sc">:g}</span><span class="ss">$ and a vocabulary of </span><span class="sc">{</span>vocabulary<span class="sc">:,}</span><span class="ss"> words.&quot;</span></span>
+<span id="cb6-139"><a href="#cb6-139" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot; The last column is the share of held-out words whose context the model had&quot;</span></span>
+<span id="cb6-140"><a href="#cb6-140" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot; counted. </span><span class="ch">\\</span><span class="st">label{tab:loss}</span><span class="ch">\n\n</span><span class="st">&quot;</span></span>
+<span id="cb6-141"><a href="#cb6-141" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;[^guessing]: Hardly better than guessing every word equally, which costs&quot;</span></span>
+<span id="cb6-142"><a href="#cb6-142" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f&quot; </span><span class="sc">{</span>uniform<span class="sc">:.2f}</span><span class="ss"> bits.</span><span class="ch">\n</span><span class="ss">&quot;</span></span>
+<span id="cb6-143"><a href="#cb6-143" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb6-144"><a href="#cb6-144" aria-hidden="true" tabindex="-1"></a>    (HERE <span class="op">/</span> <span class="st">&quot;generated&quot;</span> <span class="op">/</span> <span class="st">&quot;results.md&quot;</span>).write_text(<span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>.join(rows))</span>
+<span id="cb6-145"><a href="#cb6-145" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-146"><a href="#cb6-146" aria-hidden="true" tabindex="-1"></a>    <span class="co"># the continuations: each model continues the same prompt; the paper itself is the reference</span></span>
+<span id="cb6-147"><a href="#cb6-147" aria-hidden="true" tabindex="-1"></a>    prompt: <span class="bu">list</span>[<span class="bu">str</span>] <span class="op">=</span> common_phrase(train, ORDERS[<span class="op">-</span><span class="dv">1</span>] <span class="op">-</span> <span class="dv">1</span>)</span>
+<span id="cb6-148"><a href="#cb6-148" aria-hidden="true" tabindex="-1"></a>    start: <span class="bu">int</span> <span class="op">=</span> <span class="bu">next</span>(</span>
+<span id="cb6-149"><a href="#cb6-149" aria-hidden="true" tabindex="-1"></a>        i <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(train)) <span class="cf">if</span> train[i : i <span class="op">+</span> <span class="bu">len</span>(prompt)] <span class="op">==</span> prompt</span>
+<span id="cb6-150"><a href="#cb6-150" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb6-151"><a href="#cb6-151" aria-hidden="true" tabindex="-1"></a>    paper: <span class="bu">list</span>[<span class="bu">str</span>] <span class="op">=</span> train[start <span class="op">+</span> <span class="bu">len</span>(prompt) : start <span class="op">+</span> <span class="bu">len</span>(prompt) <span class="op">+</span> CONTINUE]</span>
+<span id="cb6-152"><a href="#cb6-152" aria-hidden="true" tabindex="-1"></a>    token_rows: <span class="bu">list</span>[<span class="bu">dict</span>] <span class="op">=</span> [</span>
+<span id="cb6-153"><a href="#cb6-153" aria-hidden="true" tabindex="-1"></a>        {<span class="st">&quot;label&quot;</span>: <span class="st">&quot;the paper&quot;</span>, <span class="st">&quot;tokens&quot;</span>: paper, <span class="st">&quot;end&quot;</span>: <span class="st">&quot;cut&quot;</span>, <span class="st">&quot;reference&quot;</span>: <span class="va">True</span>}</span>
+<span id="cb6-154"><a href="#cb6-154" aria-hidden="true" tabindex="-1"></a>    ]</span>
+<span id="cb6-155"><a href="#cb6-155" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> order <span class="kw">in</span> ORDERS:</span>
+<span id="cb6-156"><a href="#cb6-156" aria-hidden="true" tabindex="-1"></a>        said: <span class="bu">list</span>[<span class="bu">str</span>] <span class="op">=</span> models[order].continuation(prompt, CONTINUE)</span>
+<span id="cb6-157"><a href="#cb6-157" aria-hidden="true" tabindex="-1"></a>        token_rows.append(</span>
+<span id="cb6-158"><a href="#cb6-158" aria-hidden="true" tabindex="-1"></a>            {</span>
+<span id="cb6-159"><a href="#cb6-159" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;label&quot;</span>: <span class="ss">f&quot;order </span><span class="sc">{</span>order<span class="sc">}</span><span class="ss">&quot;</span>,</span>
+<span id="cb6-160"><a href="#cb6-160" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;tokens&quot;</span>: said,</span>
+<span id="cb6-161"><a href="#cb6-161" aria-hidden="true" tabindex="-1"></a>                <span class="op">**</span>({<span class="st">&quot;end&quot;</span>: <span class="st">&quot;cut&quot;</span>} <span class="cf">if</span> <span class="bu">len</span>(said) <span class="op">==</span> CONTINUE <span class="cf">else</span> {}),</span>
+<span id="cb6-162"><a href="#cb6-162" aria-hidden="true" tabindex="-1"></a>            }</span>
+<span id="cb6-163"><a href="#cb6-163" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb6-164"><a href="#cb6-164" aria-hidden="true" tabindex="-1"></a>    <span class="cf">assert</span> <span class="bu">len</span>(<span class="bu">set</span>(token_rows[<span class="dv">1</span>][<span class="st">&quot;tokens&quot;</span>])) <span class="op">==</span> <span class="dv">1</span>, <span class="st">&quot;order 1 repeats one word&quot;</span></span>
+<span id="cb6-165"><a href="#cb6-165" aria-hidden="true" tabindex="-1"></a>    (HERE <span class="op">/</span> <span class="st">&quot;generated&quot;</span> <span class="op">/</span> <span class="st">&quot;continuations.json&quot;</span>).write_text(</span>
+<span id="cb6-166"><a href="#cb6-166" aria-hidden="true" tabindex="-1"></a>        json.dumps({<span class="st">&quot;prompt&quot;</span>: prompt, <span class="st">&quot;rows&quot;</span>: token_rows}, indent<span class="op">=</span><span class="dv">1</span>) <span class="op">+</span> <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span></span>
+<span id="cb6-167"><a href="#cb6-167" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb6-168"><a href="#cb6-168" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-169"><a href="#cb6-169" aria-hidden="true" tabindex="-1"></a>    <span class="co"># figure: loss by order at K</span></span>
+<span id="cb6-170"><a href="#cb6-170" aria-hidden="true" tabindex="-1"></a>    top: <span class="bu">int</span> <span class="op">=</span> math.ceil(</span>
+<span id="cb6-171"><a href="#cb6-171" aria-hidden="true" tabindex="-1"></a>        <span class="bu">max</span>(<span class="bu">max</span>(pair) <span class="cf">for</span> by <span class="kw">in</span> losses.values() <span class="cf">for</span> pair <span class="kw">in</span> by.values())</span>
+<span id="cb6-172"><a href="#cb6-172" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb6-173"><a href="#cb6-173" aria-hidden="true" tabindex="-1"></a>    Chart(</span>
+<span id="cb6-174"><a href="#cb6-174" aria-hidden="true" tabindex="-1"></a>        xlabel<span class="op">=</span><span class="st">&quot;order (words of context + 1)&quot;</span>,</span>
+<span id="cb6-175"><a href="#cb6-175" aria-hidden="true" tabindex="-1"></a>        ylabel<span class="op">=</span><span class="st">&quot;loss (bits per word)&quot;</span>,</span>
+<span id="cb6-176"><a href="#cb6-176" aria-hidden="true" tabindex="-1"></a>        xticks<span class="op">=</span>[<span class="bu">float</span>(n) <span class="cf">for</span> n <span class="kw">in</span> ORDERS],</span>
+<span id="cb6-177"><a href="#cb6-177" aria-hidden="true" tabindex="-1"></a>        yticks<span class="op">=</span>[<span class="bu">float</span>(v) <span class="cf">for</span> v <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">0</span>, top <span class="op">+</span> <span class="dv">1</span>, <span class="dv">2</span>)],</span>
+<span id="cb6-178"><a href="#cb6-178" aria-hidden="true" tabindex="-1"></a>        key<span class="op">=</span><span class="st">&quot;bottom left&quot;</span>,</span>
+<span id="cb6-179"><a href="#cb6-179" aria-hidden="true" tabindex="-1"></a>        series<span class="op">=</span>[</span>
+<span id="cb6-180"><a href="#cb6-180" aria-hidden="true" tabindex="-1"></a>            Series(<span class="st">&quot;training text&quot;</span>, [(n, at_k[n][<span class="dv">0</span>]) <span class="cf">for</span> n <span class="kw">in</span> ORDERS]),</span>
+<span id="cb6-181"><a href="#cb6-181" aria-hidden="true" tabindex="-1"></a>            Series(<span class="st">&quot;held-out text&quot;</span>, [(n, at_k[n][<span class="dv">1</span>]) <span class="cf">for</span> n <span class="kw">in</span> ORDERS]),</span>
+<span id="cb6-182"><a href="#cb6-182" aria-hidden="true" tabindex="-1"></a>            Series(</span>
+<span id="cb6-183"><a href="#cb6-183" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;guessing equally&quot;</span>,</span>
+<span id="cb6-184"><a href="#cb6-184" aria-hidden="true" tabindex="-1"></a>                [(ORDERS[<span class="dv">0</span>], uniform), (ORDERS[<span class="op">-</span><span class="dv">1</span>], uniform)],</span>
+<span id="cb6-185"><a href="#cb6-185" aria-hidden="true" tabindex="-1"></a>                dashed<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb6-186"><a href="#cb6-186" aria-hidden="true" tabindex="-1"></a>                markers<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb6-187"><a href="#cb6-187" aria-hidden="true" tabindex="-1"></a>                color<span class="op">=</span><span class="st">&quot;#888888&quot;</span>,</span>
+<span id="cb6-188"><a href="#cb6-188" aria-hidden="true" tabindex="-1"></a>            ),</span>
+<span id="cb6-189"><a href="#cb6-189" aria-hidden="true" tabindex="-1"></a>        ],</span>
+<span id="cb6-190"><a href="#cb6-190" aria-hidden="true" tabindex="-1"></a>    ).write(HERE <span class="op">/</span> <span class="st">&quot;figures&quot;</span> <span class="op">/</span> <span class="st">&quot;loss-by-order.svg&quot;</span>)</span>
+<span id="cb6-191"><a href="#cb6-191" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-192"><a href="#cb6-192" aria-hidden="true" tabindex="-1"></a>    <span class="co"># subfigures: loss against the smoothing constant, a line per order, on each text</span></span>
+<span id="cb6-193"><a href="#cb6-193" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> which, name <span class="kw">in</span> <span class="bu">enumerate</span>((<span class="st">&quot;train&quot;</span>, <span class="st">&quot;heldout&quot;</span>)):</span>
+<span id="cb6-194"><a href="#cb6-194" aria-hidden="true" tabindex="-1"></a>        Chart(</span>
+<span id="cb6-195"><a href="#cb6-195" aria-hidden="true" tabindex="-1"></a>            xlabel<span class="op">=</span><span class="st">&quot;smoothing constant k&quot;</span>,</span>
+<span id="cb6-196"><a href="#cb6-196" aria-hidden="true" tabindex="-1"></a>            ylabel<span class="op">=</span><span class="st">&quot;loss (bits per word)&quot;</span>,</span>
+<span id="cb6-197"><a href="#cb6-197" aria-hidden="true" tabindex="-1"></a>            xticks<span class="op">=</span>[<span class="fl">0.0001</span>, <span class="fl">0.001</span>, <span class="fl">0.01</span>, <span class="fl">0.1</span>, <span class="fl">1.0</span>, <span class="fl">10.0</span>],</span>
+<span id="cb6-198"><a href="#cb6-198" aria-hidden="true" tabindex="-1"></a>            yticks<span class="op">=</span>[<span class="bu">float</span>(v) <span class="cf">for</span> v <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">0</span>, top <span class="op">+</span> <span class="dv">1</span>, <span class="dv">2</span>)],</span>
+<span id="cb6-199"><a href="#cb6-199" aria-hidden="true" tabindex="-1"></a>            xlog<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb6-200"><a href="#cb6-200" aria-hidden="true" tabindex="-1"></a>            width<span class="op">=</span><span class="dv">420</span>,</span>
+<span id="cb6-201"><a href="#cb6-201" aria-hidden="true" tabindex="-1"></a>            height<span class="op">=</span><span class="dv">300</span>,</span>
+<span id="cb6-202"><a href="#cb6-202" aria-hidden="true" tabindex="-1"></a>            key<span class="op">=</span><span class="st">&quot;bottom right&quot;</span>,</span>
+<span id="cb6-203"><a href="#cb6-203" aria-hidden="true" tabindex="-1"></a>            series<span class="op">=</span>[</span>
+<span id="cb6-204"><a href="#cb6-204" aria-hidden="true" tabindex="-1"></a>                Series(<span class="ss">f&quot;order </span><span class="sc">{</span>n<span class="sc">}</span><span class="ss">&quot;</span>, [(k, losses[k][n][which]) <span class="cf">for</span> k <span class="kw">in</span> KS])</span>
+<span id="cb6-205"><a href="#cb6-205" aria-hidden="true" tabindex="-1"></a>                <span class="cf">for</span> n <span class="kw">in</span> ORDERS</span>
+<span id="cb6-206"><a href="#cb6-206" aria-hidden="true" tabindex="-1"></a>            ],</span>
+<span id="cb6-207"><a href="#cb6-207" aria-hidden="true" tabindex="-1"></a>        ).write(HERE <span class="op">/</span> <span class="st">&quot;figures&quot;</span> <span class="op">/</span> <span class="ss">f&quot;smoothing-</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">.svg&quot;</span>)</span>
+<span id="cb6-208"><a href="#cb6-208" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-209"><a href="#cb6-209" aria-hidden="true" tabindex="-1"></a>    <span class="co"># figure: how often each word is used, against its rank</span></span>
+<span id="cb6-210"><a href="#cb6-210" aria-hidden="true" tabindex="-1"></a>    counts: <span class="bu">list</span>[<span class="bu">tuple</span>[<span class="bu">str</span>, <span class="bu">int</span>]] <span class="op">=</span> <span class="bu">sorted</span>(</span>
+<span id="cb6-211"><a href="#cb6-211" aria-hidden="true" tabindex="-1"></a>        Counter(w <span class="cf">for</span> w <span class="kw">in</span> words <span class="cf">if</span> w <span class="op">!=</span> <span class="st">&quot;.&quot;</span>).items(), key<span class="op">=</span><span class="kw">lambda</span> c: (<span class="op">-</span>c[<span class="dv">1</span>], c[<span class="dv">0</span>])</span>
+<span id="cb6-212"><a href="#cb6-212" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb6-213"><a href="#cb6-213" aria-hidden="true" tabindex="-1"></a>    decades: <span class="bu">int</span> <span class="op">=</span> math.ceil(math.log10(<span class="bu">len</span>(counts)))</span>
+<span id="cb6-214"><a href="#cb6-214" aria-hidden="true" tabindex="-1"></a>    Chart(</span>
+<span id="cb6-215"><a href="#cb6-215" aria-hidden="true" tabindex="-1"></a>        xlabel<span class="op">=</span><span class="st">&quot;rank of the word (1 = most used)&quot;</span>,</span>
+<span id="cb6-216"><a href="#cb6-216" aria-hidden="true" tabindex="-1"></a>        ylabel<span class="op">=</span><span class="st">&quot;times used&quot;</span>,</span>
+<span id="cb6-217"><a href="#cb6-217" aria-hidden="true" tabindex="-1"></a>        xticks<span class="op">=</span>[<span class="fl">10.0</span><span class="op">**</span>d <span class="cf">for</span> d <span class="kw">in</span> <span class="bu">range</span>(decades <span class="op">+</span> <span class="dv">1</span>)],</span>
+<span id="cb6-218"><a href="#cb6-218" aria-hidden="true" tabindex="-1"></a>        yticks<span class="op">=</span>[<span class="fl">10.0</span><span class="op">**</span>d <span class="cf">for</span> d <span class="kw">in</span> <span class="bu">range</span>(math.ceil(math.log10(counts[<span class="dv">0</span>][<span class="dv">1</span>])) <span class="op">+</span> <span class="dv">1</span>)],</span>
+<span id="cb6-219"><a href="#cb6-219" aria-hidden="true" tabindex="-1"></a>        xlog<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb6-220"><a href="#cb6-220" aria-hidden="true" tabindex="-1"></a>        ylog<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb6-221"><a href="#cb6-221" aria-hidden="true" tabindex="-1"></a>        series<span class="op">=</span>[</span>
+<span id="cb6-222"><a href="#cb6-222" aria-hidden="true" tabindex="-1"></a>            Series(</span>
+<span id="cb6-223"><a href="#cb6-223" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;each word of the paper&quot;</span>,</span>
+<span id="cb6-224"><a href="#cb6-224" aria-hidden="true" tabindex="-1"></a>                [(rank, n) <span class="cf">for</span> rank, (_, n) <span class="kw">in</span> <span class="bu">enumerate</span>(counts, start<span class="op">=</span><span class="dv">1</span>)],</span>
+<span id="cb6-225"><a href="#cb6-225" aria-hidden="true" tabindex="-1"></a>                line<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb6-226"><a href="#cb6-226" aria-hidden="true" tabindex="-1"></a>            ),</span>
+<span id="cb6-227"><a href="#cb6-227" aria-hidden="true" tabindex="-1"></a>            Series(</span>
+<span id="cb6-228"><a href="#cb6-228" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;count = top count / rank&quot;</span>,</span>
+<span id="cb6-229"><a href="#cb6-229" aria-hidden="true" tabindex="-1"></a>                [(<span class="dv">1</span>, counts[<span class="dv">0</span>][<span class="dv">1</span>]), (counts[<span class="dv">0</span>][<span class="dv">1</span>], <span class="dv">1</span>)],</span>
+<span id="cb6-230"><a href="#cb6-230" aria-hidden="true" tabindex="-1"></a>                dashed<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb6-231"><a href="#cb6-231" aria-hidden="true" tabindex="-1"></a>                markers<span class="op">=</span><span class="va">False</span>,</span>
+<span id="cb6-232"><a href="#cb6-232" aria-hidden="true" tabindex="-1"></a>                color<span class="op">=</span><span class="st">&quot;#888888&quot;</span>,</span>
+<span id="cb6-233"><a href="#cb6-233" aria-hidden="true" tabindex="-1"></a>            ),</span>
+<span id="cb6-234"><a href="#cb6-234" aria-hidden="true" tabindex="-1"></a>        ],</span>
+<span id="cb6-235"><a href="#cb6-235" aria-hidden="true" tabindex="-1"></a>    ).write(HERE <span class="op">/</span> <span class="st">&quot;figures&quot;</span> <span class="op">/</span> <span class="st">&quot;words.svg&quot;</span>)</span>
+<span id="cb6-236"><a href="#cb6-236" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-237"><a href="#cb6-237" aria-hidden="true" tabindex="-1"></a>    <span class="co"># the same numbers for the live pages (a script, so they also load from file://)</span></span>
+<span id="cb6-238"><a href="#cb6-238" aria-hidden="true" tabindex="-1"></a>    data: <span class="bu">dict</span> <span class="op">=</span> {</span>
+<span id="cb6-239"><a href="#cb6-239" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;orders&quot;</span>: ORDERS,</span>
+<span id="cb6-240"><a href="#cb6-240" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;ks&quot;</span>: KS,</span>
+<span id="cb6-241"><a href="#cb6-241" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;k&quot;</span>: K,</span>
+<span id="cb6-242"><a href="#cb6-242" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;uniform&quot;</span>: uniform,</span>
+<span id="cb6-243"><a href="#cb6-243" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;top&quot;</span>: top,</span>
+<span id="cb6-244"><a href="#cb6-244" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;losses&quot;</span>: [[<span class="bu">list</span>(losses[k][n]) <span class="cf">for</span> n <span class="kw">in</span> ORDERS] <span class="cf">for</span> k <span class="kw">in</span> KS],</span>
+<span id="cb6-245"><a href="#cb6-245" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;words&quot;</span>: counts,</span>
+<span id="cb6-246"><a href="#cb6-246" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb6-247"><a href="#cb6-247" aria-hidden="true" tabindex="-1"></a>    (HERE <span class="op">/</span> <span class="st">&quot;live&quot;</span> <span class="op">/</span> <span class="st">&quot;data.js&quot;</span>).write_text(</span>
+<span id="cb6-248"><a href="#cb6-248" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;// written by experiment.py</span><span class="ch">\n</span><span class="st">window.PAPER_DATA = &quot;</span> <span class="op">+</span> json.dumps(data) <span class="op">+</span> <span class="st">&quot;;</span><span class="ch">\n</span><span class="st">&quot;</span></span>
+<span id="cb6-249"><a href="#cb6-249" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb6-250"><a href="#cb6-250" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(</span>
+<span id="cb6-251"><a href="#cb6-251" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f&quot;experiment: </span><span class="sc">{</span><span class="bu">len</span>(train)<span class="sc">:,}</span><span class="ss"> training words, </span><span class="sc">{</span><span class="bu">len</span>(held_out)<span class="sc">:,}</span><span class="ss"> held out,&quot;</span></span>
+<span id="cb6-252"><a href="#cb6-252" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f&quot; vocabulary </span><span class="sc">{</span>vocabulary<span class="sc">:,}</span><span class="ss">; prompt: </span><span class="sc">{</span><span class="st">&#39; &#39;</span><span class="sc">.</span>join(prompt)<span class="sc">}</span><span class="ss">&quot;</span></span>
+<span id="cb6-253"><a href="#cb6-253" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb6-254"><a href="#cb6-254" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-255"><a href="#cb6-255" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-256"><a href="#cb6-256" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">&quot;__main__&quot;</span>:</span>
+<span id="cb6-257"><a href="#cb6-257" aria-hidden="true" tabindex="-1"></a>    main()</span></code></pre></div>
+<h2 data-number="8.2" id="sec:try"><span
+class="header-section-number">8.2</span> What to try</h2>
+<p>On the web page:</p>
+<ul>
+<li>Hover a reference to a section, figure or table. A copy of it opens
+in the margin. Hover a link inside the copy for another copy below
+it.</li>
+<li>Click a note to keep it open. The cross in its corner closes
+it.</li>
+<li>Hover a term such as <a href="#sec:loss" class="term"
+title="How surprised a model is by a text, in bits per word. Lower is better.">loss</a>,
+or a citation <span class="citation" data-cites="knuth1984literate">[<a
+href="#ref-knuth1984literate" role="doc-biblioref">3</a>]</span>.</li>
+<li>Hover a cell of <a href="#tab:loss">Table 1</a> that has an
+asterisk.</li>
+<li>Move the pointer to the left edge for the contents.
+<strong>Pin</strong> keeps the contents open.</li>
+<li>Click <a href="#fig:loss">Figure 4</a> to make it live.</li>
+<li>Press <strong>E</strong>, select some text, and comment on it or
+suggest a change.</li>
+<li>Make the window narrow. The notes move to a panel at the
+bottom.</li>
+</ul>
+<h2 data-number="8.3" id="sec:start"><span
+class="header-section-number">8.3</span> Starting your own</h2>
+<p>Copy this folder. Keep <code>build.sh</code>, the front matter of
+<code>paper.md</code>, and the scripts and stylesheets. Replace the
+text, the terms, the references and the experiment with your own. The
+repository of html-papers describes each file and each construct.</p>
+<h1 class="unnumbered" id="bibliography">References</h1>
+<div id="refs" class="references csl-bib-body" data-entry-spacing="0"
+role="list">
+<div id="ref-bengio2003neural" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[1] </div><div
+class="csl-right-inline">Yoshua Bengio et al. <span>“A neural
+probabilistic language model.”</span> In: Journal of Machine Learning
+Research 3 (2003).</div>
+</div>
+<div id="ref-chen1999empirical" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[2] </div><div
+class="csl-right-inline">Stanley F. Chen and Joshua Goodman. <span>“An
+empirical study of smoothing techniques for language modeling.”</span>
+In: Computer Speech &amp; Language 13 (1999). url: <a
+href="https://doi.org/10.1006/csla.1999.0128">https://doi.org/10.1006/csla.1999.0128</a>.</div>
+</div>
+<div id="ref-knuth1984literate" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[3] </div><div
+class="csl-right-inline">Donald E. Knuth. <span>“Literate
+programming.”</span> In: The Computer Journal 27 (1984). url: <a
+href="https://doi.org/10.1093/comjnl/27.2.97">https://doi.org/10.1093/comjnl/27.2.97</a>.</div>
+</div>
+<div id="ref-macfarlane2006pandoc" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[4] </div><div
+class="csl-right-inline">John MacFarlane. <em>Pandoc: A universal
+document converter</em>. 2006. url: <a
+href="https://pandoc.org">https://pandoc.org</a>.</div>
+</div>
+<div id="ref-mikolov2013efficient" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[5] </div><div
+class="csl-right-inline">Tomas Mikolov et al. <span>“Efficient
+estimation of word representations in vector space.”</span> In: arXiv
+preprint arXiv:1301.3781 (2013).</div>
+</div>
+<div id="ref-shannon1948mathematical" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[6] </div><div
+class="csl-right-inline">Claude E. Shannon. <span>“A mathematical theory
+of communication.”</span> In: Bell System Technical Journal 27 (1948).
+url: <a
+href="https://doi.org/10.1002/j.1538-7305.1948.tb01338.x">https://doi.org/10.1002/j.1538-7305.1948.tb01338.x</a>.</div>
+</div>
+<div id="ref-shannon1951prediction" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[7] </div><div
+class="csl-right-inline">Claude E. Shannon. <span>“Prediction and
+entropy of printed <span>English</span>.”</span> In: Bell System
+Technical Journal 30 (1951). url: <a
+href="https://doi.org/10.1002/j.1538-7305.1951.tb01366.x">https://doi.org/10.1002/j.1538-7305.1951.tb01366.x</a>.</div>
+</div>
+<div id="ref-vaswani2017attention" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[8] </div><div
+class="csl-right-inline">Ashish Vaswani et al. <span>“Attention is all
+you need.”</span> In: arXiv preprint arXiv:1706.03762 (2017).</div>
+</div>
+<div id="ref-zipf1949human" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[9] </div><div
+class="csl-right-inline">George Kingsley Zipf. <em>Human behavior and
+the principle of least effort</em>. Addison-Wesley. 1949.</div>
+</div>
+</div>
+<section id="footnotes" class="footnotes footnotes-end-of-document"
+role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1"><p>A footnote. On the web page it opens beside the text
+while the pointer is on its number, and stays if you click it. In the
+PDF it is at the foot of the page.<a href="#fnref1"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>A second footnote, so that there are two to compare.<a
+href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+</body>
+</html>

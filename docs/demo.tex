@@ -1,10 +1,11 @@
 % Options for packages loaded elsewhere
 \PassOptionsToPackage{unicode}{hyperref}
 \PassOptionsToPackage{hyphens}{url}
-%
 \documentclass[
 ]{article}
+\usepackage{xcolor}
 \usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
 \usepackage{iftex}
 \ifPDFTeX
   \usepackage[T1]{fontenc}
@@ -35,7 +36,6 @@
 }{% if KOMA class
   \KOMAoptions{parskip=half}}
 \makeatother
-\usepackage{xcolor}
 \usepackage{color}
 \usepackage{fancyvrb}
 \newcommand{\VerbBar}{|}
@@ -86,26 +86,23 @@
 \makesavenoteenv{longtable}
 \usepackage{graphicx}
 \makeatletter
-\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
-\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
-\makeatother
-% Scale images if necessary, so that they will not overflow the page
-% margins by default, and it is still possible to overwrite the defaults
-% using explicit options in \includegraphics[width, height, ...]{}
-\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% scales image to fit in text height/width
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi% select the smaller of both
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi%
+}
 % Set default figure placement to htbp
-\makeatletter
 \def\fps@figure{htbp}
 \makeatother
 \setlength{\emergencystretch}{3em} % prevent overfull lines
 \providecommand{\tightlist}{%
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
-\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
 \usepackage{multicol}
-\ifLuaTeX
-  \usepackage{selnolig}  % disable illegal ligatures
-\fi
-\usepackage[]{biblatex}
 \usepackage{bookmark}
 \IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
 \urlstyle{same}
@@ -143,15 +140,15 @@ n & time\_ms & error \\
 
 \section{Mermaid Diagrams}\label{mermaid-diagrams}
 
-\includegraphics{mermaid-images/eb89df5389d37301b76912c9a36e6c9216078328.pdf}
+\pandocbounded{\includegraphics[keepaspectratio]{mermaid-images/eb89df5389d37301b76912c9a36e6c9216078328.pdf}}
 
-\includegraphics{mermaid-images/6b7ed204e608e78bdb28298f700be677fc4b96f9.pdf}
+\pandocbounded{\includegraphics[keepaspectratio]{mermaid-images/6b7ed204e608e78bdb28298f700be677fc4b96f9.pdf}}
 
 \section{SVG Images}\label{svg-images}
 
 \begin{figure}
 \centering
-\includegraphics{demo_pipeline.pdf}
+\pandocbounded{\includegraphics[keepaspectratio,alt={Pandoc pipeline}]{demo_pipeline.pdf}}
 \caption{Pandoc pipeline}
 \end{figure}
 
@@ -169,14 +166,25 @@ pandoc-utils/
 |-- Makefile                        # install, test, check-deps targets
 |-- pyproject.toml                  # Python deps managed via uv
 |-- markdown_get_defaults_yaml.py   # (internal) extract pandoc config from YAML front matter
-+-- filters/
-    |-- svg_to_pdf.py               # convert SVG images to PDF for LaTeX
-    |-- mermaid.py                  # render mermaid diagrams to SVG/PDF
-    |-- csv_tex_table.py            # CSV code blocks to tables
-    |-- include-files.lua           # include external markdown files
-    |-- include-code-files.lua      # include source code snippets
-    |-- columns.lua                 # multi-column layout (HTML + LaTeX)
-    +-- table.lua                   # YAML-driven table templating
+|-- filters/
+|   |-- svg_to_pdf.py               # convert SVG images to PDF for LaTeX
+|   |-- mermaid.py                  # render mermaid diagrams to SVG/PDF
+|   |-- csv_tex_table.py            # CSV code blocks to tables
+|   |-- include-files.lua           # include external markdown files
+|   |-- include-code-files.lua      # include source code snippets
+|   |-- columns.lua                 # multi-column layout (HTML + LaTeX)
+|   +-- table.lua                   # YAML-driven table templating
++-- html-papers/                    # a markdown paper as a web page and a PDF (see its README)
+    |-- html-papers.lua             # the filter: numbered references, terms, subfigures, ...
+    |-- demo/                       # a paper that builds itself: paper.md, build.sh, its experiment
+    |-- html-papers.css             # the layout: text, notes margin, contents, comments
+    |-- paper.css                   # the look: title block, tables, figures, bibliography
+    |-- popups.js                   # margin notes and previews on hover
+    |-- contents.js                 # contents sidebar
+    |-- live-figures.js             # click a static figure for its live version
+    |-- arxiv-links.js              # links in the bibliography
+    |-- review.js                   # comments and suggested edits, exported as JSON
+    +-- collect_reviews.py          # merge reviewers' files, list comments by source line
 \end{verbatim}
 
 \subsubsection{Core Scripts}\label{core-scripts}
@@ -188,15 +196,21 @@ PDF with optional bibliography support.
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\ExtensionTok{pandoc\_md\_pdf.sh}\NormalTok{ document.md       }\CommentTok{\# convert to PDF}
-\ExtensionTok{pandoc\_md\_pdf.sh}\NormalTok{ document.md }\AttributeTok{{-}b}    \CommentTok{\# convert with bibliography (biber)}
+\ExtensionTok{pandoc\_md\_pdf.sh}\NormalTok{ document.md       }\CommentTok{\# convert to PDF (biblatex auto{-}detected)}
+\ExtensionTok{pandoc\_md\_pdf.sh}\NormalTok{ document.md }\AttributeTok{{-}b}    \CommentTok{\# force biblatex on}
 \end{Highlighting}
 \end{Shaded}
 
 Extracts pandoc configuration from the document's YAML front matter (via
 \texttt{uv\ run\ markdown\_get\_defaults\_yaml.py}), then runs pandoc
-and pdflatex. Produces \texttt{.tex}, \texttt{.pdf}, and \texttt{.pdlog}
-files.
+followed by \texttt{latexmk}. Biblatex is enabled automatically when the
+front matter declares a \texttt{bibliography:} or \texttt{references:}
+field (pass \texttt{-b} to force it on regardless); when it is off, no
+bibliography markup is emitted so documents without citations build
+cleanly. \texttt{latexmk} runs \texttt{pdflatex} and, when biblatex is
+enabled, \texttt{biber}, re-running each as many times as needed until
+references converge. Produces \texttt{.tex}, \texttt{.pdf}, and
+\texttt{.pdlog} files.
 
 Internal helpers
 
@@ -296,6 +310,27 @@ YAML-driven table generation with reusable templates, configurable
 alignment and widths, auto-numbering, and horizontal orientation
 support.
 
+\subsubsection{HTML papers}\label{html-papers}
+
+\href{html-papers/README.md}{\texttt{html-papers/}} builds a paper
+written in markdown as a web page with notes and previews in the margin
+(citations, footnotes, terms, cross-references), a contents sidebar,
+live figures, bibliography links, and a review mode for comments and
+suggested edits; the same source builds the PDF. A filter, two
+stylesheets, five drop-in scripts, and a script that maps reviewers'
+comments back to lines of the source.
+
+The demo is \href{https://mivanit.github.io/pandoc-utils/html-papers/}{a
+paper that builds itself}: its build runs its experiment and prints the
+code that did.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{make}\NormalTok{ demo{-}html{-}papers        }\CommentTok{\# html{-}papers/demo/ {-}\textgreater{} docs/html{-}papers/index.html and paper.pdf}
+\FunctionTok{make}\NormalTok{ demo{-}html{-}papers{-}html   }\CommentTok{\# the web page only, in a few seconds}
+\end{Highlighting}
+\end{Shaded}
+
 \subsubsection{Setup}\label{setup}
 
 Dependencies are managed via \texttt{Makefile} and
@@ -306,15 +341,16 @@ Dependencies are managed via \texttt{Makefile} and
 \FunctionTok{make}\NormalTok{ install       }\CommentTok{\# install system (apt), npm, and Python (uv) deps}
 \FunctionTok{make}\NormalTok{ dep{-}check     }\CommentTok{\# verify all required binaries are available}
 \FunctionTok{make}\NormalTok{ test          }\CommentTok{\# run pytest}
+\FunctionTok{make}\NormalTok{ test{-}html     }\CommentTok{\# html{-}papers/ in headless Chromium (once: uv run playwright install chromium)}
 \end{Highlighting}
 \end{Shaded}
 
 \paragraph{Dependencies}\label{dependencies}
 
 \textbf{System binaries:} \texttt{uv}, \texttt{pandoc}
-(\textgreater=2.12), \texttt{pdflatex}, \texttt{inkscape}, \texttt{mmdc}
-(mermaid-cli), \texttt{pdfcrop}, \texttt{magick} (ImageMagick),
-\texttt{biber} (optional)
+(\textgreater=2.12), \texttt{latexmk}, \texttt{pdflatex},
+\texttt{inkscape}, \texttt{mmdc} (mermaid-cli), \texttt{pdfcrop},
+\texttt{magick} (ImageMagick), \texttt{biber} (for bibliographies)
 
 \textbf{Python} (managed by \texttt{uv} via \texttt{pyproject.toml}):
 \texttt{pyyaml}, \texttt{pandocfilters}, \texttt{pandas}
@@ -511,11 +547,11 @@ This paragraph spans across all columns.
 \subsection{Vertical table with
 auto-numbering}\label{vertical-table-with-auto-numbering}
 
-\phantomsection\label{tbl:team}
+\protect\phantomsection\label{tbl:team}
 \begin{longtable}[]{@{}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}@{}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}@{}}
 \caption{Team Roles}\tabularnewline
 \toprule\noalign{}
 \# & Role & Responsibility \\
@@ -552,7 +588,7 @@ auto-numbering}\label{vertical-table-with-auto-numbering}
 
 \subsection{Horizontal table}\label{horizontal-table}
 
-\phantomsection\label{tbl:measurements}
+\protect\phantomsection\label{tbl:measurements}
 \begin{longtable}[]{@{}lll@{}}
 \caption{Sensor Readings}\tabularnewline
 \toprule\noalign{}
@@ -572,7 +608,7 @@ Current (mA) & Voltage (V) & Power (mW) \\
 
 \subsection{Table from template}\label{table-from-template}
 
-\phantomsection\label{tbl:project}
+\protect\phantomsection\label{tbl:project}
 \begin{longtable}[]{@{}ll@{}}
 \caption{Project Info}\tabularnewline
 \toprule\noalign{}
@@ -589,7 +625,5 @@ Name & pandoc-utils \\
 Language & Python, Lua, Bash \\
 License & MIT \\
 \end{longtable}
-
-\printbibliography
 
 \end{document}

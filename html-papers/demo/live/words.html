@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>Every word of the paper</title>
+		<style>
+			body {
+				font:
+					15px/1.5 Helvetica,
+					Arial,
+					sans-serif;
+				max-width: 34rem;
+				margin: 2rem auto;
+				padding: 0 1rem;
+				color: #222;
+			}
+			input {
+				font: inherit;
+				width: 100%;
+				box-sizing: border-box;
+				padding: 0.3rem 0.5rem;
+			}
+			table {
+				border-collapse: collapse;
+				width: 100%;
+				margin-top: 1rem;
+			}
+			th,
+			td {
+				text-align: left;
+				padding: 0.15rem 0.5rem;
+				border-bottom: 1px solid #eee;
+			}
+			td:first-child,
+			td:last-child,
+			th:first-child,
+			th:last-child {
+				text-align: right;
+				font-variant-numeric: tabular-nums;
+			}
+			.bar {
+				display: inline-block;
+				height: 0.6em;
+				background: #3b5a8c;
+				vertical-align: baseline;
+			}
+		</style>
+	</head>
+	<body>
+		<!-- Every word of the paper and how often it is used: the page behind the paper's
+		     word-count figure, which links here instead of framing it. The counts are the
+		     build's (data.js, written by experiment.py). -->
+		<h1>Every word of the paper</h1>
+		<p>
+			<a href="../index.html#fig:words">Back to the paper</a>.
+			<span id="summary"></span>
+		</p>
+		<input id="filter" type="search" placeholder="Filter: type part of a word" />
+		<table>
+			<thead>
+				<tr>
+					<th>rank</th>
+					<th>word</th>
+					<th></th>
+					<th>times used</th>
+				</tr>
+			</thead>
+			<tbody id="rows"></tbody>
+		</table>
+		<script src="data.js"></script>
+		<script>
+			const words = window.PAPER_DATA.words;
+			const rows = document.getElementById("rows"),
+				filter = document.getElementById("filter");
+			const total = words.reduce((sum, w) => sum + w[1], 0);
+			document.getElementById("summary").textContent =
+				`${words.length} different words, used ${total} times in all.`;
+			function draw() {
+				const part = filter.value.trim().toLowerCase();
+				rows.replaceChildren();
+				words.forEach(([word, count], i) => {
+					if (!word.includes(part)) return;
+					const tr = rows.insertRow();
+					tr.insertCell().textContent = i + 1;
+					tr.insertCell().textContent = word;
+					const bar = document.createElement("span");
+					bar.className = "bar";
+					bar.style.width = (100 * count) / words[0][1] + "%";
+					tr.insertCell().append(bar);
+					tr.insertCell().textContent = count;
+				});
+			}
+			filter.addEventListener("input", draw);
+			draw();
+		</script>
+	</body>
+</html>

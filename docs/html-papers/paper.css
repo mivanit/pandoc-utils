@@ -1,0 +1,100 @@
+/* The look of a paper: type, title block, figures, tables, code, bibliography. Load it after
+   html-papers.css (the layout and the scripts' own styles) and before any stylesheet of the
+   document's own. Written for pandoc's HTML and html-papers.lua's.
+   From https://github.com/mivanit/pandoc-utils, html-papers/. */
+body {
+  line-height: 1.6;
+  color: #222;
+  background: white;
+}
+/* title block: centred like a paper's, notes under the date smaller, abstract inset */
+#title-block-header { text-align: center; margin: 1.5rem 0 2.5rem; padding-bottom: 2rem; border-bottom: 1px solid #ddd; }
+#title-block-header .title { font-size: 2.4rem; line-height: 1.2; margin: 0 0 1rem; }
+#title-block-header .author { font-size: 1.15rem; margin: 0 0 0.6rem; }
+#title-block-header .author:has(+ .author) { margin-bottom: 0.1rem; }  /* lines of names sit together */
+/* a note under a name: `author: 'A. Name [with thanks to B]{.author-note}'` */
+#title-block-header .author-note { display: block; font-size: 0.85rem; color: #666; }
+#title-block-header .date { font-size: 0.85rem; line-height: 1.5; color: #666; margin: 0 0 2rem; }
+#title-block-header .date::first-line { font-size: 1rem; color: #222; }  /* the date itself */
+#title-block-header .abstract { text-align: left; margin: 0 1.5rem; font-size: 0.95rem; }
+#title-block-header .abstract-title { text-align: center; font-weight: 600; font-variant: small-caps; letter-spacing: 0.05em; font-size: 1.05rem; margin-bottom: 0.3rem; }
+@media (max-width: 600px) { #title-block-header .abstract { margin: 0; } }
+
+img { max-width: 100%; height: auto; }
+figure { margin: 2rem 0; }
+figcaption, caption { text-align: left; margin: 0.75rem 0; }
+pre { overflow-x: auto; padding: 1rem; background: #f4f4f4; }
+/* long code lines wrap (as in pandoc's print CSS), continuation indented 2em */
+pre > code.sourceCode { white-space: pre-wrap; overflow-wrap: anywhere; }
+pre > code.sourceCode > span { text-indent: -2em; padding-left: 2em; }
+.math.display { display: block; overflow-x: auto; }
+.todo { color: #b00020; }
+a { color: #3b5a8c; }
+/* a term: body colour with a faint dotted underline, not a coloured link */
+a.term {
+  color: inherit;
+  text-decoration: underline dotted;
+  text-decoration-color: #c4c4c4;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+.citation a { text-decoration: none; }
+
+/* tables: booktabs rules, compact; a wide one scrolls rather than squeezing */
+table {
+  /* separate: collapsed borders sit half outside the cells, where overflow clips them */
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 1.5rem auto;
+  font-size: 0.85em;
+  line-height: 1.35;
+  display: block;
+  overflow-x: auto;
+  /* important: a grid table carries an inline width (e.g. 98%) from its column widths */
+  width: fit-content !important;
+  max-width: 100%;
+}
+table col { width: auto !important; }
+tbody, th { border: 0; }  /* pandoc's default rules; ours are booktabs' three */
+thead th { font-weight: 600; text-align: left; vertical-align: bottom; }
+/* a multi-row header gets one rule on top and one under its last row, as in the PDF */
+thead tr:first-child th { border-top: 1.5px solid #222; }
+thead tr:last-child th { border-bottom: 1px solid #222; }
+tbody tr:last-child td { border-bottom: 1.5px solid #222; }
+th, td { padding: 0.25rem 0.6rem; vertical-align: top; }
+td { font-variant-numeric: tabular-nums; }
+sup, sub { line-height: 0; }  /* a footnote mark doesn't push its line (or table cell) down */
+table caption { caption-side: top; font-size: 1rem; }
+
+/* subfigures (html-papers.lua `.subfigures`): side by side */
+.subfigure-row { display: flex; gap: 2%; align-items: flex-start; }
+.subfigure { flex: 1 1 0; min-width: 0; }
+.subcaption { font-size: 0.9em; margin-top: 0.3rem; }
+@media (max-width: 600px) { .subfigure-row { display: block; } }
+
+/* token rows (html-papers.lua `.generations`): the prompt, then one row per model; every
+   token on a grey chip */
+.generations { display: grid; grid-template-columns: max-content 1fr; font-size: 0.85rem; }
+.gen-row { display: contents; }
+.gen-label, .gen-text { padding: 0.35rem 0.5rem; border-top: 1px solid #eceef1; }
+.gen-row:first-child > div { border-top: 0; }
+.gen-prompt + .gen-row > div { border-top: 1.5px solid #d5d9e0; }  /* prompt | rows */
+.gen-label { text-align: right; color: #555; white-space: nowrap; }
+.gen-text { line-height: 1.75; font-family: "DejaVu Sans Mono", Menlo, Consolas, monospace; font-size: 0.8rem; min-width: 0; }
+/* inline-block: a row wraps between chips (a token keeps its own spaces, so never inside one) */
+.gen-text .tok { display: inline-block; line-height: 1.3; background: #eceef1; border-radius: 3px; padding: 0.05rem 1px; margin-right: 2.5px; white-space: pre; }
+.gen-prompt .tok { background: none; box-shadow: inset 0 0 0 1px #dde0e5; color: #555; }
+.gen-text .nl { color: #9aa1ad; }
+.tok-end { color: #9aa1ad; font-family: system-ui, sans-serif; font-size: 0.75rem; font-style: italic; margin-left: 0.2rem; }
+.gen-ref > div { background: #f8f9fa; }
+.gen-ref .gen-label { font-style: italic; }
+@media (max-width: 600px) {
+  .generations { grid-template-columns: 1fr; }
+  .gen-label { text-align: left; padding-bottom: 0; }
+  .gen-text { border-top: 0; padding-top: 0.1rem; }
+}
+
+/* the bibliography: [n] hanging, like the PDF */
+#refs .csl-entry { display: flex; gap: 0.6em; margin-bottom: 0.4rem; }
+#refs .csl-left-margin { float: none; flex: 0 0 2.4em; text-align: right; }
+#refs .csl-right-inline { flex: 1; margin: 0; padding: 0; overflow-wrap: anywhere; }

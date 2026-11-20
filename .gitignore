@@ -13,12 +13,19 @@ dist/
 # Test temp outputs
 tests/.temp/
 
-# Generated pandoc defaults
-_pandoc_defaults.*.yml
-
-# demo
+# demo (docs/ is the GitHub Pages site)
 docs/**
 !docs/demo.*
+!docs/index.html
+!docs/.nojekyll
+!docs/html-papers/
+!docs/html-papers/**
+# ...but not what the PDF build leaves behind
+docs/html-papers/*.tex
+docs/html-papers/*.upa
+docs/html-papers/*.upb
+docs/html-papers/figures/*.pdf
+docs/html-papers/**/__pycache__/
 
 # LaTeX build artifacts
 *.aux
@@ -33,3 +40,6 @@ docs/**
 *.synctex.gz
 *.toc
 *.pdlog
+
+# Generated pandoc defaults
+_pandoc_defaults.*.yml

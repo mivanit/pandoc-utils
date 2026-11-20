@@ -10,6 +10,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "playwright",  # html-papers/tests: the scripts in a headless browser
     "pytest",
     "ruff",
     "ty",

@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>html-papers demo</title>
+		<meta name="review-doc-version" content="demo" />
+		<link rel="stylesheet" href="../html-papers.css" />
+		<style>
+			/* the page's own: type and colour only */
+			body {
+				font:
+					17px/1.6 Georgia,
+					serif;
+				color: #222;
+			}
+			a.term {
+				color: inherit;
+				text-decoration: underline dotted #bbb;
+			}
+			table {
+				border-collapse: collapse;
+			}
+			th,
+			td {
+				padding: 0.2rem 0.6rem;
+				border-bottom: 1px solid #ddd;
+			}
+		</style>
+		<script src="../arxiv-links.js" defer></script>
+		<script src="../popups.js" defer></script>
+		<script src="../contents.js" defer></script>
+		<script src="../live-figures.js" defer></script>
+		<script src="../review.js" defer></script>
+	</head>
+	<body>
+		<!-- written by hand in the shape pandoc gives (--number-sections --citeproc), so the
+		     demo needs no build: headings with ids and section numbers, citations, a
+		     bibliography, footnotes, a term, a table note, a figure -->
+		<header id="title-block-header">
+			<h1 class="title">A small paper</h1>
+		</header>
+		<h1 data-number="1" id="sec:intro">
+			<span class="header-section-number">1</span> Introduction
+		</h1>
+		<p id="p-intro">
+			Hover the links. The method is in
+			<a id="ref-method" href="#sec:method">Section 2</a>, its result in
+			<a id="ref-table" href="#tab:scores">Table 1</a> and
+			<a id="ref-fig" href="#fig:curve">Figure 1</a>. A
+			<a
+				id="term-widget"
+				href="#sec:method"
+				class="term"
+				title="A small part that does one thing."
+				>widget</a
+			>
+			is defined once and explained wherever it appears. Earlier work
+			<span id="cite-one" class="citation" data-cites="doe2020"
+				>[<a href="#ref-doe2020">1</a>]</span
+			>
+			did this by hand.<a
+				href="#fn1"
+				class="footnote-ref"
+				id="fnref1"
+				role="doc-noteref"
+				><sup>1</sup></a
+			>
+			Press <kbd>E</kbd> to comment.
+		</p>
+		<p>
+			Filler, so the page scrolls. Lorem ipsum dolor sit amet, consectetur
+			adipiscing elit, sed do eiusmod tempor incididunt ut labore et
+			dolore magna aliqua.
+		</p>
+		<h1 data-number="2" id="sec:method">
+			<span class="header-section-number">2</span> Method
+		</h1>
+		<p>
+			We build each
+			<a
+				href="#sec:method"
+				class="term"
+				title="A small part that does one thing."
+				>widget</a
+			>
+			and score it; the scores are in
+			<a id="inner-ref" href="#tab:scores">Table 1</a>.
+		</p>
+		<h2 data-number="2.1" id="sec:details">
+			<span class="header-section-number">2.1</span> Details
+		</h2>
+		<p>Details of the method, which the section's preview only links to.</p>
+		<table id="tab:scores">
+			<caption>
+				Table 1: Scores by size.
+			</caption>
+			<thead>
+				<tr>
+					<th>size</th>
+					<th>score</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>small</td>
+					<td id="cell-noted">
+						0.61<span class="cell-note"
+							><sup>*</sup
+							><span class="cell-note-body" hidden
+								>One run only.</span
+							></span
+						>
+					</td>
+				</tr>
+				<tr>
+					<td>large</td>
+					<td>0.83</td>
+				</tr>
+			</tbody>
+		</table>
+		<figure id="fig:curve">
+			<img
+				alt="A rising curve"
+				width="420"
+				height="160"
+				src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 420 160'%3E%3Crect width='420' height='160' fill='%23f6f7f9'/%3E%3Cpath d='M20 140 C140 130 220 60 400 20' fill='none' stroke='%233b5a8c' stroke-width='3'/%3E%3C/svg%3E"
+			/>
+			<figcaption>Figure 1: The score rises with size.</figcaption>
+		</figure>
+		<p>
+			More filler. Ut enim ad minim veniam, quis nostrud exercitation
+			ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute
+			irure dolor in reprehenderit in voluptate velit esse cillum dolore
+			eu fugiat nulla pariatur.
+		</p>
+		<h1 class="unnumbered" id="bibliography">References</h1>
+		<div id="refs" class="references csl-bib-body" role="list">
+			<div id="ref-doe2020" class="csl-entry" role="listitem">
+				<div class="csl-left-margin">[1]</div>
+				<div class="csl-right-inline">
+					J. Doe, <span>“Widgets by hand,”</span>
+					<em>arXiv preprint arXiv:2001.01234</em>, 2020.
+				</div>
+			</div>
+		</div>
+		<section id="footnotes" class="footnotes" role="doc-endnotes">
+			<hr />
+			<ol>
+				<li id="fn1">
+					<p>
+						Slowly.<a
+							href="#fnref1"
+							class="footnote-back"
+							role="doc-backlink"
+							>↩︎</a
+						>
+					</p>
+				</li>
+			</ol>
+		</section>
+	</body>
+</html>

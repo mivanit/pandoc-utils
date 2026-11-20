@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>Loss of each model, by smoothing constant</title>
+		<style>
+			body {
+				font:
+					14px/1.4 Helvetica,
+					Arial,
+					sans-serif;
+				margin: 0;
+				padding: 8px 12px;
+				color: #222;
+			}
+			svg {
+				display: block;
+				width: 100%;
+				height: auto;
+			}
+			label {
+				display: flex;
+				gap: 0.6em;
+				align-items: center;
+			}
+			input {
+				flex: 1;
+			}
+			output {
+				min-width: 4em;
+			}
+			/* framed in the paper (#embed): the paper has the title and caption */
+			.embedded h1 {
+				display: none;
+			}
+		</style>
+	</head>
+	<body>
+		<!-- The live version of the paper's loss figure: a slider for the smoothing constant.
+		     The numbers are the build's (data.js, written by experiment.py). Like any page
+		     made to be framed, it tells the page framing it how tall it is: live-figures.js
+		     reads `embedHeight`. -->
+		<h1>Loss of each model, by smoothing constant</h1>
+		<label
+			>smoothing constant k <input id="k" type="range" min="0" step="1" />
+			<output id="out"></output
+		></label>
+		<svg id="chart" viewBox="0 0 640 300" font-size="13"></svg>
+		<script src="data.js"></script>
+		<script>
+			if (location.hash.includes("embed"))
+				document.body.classList.add("embedded");
+			const D = window.PAPER_DATA;
+			const slider = document.getElementById("k"),
+				out = document.getElementById("out"),
+				chart = document.getElementById("chart");
+			slider.max = D.ks.length - 1;
+			slider.value = D.ks.indexOf(D.k);
+			const L = 62,
+				T = 14,
+				W = 560,
+				H = 238;
+			const x = (order) =>
+				L + (W * (order - D.orders[0])) / (D.orders.at(-1) - D.orders[0]);
+			const y = (loss) => T + H * (1 - loss / D.top);
+			// the key, in the bottom left corner as in the static figure
+			const key = (row, color, label, dash) =>
+				`<path d="M${L + 14} ${T + H - 56 + row * 19} h28" stroke="${color}" stroke-width="2.2"${dash ? ' stroke-dasharray="6 4"' : ""}/>` +
+				`<text x="${L + 50}" y="${T + H - 52 + row * 19}">${label}</text>`;
+			function line(which, color, label, row) {
+				const points = D.losses[slider.value].map(
+					(pair, i) => [x(D.orders[i]), y(pair[which])],
+				);
+				return (
+					`<path d="M${points.map((p) => p.map((v) => v.toFixed(1)).join(" ")).join("L")}" fill="none" stroke="${color}" stroke-width="2.2"/>` +
+					points
+						.map(
+							(p) =>
+								`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.2" fill="${color}"/>`,
+						)
+						.join("") +
+					key(row, color, label, false)
+				);
+			}
+			function draw() {
+				out.textContent = D.ks[slider.value];
+				let svg = "";
+				for (let v = 0; v <= D.top; v += 2)
+					svg +=
+						`<path d="M${L} ${y(v)} H${L + W}" stroke="#e3e3e3"/>` +
+						`<text x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+				for (const order of D.orders)
+					svg += `<text x="${x(order)}" y="${T + H + 20}" text-anchor="middle">${order}</text>`;
+				svg +=
+					`<path d="M${L} ${T} V${T + H} H${L + W}" fill="none" stroke="#222" stroke-width="1.5"/>` +
+					`<text x="${L + W / 2}" y="292" text-anchor="middle">order (words of context + 1)</text>` +
+					`<text x="16" y="${T + H / 2}" text-anchor="middle" transform="rotate(-90 16 ${T + H / 2})">loss (bits per word)</text>` +
+					`<path d="M${L} ${y(D.uniform)} H${L + W}" stroke="#888" stroke-width="2.2" stroke-dasharray="6 4"/>`;
+				svg += line(0, "#3b5a8c", "training text", 0);
+				svg += line(1, "#a8842c", "held-out text", 1);
+				svg += key(2, "#888", "guessing equally", true);
+				chart.innerHTML = svg;
+				parent.postMessage(
+					{ embedHeight: document.documentElement.scrollHeight },
+					"*",
+				);
+			}
+			slider.addEventListener("input", draw);
+			addEventListener("resize", draw);
+			draw();
+		</script>
+	</body>
+</html>
