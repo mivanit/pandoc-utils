@@ -291,6 +291,29 @@ src="mermaid-images/6b7ed204e608e78bdb28298f700be677fc4b96f9.svg" /></p>
 <!-- include-files.lua: include external markdown at compile time -->
 <h2 id="pandoc-utils">pandoc-utils</h2>
 <p>Utilities for my pandoc/markdown/LaTeX workflows.</p>
+<h3 id="demos">Demos</h3>
+<p>Both are built from this repository and published at <a
+href="https://mivanit.github.io/pandoc-utils/"
+class="uri">https://mivanit.github.io/pandoc-utils/</a>.</p>
+<ul>
+<li><strong>The filters</strong>: one markdown file that uses each
+filter below, as <a
+href="https://mivanit.github.io/pandoc-utils/demo.html">a web page</a>
+and <a href="https://mivanit.github.io/pandoc-utils/demo.pdf">a PDF</a>,
+with <a href="https://mivanit.github.io/pandoc-utils/demo.md">its
+source</a> (<a href="demo.md"><code>demo.md</code></a> here).
+<code>make demo</code> builds it.</li>
+<li><strong>html-papers</strong>: <a
+href="https://mivanit.github.io/pandoc-utils/html-papers/">A Paper That
+Builds Itself</a>, a paper as a web page with notes in the margin, live
+figures, code the reader can run and comments, and as <a
+href="https://mivanit.github.io/pandoc-utils/html-papers/paper.pdf">a
+PDF</a>, from <a
+href="https://mivanit.github.io/pandoc-utils/html-papers/paper.md">one
+markdown file</a> (<a
+href="https://github.com/mivanit/pandoc-utils/tree/main/html-papers/demo"><code>html-papers/demo/</code></a>
+here). <code>make demo-html-papers</code> builds it.</li>
+</ul>
 <h3 id="structure">Structure</h3>
 <pre><code>pandoc-utils/
 |-- pandoc_md_pdf.sh                # markdown -&gt; LaTeX -&gt; PDF pipeline

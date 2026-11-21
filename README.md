@@ -2,6 +2,22 @@
 
 Utilities for my pandoc/markdown/LaTeX workflows.
 
+## Demos
+
+Both are built from this repository and published at <https://mivanit.github.io/pandoc-utils/>.
+
+- **The filters**: one markdown file that uses each filter below, as
+  [a web page](https://mivanit.github.io/pandoc-utils/demo.html) and
+  [a PDF](https://mivanit.github.io/pandoc-utils/demo.pdf), with
+  [its source](https://mivanit.github.io/pandoc-utils/demo.md) ([`demo.md`](demo.md) here).
+  `make demo` builds it.
+- **html-papers**: [A Paper That Builds Itself](https://mivanit.github.io/pandoc-utils/html-papers/),
+  a paper as a web page with notes in the margin, live figures, code the reader can run and
+  comments, and as [a PDF](https://mivanit.github.io/pandoc-utils/html-papers/paper.pdf), from
+  [one markdown file](https://mivanit.github.io/pandoc-utils/html-papers/paper.md)
+  ([`html-papers/demo/`](https://github.com/mivanit/pandoc-utils/tree/main/html-papers/demo)
+  here). `make demo-html-papers` builds it.
+
 ## Structure
 
 ```
