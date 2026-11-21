@@ -31,7 +31,7 @@
 --   own chip. The file is `{"prompt": [token, ...], "rows": [{"label": "...", "tokens": [...],
 --   "end": "eos" | "cut" (optional), "reference": true (optional)}]}`. A term's text inside a
 --   label becomes that term.
--- - Code that runs (HTML): a code block with `run="driver.py"` gets a Run button
+-- - Code that runs (HTML): a code block with `run="driver.py"` gets a Try it button
 --   (run-code.js): the reader edits the code, gives it input and runs it in the page, in
 --   Python (Pyodide, fetched when Try it is first pressed). The block shows its own code; the
 --   file named by `run` is what runs, so the two can differ (a listing of a module, run
