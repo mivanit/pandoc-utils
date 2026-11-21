@@ -3,7 +3,7 @@ title: A Paper That Builds Itself
 # a note under a name: a span with the class author-note (paper.css sets it on its own line,
 # smaller); the raw LaTeX does the same in the PDF and is left out of the web page
 author:
-  - 'Claude Fable 5.2 `\\ \small`{=latex} [with some guidance from Michael Ivanitskiy]{.author-note}'
+  - 'Claude 5.2 Fable `\\ \small`{=latex} [with some guidance from Michael Ivanitskiy]{.author-note}'
 date: |
   November 2026 \ \
   One markdown file, built as [a web page](https://mivanit.github.io/pandoc-utils/html-papers/) and as [a PDF](https://mivanit.github.io/pandoc-utils/html-papers/paper.pdf) \ \
