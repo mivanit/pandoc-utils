@@ -23,6 +23,8 @@ def test_the_experiment_writes_what_the_paper_includes(built_demo: Path) -> None
     for name in (
         "generated/results.md",
         "generated/continuations.json",
+        "generated/train.txt",
+        "generated/sentence-loss.txt",
         "live/data.js",
         "figures/loss-by-order.svg",
         "figures/smoothing-train.svg",
@@ -33,6 +35,33 @@ def test_the_experiment_writes_what_the_paper_includes(built_demo: Path) -> None
     rows: dict = json.loads((built_demo / "generated/continuations.json").read_text())
     assert [r["label"] for r in rows["rows"]][0] == "the paper"
     assert rows["rows"][0]["reference"] is True
+
+
+def test_code_that_runs_is_in_the_page_as_the_build_read_it(built_demo: Path) -> None:
+    """Each runnable block carries its files, and they are the files of the folder."""
+    page: str = (built_demo / "index.html").read_text()
+    blocks: list[dict] = [
+        json.loads(text)
+        for text in re.findall(
+            r'<script type="application/json" class="run-data">(.*?)</script>', page
+        )
+    ]
+    assert [b["main"] for b in blocks] == [
+        "continue_text.py",
+        "sentence_loss.py",
+        "plot_words.py",
+    ]
+    for block in blocks:
+        for file in block["files"]:
+            assert file["text"] == (built_demo / file["name"]).read_text(), file["name"]
+    assert (
+        blocks[0]["render"] == "run/chips.js" and (built_demo / "run/chips.js").exists()
+    )
+    assert blocks[1]["stdin"] == (built_demo / "run/sentence.txt").read_text()
+    # what the build printed is under the second block
+    said: str = (built_demo / "generated/sentence-loss.txt").read_text()
+    assert "order 2:" in said and "guessing:" in said
+    assert said.splitlines()[1] in unescape(page)
 
 
 def test_the_experiment_is_reproducible(built_demo: Path) -> None:
@@ -102,6 +131,7 @@ def test_each_construct_is_in_the_page(html: str) -> None:
         "popups.js",
         "contents.js",
         "live-figures.js",
+        "run-code.js",
         "menu.js",
     ):
         assert f'<script src="{name}" defer></script>' in html

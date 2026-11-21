@@ -13,6 +13,8 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import CDPSession, Locator, Page, sync_playwright
 
+from hp_paths import BROWSER
+
 PAPER: str = (Path(__file__).parent / "paper-fixture.html").absolute().as_uri()
 REST: int = 350  # ms: longer than the rest an anchor needs before its note opens
 
@@ -28,7 +30,7 @@ def page() -> Iterator[Page]:
     """The demo paper in a wide window, pointer parked in the text; fails on any page error."""
     errors: list[str] = []
     with sync_playwright() as p:
-        browser = p.chromium.launch()
+        browser = getattr(p, BROWSER).launch()
         pg = browser.new_page(viewport={"width": 1600, "height": 900})
         pg.on("pageerror", lambda e: errors.append(str(e)))
         pg.add_init_script("localStorage.setItem('review:v1:help-seen', '1')")
@@ -356,6 +358,9 @@ def swipe(cdp: CDPSession, page: Page, x0: float, x1: float, y: float = 400) -> 
     page.wait_for_timeout(300)
 
 
+@pytest.mark.skipif(
+    BROWSER != "chromium", reason="touches are sent over Chromium's protocol"
+)
 def test_touch_a_tap_opens_the_note_and_a_swipe_the_contents() -> None:
     errors: list[str] = []
     with sync_playwright() as p:
@@ -450,7 +455,8 @@ def test_lines_stay_in_the_gutter_and_the_anchor_is_marked(page: Page) -> None:
     assert len(lines) == 2 and not any(line["active"] for line in lines)
     for line, n in zip(lines, ns):
         # from just right of the text to the note's edge, near its top: never over the text
-        assert text_right < line["left"] and abs(line["right"] - margin["left"]) < 1.5
+        # (a browser may count the stroke in the line's box: a few px)
+        assert text_right < line["left"] and abs(line["right"] - margin["left"]) < 4
         assert n["top"] < line["bottom"] <= n["top"] + 16
     # the column is in the order of the text, so the lines do not cross
     assert (
@@ -464,6 +470,7 @@ def test_lines_stay_in_the_gutter_and_the_anchor_is_marked(page: Page) -> None:
     assert [line["active"] for line in page.evaluate(LINES)] == [False, True]
     page.mouse.move(700, 880)
     page.click(".margin-note .note-close")
+    page.mouse.move(700, 880)  # the note below moved up, under the pointer
     assert page.evaluate(marked) == ["fnref1"] and len(page.evaluate(LINES)) == 1
 
 
@@ -611,7 +618,7 @@ def test_review_mode_comments_share_the_side_column_with_notes(page: Page) -> No
     assert page.evaluate(OVERFLOW) == 0
     # its line: one stroke, through the gutter to the card's edge
     assert page.evaluate(line + ".getAttribute('d')").count("M") == 1
-    assert abs(page.evaluate(line + ".getBoundingClientRect().right") - c["left"]) < 1.5
+    assert abs(page.evaluate(line + ".getBoundingClientRect().right") - c["left"]) < 4
     # review.js's panel is only its title row here, so it does not cover the column
     panel: str = "document.querySelector('#rv-host').shadowRoot.querySelector('.panel')"
     assert page.evaluate(panel + ".classList.contains('compact')")
@@ -651,7 +658,7 @@ def test_review_mode_comments_share_the_side_column_with_notes(page: Page) -> No
     margin = page.evaluate(RECT, "margin-notes")
     c = page.evaluate(CARD)
     assert abs(c["left"] - margin["left"]) < 1.5
-    assert abs(page.evaluate(line + ".getBoundingClientRect().right") - c["left"]) < 1.5
+    assert abs(page.evaluate(line + ".getBoundingClientRect().right") - c["left"]) < 4
     # Suggest mode: the page is editable, the notes are not
     page.evaluate("ReviewMode.setMode(true)")
     assert (
@@ -664,3 +671,125 @@ def test_review_mode_comments_share_the_side_column_with_notes(page: Page) -> No
     assert (
         page.evaluate("document.getElementById('doc-menu').isContentEditable") is False
     )
+
+
+# what stands in for Python: it records each job and answers by what the main file says
+STUB: str = """() => { window.JOBS = []; window.STOPPED = 0;
+    RunCode.interpreter = { run(job, on) {
+        JOBS.push(job);
+        const main = job.files.find(f => f.name === job.main).text;
+        on.status('Running…');
+        if (!main.includes('forever')) setTimeout(() => {
+            if (main.includes('boom')) { on.out('before\\n'); on.err('Traceback: boom\\n'); on.done({exit: 1, images: [], seconds: 0.5}); }
+            else { on.out('echo ' + job.stdin + '\\n');
+                on.done({exit: 0, seconds: 0.25, images: main.includes('plot') ? ['data:image/png;base64,iVBORw0KGgo='] : []}); }
+        }, 30);
+        else on.out('tick\\n');
+        return { stop() { STOPPED++; } };
+    } } }"""
+
+
+def test_code_runs_in_a_panel_beside_the_text(page: Page) -> None:
+    page.evaluate(STUB)
+    assert page.locator(".run-open").count() == 2
+    page.click("#run-one .run-open")
+    (n,) = notes(page)
+    margin: dict = page.evaluate(RECT, "margin-notes")
+    # a note in the side column, with a × and a line, holding the files, the input and Run
+    assert n["close"] and n["left"] >= margin["left"] - 1
+    assert page.locator("#note-lines path").count() == 1
+    panel = page.locator(".margin-note.run-note .run-panel")
+    editor, stdin, status = (
+        panel.locator(".run-editor"),
+        panel.locator(".run-stdin"),
+        panel.locator(".run-status"),
+    )
+    assert panel.locator(".run-tab").all_text_contents() == [
+        "driver.py",
+        "lib/data.txt",
+    ]
+    assert editor.input_value() == "print(input())\n" and stdin.input_value() == "hello"
+    # each file keeps its edits while another is shown
+    editor.fill("print(input())  # edited\n")
+    panel.locator(".run-tab").nth(1).click()
+    assert editor.input_value() == "one two\n"
+    editor.fill("three\n")
+    panel.locator(".run-tab").nth(0).click()
+    assert editor.input_value() == "print(input())  # edited\n"
+    # Run: the files as edited and the input go to the interpreter; the page's script draws
+    # what came back
+    stdin.fill("abc")
+    panel.locator(".run-go").click()
+    page.wait_for_timeout(200)
+    assert page.evaluate("JOBS[0]") == {
+        "main": "driver.py",
+        "files": [
+            {"name": "driver.py", "text": "print(input())  # edited\n"},
+            {"name": "lib/data.txt", "text": "three\n"},
+        ],
+        "stdin": "abc",
+        "packages": [],
+    }
+    assert status.text_content() == "Ran in 0.25 s"
+    assert (
+        panel.locator(".run-rendered").text_content()
+        == "drawn: ECHO ABC (exit 0, input abc)"
+    )
+    # a run that failed is shown as printed, not drawn
+    editor.fill("boom")
+    editor.press("Control+Enter")  # runs, as the button does
+    page.wait_for_timeout(200)
+    assert status.text_content() == "Stopped with an error"
+    assert panel.locator(".run-stdout").text_content() == "before\n"
+    assert panel.locator(".run-stderr").text_content() == "Traceback: boom\n"
+    assert panel.locator(".run-rendered").count() == 0
+    # a run that does not end: Stop ends it
+    editor.fill("forever")
+    panel.locator(".run-go").click()
+    assert status.text_content() == "Running…"
+    assert (
+        panel.locator(".run-go").is_hidden() and panel.locator(".run-stop").is_visible()
+    )
+    panel.locator(".run-stop").click()
+    assert page.evaluate("STOPPED") == 1 and status.text_content() == "Stopped"
+    assert (
+        panel.locator(".run-go").is_visible() and panel.locator(".run-stop").is_hidden()
+    )
+    # Reset: the code and the input as the page has them
+    panel.locator(".run-reset").click()
+    assert editor.input_value() == "print(input())\n" and stdin.input_value() == "hello"
+    panel.locator(".run-tab").nth(1).click()
+    assert editor.input_value() == "one two\n"
+    # closed and opened again, it has what was typed; a note opened meanwhile is not under it
+    stdin.fill("kept")
+    page.click(".margin-note .note-close")
+    assert notes(page) == [] and page.locator(".run-panel").count() == 0
+    page.click("#cite-one")
+    page.click("#run-one .run-open")
+    ns: list[dict] = notes(page)
+    assert len(ns) == 2 and overlaps(ns) == 0
+    assert stdin.input_value() == "kept"
+    # the button closes it too; an open panel is not remembered as a pinned note is
+    page.click("#run-one .run-open")
+    assert len(notes(page)) == 1
+    assert "run" not in page.evaluate(
+        "localStorage.getItem('notes-open:' + location.pathname)"
+    )
+    # the other block: its own code, shown as printed, with the figure it drew and its packages
+    page.click("#run-two .run-open")
+    panel = page.locator(".margin-note.run-note .run-panel")
+    assert panel.locator(".run-tabs").is_hidden()
+    panel.locator(".run-editor").fill("plot")
+    panel.locator(".run-go").click()
+    page.wait_for_timeout(200)
+    assert page.evaluate("JOBS.at(-1).packages") == ["some-package"]
+    assert panel.locator(".run-stdout").text_content() == "echo \n"
+    assert panel.locator(".run-image").count() == 1
+    # without a side column the panel is in the text, under its block
+    page.set_viewport_size({"width": 420, "height": 800})
+    page.wait_for_timeout(300)
+    assert page.evaluate(
+        "document.querySelector('.run-panel').closest('.margin-note').classList.contains('inline')"
+    )
+    assert page.evaluate(OVERFLOW) == 0
+    assert panel.locator(".run-stdout").text_content() == "echo \n"

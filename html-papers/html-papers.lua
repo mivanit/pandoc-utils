@@ -31,18 +31,37 @@
 --   own chip. The file is `{"prompt": [token, ...], "rows": [{"label": "...", "tokens": [...],
 --   "end": "eos" | "cut" (optional), "reference": true (optional)}]}`. A term's text inside a
 --   label becomes that term.
+-- - Code that runs (HTML): a code block with `run="driver.py"` gets a Run button
+--   (run-code.js): the reader edits the code, gives it input and runs it in the page, in
+--   Python (Pyodide, fetched when Run is first pressed). The block shows its own code; the
+--   file named by `run` is what runs, so the two can differ (a listing of a module, run
+--   through a driver that reads the input and prints). `run=""`, or the class `.run`, runs
+--   the block's own code. Also:
+--     run-files="model.py data/words.txt"  files the code imports or reads
+--     run-stdin="some text"                the input it starts with (`\n` is a new line),
+--     run-stdin-file="in.txt"              or a file holding it
+--     run-render="chips.js"                a script that draws the output (else it is shown as
+--                                          printed, with any matplotlib figures under it)
+--     run-packages="some-package"          packages from PyPI (what Pyodide ships, numpy or
+--                                          matplotlib say, is loaded from the imports alone)
+--     run-output="out.txt"                 what a run printed, made by the build: printed
+--                                          under the block in both outputs
+--   Every file is read at build time and put in the page, at its path relative to the
+--   document, so the code that runs is the code the build read and needs no server. The PDF
+--   shows the block and, with `run-output`, the output; it ignores the rest.
 -- - `\TODO{...}`: red, in both.
 -- - HTML head: the script tags, review.js's `review-doc-version`, and its Export > Email
 --   recipient from metadata `review_email`. Metadata `html_papers_dir` is the scripts' URL
---   prefix (default: beside the page). Both are read as markdown text: write a value with `--`
---   or `_` in backticks. The version is the environment variable DOC_VERSION if set (for a
+--   prefix (default: beside the page), and `pyodide_url` where run-code.js fetches Pyodide
+--   (its `pyodide.mjs`; default: a pinned version on jsDelivr). All are read as markdown text:
+--   write a value with `--` or `_` in backticks. The version is the environment variable DOC_VERSION if set (for a
 --   build made away from its sources); else the git commit, with -dirty when a tracked file in
 --   the document's folder, other than the page being written, is modified.
 -- - HTML: a multi-line `date: |` becomes lines of one paragraph (the date, then notes).
 PANDOC_VERSION:must_be_at_least('3.1.1')  -- pandoc.json
 
 local HTML = FORMAT:match('html') ~= nil
-local SCRIPTS = {'arxiv-links.js', 'popups.js', 'contents.js', 'live-figures.js'}
+local SCRIPTS = {'arxiv-links.js', 'popups.js', 'contents.js', 'live-figures.js', 'run-code.js'}
 local LAST_SCRIPT = 'menu.js'  -- after review.js: it lists what the others let the reader change
 
 -- ---------------------------------------------------------------------------------------
@@ -406,6 +425,68 @@ local function generations(div)
 end
 
 -- ---------------------------------------------------------------------------------------
+-- Code that runs: `run="driver.py"` (or `.run`, or `run=""`: the block's own code) on a code
+-- block. HTML: the block, then the files it needs as JSON for run-code.js, in one div. Both
+-- outputs: the block without those attributes, and under it what `run-output` names.
+local RUN_ATTRS = {'run', 'run-files', 'run-stdin', 'run-stdin-file', 'run-render', 'run-packages', 'run-output'}
+
+local function run_code(cb)
+  local a = cb.attributes
+  local own = cb.classes:includes('run') or a.run == ''
+  if not own and not a.run then
+    for _, name in ipairs(RUN_ATTRS) do
+      assert(not a[name], 'a code block with ' .. name .. ' needs run="<file>" (or .run, to run its own code)')
+    end
+    return
+  end
+  local what = 'code block with run' .. (own and '' or '="' .. a.run .. '"')
+  local function need(condition, message)
+    if not condition then error(what .. ': ' .. message, 0) end
+  end
+  local function read(path, attr)
+    -- in the page a file keeps its path, under the folder the code runs in
+    need(not path:match('^/') and not path:match('^%a:') and not ('/' .. path .. '/'):find('/../', 1, true),
+      attr .. ' "' .. path .. '" must be a path below the document')
+    local f = io.open(path, 'r')
+    need(f, attr .. ': cannot read ' .. path)
+    local text = f:read('a')
+    f:close()
+    return text
+  end
+  need(not (own and a.run and a.run ~= ''), 'either .run (its own code) or run="<file>", not both')
+  need(not (a['run-stdin'] and a['run-stdin-file']), 'run-stdin or run-stdin-file, not both')
+  local main = own and 'main.py' or a.run
+  local files = {{name = main, text = own and cb.text or read(a.run, 'run')}}
+  for path in (a['run-files'] or ''):gmatch('%S+') do
+    need(path ~= main, 'run-files names ' .. path .. ', which is the file that runs')
+    files[#files + 1] = {name = path, text = read(path, 'run-files')}
+  end
+  local stdin = a['run-stdin-file'] and read(a['run-stdin-file'], 'run-stdin-file')
+    or (a['run-stdin'] or ''):gsub('\\n', '\n')
+  local output = a['run-output'] and read(a['run-output'], 'run-output')
+  local data = {main = main, files = files, stdin = stdin}
+  if a['run-render'] then data.render = a['run-render'] end
+  local packages = {}
+  for name in (a['run-packages'] or ''):gmatch('%S+') do packages[#packages + 1] = name end
+  if #packages > 0 then data.packages = packages end
+
+  for _, name in ipairs(RUN_ATTRS) do a[name] = nil end
+  cb.classes = cb.classes:filter(function(c) return c ~= 'run' end)
+  local blocks = {cb}
+  if HTML then
+    -- "</" would end the script element early
+    blocks[#blocks + 1] = pandoc.RawBlock('html', '<script type="application/json" class="run-data">'
+      .. pandoc.json.encode(data):gsub('</', '<\\/') .. '</script>')
+  end
+  if output then
+    if not HTML then blocks[#blocks + 1] = pandoc.RawBlock('latex', '\\noindent{\\small\\textit{Output:}}') end
+    blocks[#blocks + 1] = pandoc.CodeBlock((output:gsub('\n+$', '')), pandoc.Attr('', {'run-output'}))
+  end
+  if HTML then return pandoc.Div(blocks, pandoc.Attr('', {'run-block'})) end
+  return blocks
+end
+
+-- ---------------------------------------------------------------------------------------
 -- The version review.js stamps exported comments with: the environment variable DOC_VERSION
 -- if set (a build made away from its sources says what it was built from); else HEAD's
 -- commit, with -dirty when a tracked file in the document's folder is modified. The page being
@@ -454,6 +535,7 @@ end
 
 function Pandoc(doc)
   read_terms(doc.meta)
+  doc = doc:walk({CodeBlock = run_code})
   if HTML then doc = doc:walk({Figure = live_figure}) end
   doc = doc:walk({Div = subfigures})
   doc = doc:walk({Div = figure_div})
@@ -476,9 +558,11 @@ function Pandoc(doc)
   -- HTML's are replaced by the scripts.
   local dir, email, version = attribute(meta_string(doc.meta, 'html_papers_dir')),
     attribute(meta_string(doc.meta, 'review_email')), attribute(doc_version())
+  local pyodide = attribute(meta_string(doc.meta, 'pyodide_url'))
   local head = {}
   for _, name in ipairs(SCRIPTS) do
-    head[#head + 1] = pandoc.RawBlock('html', '<script src="' .. dir .. name .. '" defer></script>')
+    local more = name == 'run-code.js' and pyodide ~= '' and (' data-run-pyodide="' .. pyodide .. '"') or ''
+    head[#head + 1] = pandoc.RawBlock('html', '<script src="' .. dir .. name .. '"' .. more .. ' defer></script>')
   end
   head[#head + 1] = pandoc.RawBlock('html', '<script src="' .. dir .. 'review.js"'
     .. (email ~= '' and (' data-review-email="' .. email .. '"') or '') .. ' defer></script>')

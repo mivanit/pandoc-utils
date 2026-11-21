@@ -19,6 +19,10 @@ fi
 
 # 1. The experiment: reads paper.md, writes figures/, generated/ and live/data.js.
 run python -B experiment.py
+# The code a reader can run in the page runs here first, on the input the page starts it
+# with: a driver that broke stops the build, and the second one's output is in the paper.
+run python -B continue_text.py <<<"the build" >/dev/null
+run python -B sentence_loss.py <run/sentence.txt >generated/sentence-loss.txt
 
 # 2. The web page. The front matter's __defaults__ block names the filters and the terms file.
 if [[ $what == html || $what == all ]]; then

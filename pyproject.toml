@@ -20,4 +20,6 @@ dev = [
 exclude = [".old"]
 
 [tool.ty.src]
-exclude = [".old"]
+# plot_words.py: the demo paper's script that runs only in the page, where matplotlib is
+# fetched with Python; it is not a dependency here
+exclude = [".old", "**/plot_words.py"]

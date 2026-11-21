@@ -34,9 +34,12 @@
  * pinned notes are remembered.
  *
  * For the page's own scripts:
- * - `window.MarginNotes`: `show(key, anchor, html)` puts a note of the page's own beside an
- *   element, `hide(key)` removes it, `place()` lays the column out again (after the page moved
- *   things), `narrow()` says whether there is no margin (notes go in the text);
+ * - `window.MarginNotes`: `show(key, anchor, html, opts)` puts a note of the page's own beside
+ *   an element and returns it (opts: `closable` gives it a ×, `cls: 'preview'` makes it a box
+ *   that may be wider than the column, `linked` draws its line; a `noteclose` event on the
+ *   note says it was closed), `hide(key)` removes it, `place()` lays the column out again
+ *   (after the page moved things), `narrow()` says whether there is no margin (notes go in
+ *   the text);
  * - a `doccolumn` event on document, `detail: {items: []}`, at every layout: this script lays
  *   out the whole side column (`MarginNotes.column`), so another script with boxes for it
  *   adds `{top, left, height, place(top)}` for each: where its anchor is and how tall the box
@@ -281,7 +284,8 @@
     n.prepend(close);
   }
   // opts: pinKey (the key a hover note takes when pinned), cls ('preview'), parent (the note
-  // the anchor is in), linked (draw its line)
+  // the anchor is in), linked (draw its line), own (an anchor's note, which this script can
+  // open again on the next visit)
   function show(key, anchor, html, closable, opts = {}) {
     const n = document.createElement('div');
     n.className = 'margin-note' + (opts.cls ? ' ' + opts.cls : '');
@@ -293,6 +297,7 @@
     n.pinKey = opts.pinKey;
     n.parentNote = opts.parent || null;
     n.linked = !!opts.linked;
+    n.own = !!opts.own;
     n.innerHTML = html;
     if (closable) addClose(n);
     open.push(n);
@@ -303,7 +308,12 @@
   }
   // take notes, and every note opened from them, off the page
   function drop(list) {
-    for (const n of list) for (const m of tree(n)) { resized.unobserve(m); m.remove(); open.splice(open.indexOf(m), 1); }
+    for (const n of list) for (const m of tree(n)) {
+      resized.unobserve(m);
+      m.remove();
+      open.splice(open.indexOf(m), 1);
+      m.dispatchEvent(new Event('noteclose'));  // for whoever put it there (MarginNotes.show)
+    }
     place();
   }
   const hide = (key) => drop(notes().filter((c) => c.dataset.key === key));
@@ -371,7 +381,7 @@
     const parent = a.closest('.margin-note'), keep = new Set();
     for (let p = parent; p; p = p.parentNote) keep.add(p);
     drop(hovers().filter((n) => !keep.has(n)));
-    show('hover', a, c.html, false, { pinKey: keyOf(a), cls: c.cls, parent, linked: true });
+    show('hover', a, c.html, false, { pinKey: keyOf(a), cls: c.cls, parent, linked: true, own: true });
   }
   // where a click opens a term's or a cross-reference's note (tapMode), the note ends with the
   // link the click would have followed
@@ -385,7 +395,7 @@
     const h = hovers().find((n) => n.anchor === a);
     if (h) { pinNote(h); return h; }
     const c = content(a);
-    return c ? show(keyOf(a), a, c.html + more(a), true, { cls: c.cls, parent: a.closest('.margin-note'), linked: true }) : null;
+    return c ? show(keyOf(a), a, c.html + more(a), true, { cls: c.cls, parent: a.closest('.margin-note'), linked: true, own: true }) : null;
   }
   // a click (or middle click) on an anchor: pin its note, or close it if pinned
   function clickPin(a) {
@@ -403,7 +413,7 @@
   let saved = recall(OPEN_KEY), savedFor = null, restoring = false;
   function save() {
     if (restoring) return;
-    const pinned = remembering ? notes().filter((n) => !isHover(n) && n.linked) : [];
+    const pinned = remembering ? notes().filter((n) => !isHover(n) && n.own) : [];
     const uids = pinned.map((n) => n.uid).join(' ');
     if (uids === savedFor) return;  // the same notes as last time: nothing to work out
     savedFor = uids;
@@ -606,7 +616,7 @@
   );
 
   window.MarginNotes = {
-    show: (key, anchor, html) => show(key, anchor, html, false),
+    show: (key, anchor, html, opts = {}) => show(key, anchor, html, !!opts.closable, { cls: opts.cls, linked: !!opts.linked }),
     hide,
     place,
     narrow,

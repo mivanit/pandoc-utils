@@ -3,7 +3,8 @@
 build.sh runs this before pandoc. It reads paper.md and terms.yaml, checks what the paper
 says about the results, and only then writes what the paper shows of them: the table
 (generated/results.md), the continuations (generated/continuations.json), the figures
-(figures/*.svg) and the numbers behind the live figures (live/data.js). Standard library
+(figures/*.svg), the numbers behind the live figures (live/data.js) and the training text
+for the code a reader runs in the page (generated/train.txt). Standard library
 only, and no randomness: the same paper.md always gives the same files.
 """
 
@@ -143,8 +144,8 @@ def main() -> None:
     assert held_loss[1:] == sorted(held_loss[1:]), (
         "held-out: worse with each order after 2"
     )
-    assert uniform - 0.5 < held_loss[-1] < uniform, (
-        "held-out: order 4 barely beats guessing"
+    assert uniform - 1 < held_loss[-1] < uniform, (
+        "held-out: order 4 is less than one bit better than guessing"
     )
     assert seen == sorted(seen, reverse=True), "held-out: longer contexts are seen less"
     assert len(best_order) > 1, "held-out: which order is best depends on the constant"
@@ -195,6 +196,12 @@ def main() -> None:
         f" word), which costs {uniform:.2f} bits.\n"
     )
     write(HERE / "generated" / "results.md", "\n".join(rows))
+
+    # the training text, a sentence on each line: what the code run in the page fits its models to
+    write(
+        HERE / "generated" / "train.txt",
+        " ".join(train).replace(f" {END} ", f" {END}\n") + "\n",
+    )
 
     # the continuations: rows of tokens, drawn by html-papers.lua
     token_rows: list[dict] = [

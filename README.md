@@ -27,6 +27,7 @@ pandoc-utils/
     |-- contents.js                 # contents sidebar
     |-- live-figures.js             # click a static figure for its live version
     |-- arxiv-links.js              # links in the bibliography
+    |-- run-code.js                 # code blocks the reader can edit and run (Python in the browser)
     |-- menu.js                     # the reader's settings (M)
     |-- review.js                   # comments and suggested edits, exported as JSON
     +-- collect_reviews.py          # merge reviewers' files, list comments by source line
@@ -122,9 +123,10 @@ YAML-driven table generation with reusable templates, configurable alignment and
 [`html-papers/`](html-papers/README.md) builds a paper written in markdown as a web page with
 three columns: the contents, the text, and a side column with notes and previews (citations,
 footnotes, terms, cross-references) and, in review mode, comments and suggested edits. The
-columns resize, and on a phone the notes open in the text. Figures can be live. The same
-source builds the PDF. A filter, two stylesheets, five drop-in scripts, and a script
-that maps reviewers' comments back to lines of the source.
+columns resize, and on a phone the notes open in the text. Figures can be live, and a reader
+can edit and run the paper's code on the page. The same source builds the PDF. A filter, two
+stylesheets, seven drop-in scripts, and a script that maps reviewers' comments back to lines
+of the source.
 
 The demo is [a paper that builds itself](https://mivanit.github.io/pandoc-utils/html-papers/):
 its build runs its experiment and prints the code that did.
@@ -143,6 +145,7 @@ make dep-install   # install system (apt), npm, and Python (uv) deps
 make dep-check     # verify all required binaries are available
 make test          # run pytest
 make test-html     # html-papers/ in headless Chromium (once: uv run playwright install chromium)
+make test-html-firefox  # the same in Firefox (once: uv run playwright install firefox)
 ```
 
 ### Dependencies

@@ -32,6 +32,16 @@ test: clean
 test-html:
 	uv run pytest html-papers/tests -v
 
+# the same in Firefox (once: uv run playwright install firefox)
+.PHONY: test-html-firefox
+test-html-firefox:
+	HTML_PAPERS_BROWSER=firefox uv run pytest html-papers/tests -v
+
+# the demo paper's runnable code in the real Python, fetched from its CDN (needs the network)
+.PHONY: test-html-pyodide
+test-html-pyodide:
+	HTML_PAPERS_PYODIDE=1 uv run pytest html-papers/tests/test_pages.py -v -k real_python
+
 .PHONY: dep-check
 dep-check:
 	@echo "Checking dependencies..."

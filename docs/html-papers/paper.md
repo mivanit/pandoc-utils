@@ -68,7 +68,7 @@ The script that does this is short enough to print. \autoref{fig:build} is not a
 The file `build.sh`, included from the folder it built. A captioned block of anything is a numbered figure.
 :::
 
-The settings are in the front matter of `paper.md`: the bibliography, the filters to run and the file of terms. Besides its figures and the pages behind its live figures, the finished page needs six scripts and two stylesheets, and nothing else. It needs no server, and it loads nothing from the network. Its equations are MathML, which a browser draws on its own.
+The settings are in the front matter of `paper.md`: the bibliography, the filters to run and the file of terms. Besides its figures and the pages behind its live figures, the finished page needs seven scripts and two stylesheets, and nothing else. It needs no server, and it loads nothing from the network until a reader runs code on it (\autoref{sec:run}). Its equations are MathML, which a browser draws on its own.
 
 # Writing {#sec:writing}
 
@@ -118,10 +118,10 @@ $$
 Here $c$ is the context, the $n - 1$ words before the word $w$, and $V$ is the number of different words. \autoref{fig:model} is the whole model. It is the file that the experiment imports.
 
 ::: {#fig:model .figure}
-```{.python include="model.py"}
+```{.python include="model.py" run="continue_text.py" run-files="model.py generated/train.txt" run-stdin="the build" run-render="run/chips.js"}
 ```
 
-The file `model.py`: the model, its \term{loss} and how it continues a text.
+The file `model.py`: the model, its \term{loss} and how it continues a text. On the web page, **Try it** runs it.
 :::
 
 ## Loss {#sec:loss}
@@ -134,13 +134,28 @@ $$
 
 A model that gave each of the $V$ words the same probability would have a loss of $\log_2 V$ on any text. A model has learned something when its loss on the held-out text is below that.
 
+## Running it {#sec:run}
+
+On the web page the code can also be run. The block of \autoref{fig:model} has a button, **Try it**. The button opens the code beside the text, with a box for some words and a button that runs it. Each model then goes on from those words, as the models of \autoref{sec:write} do. What runs is not the file in the figure. It is a short script that reads the words, calls the model and prints what the model said, and a second script of the page draws what was printed. The script, the model and the training text are in the page, where the build put them, so the code that runs is the code the build read. A reader can change the code and run it again.
+
+The code runs in the browser, in Python. The browser fetches Python the first time **Run** is pressed, and nothing before that.
+
+\autoref{fig:sentence} is a second script, and here the script that is shown is the one that runs. It reads a sentence and prints the \term{loss} of each model on it. The build ran it on one sentence. The lines under the script are what it printed, and the PDF has the same lines.
+
+::: {#fig:sentence .figure}
+```{.python include="sentence_loss.py" run="sentence_loss.py" run-files="model.py generated/train.txt" run-stdin-file="run/sentence.txt" run-output="generated/sentence-loss.txt"}
+```
+
+The file `sentence_loss.py`, and under it what the script printed for one sentence when the build ran it.
+:::
+
 # Results {#sec:results}
 
 The build writes everything in this section except the prose. The prose makes claims about the numbers, and the experiment checks each claim before it writes anything (\autoref{sec:code}). If a change to the text makes a claim false, the build stops.
 
 ## Loss by order {#sec:loss-by-order}
 
-\autoref{tab:loss} gives the \term{loss} of each model, at one \term{smoothing} constant. There, on the \term{training}, a higher \term{order} is always better. On the \term{heldout} it is not. One word of context helps, so the model of order 2 is the best. Each word of context after that makes the model worse, and the model of order 4 is hardly better than guessing every word equally. The last column of the table says why. The longer the context, the less often the model has seen it, and a model that has not seen the context knows nothing about the next word.
+\autoref{tab:loss} gives the \term{loss} of each model, at one \term{smoothing} constant. There, on the \term{training}, a higher \term{order} is always better. On the \term{heldout} it is not. One word of context helps, so the model of order 2 is the best. Each word of context after that makes the model worse, and the model of order 4 is less than one bit better than guessing every word equally. The last column of the table says why. The longer the context, the less often the model has seen it, and a model that has not seen the context knows nothing about the next word.
 
 ```{.include}
 generated/results.md
@@ -178,6 +193,15 @@ Each model continues the same prompt, one word on each chip. The rows are read f
 
 ![How often each word of the paper is used, against the rank of the word. Both axes are logarithmic.](figures/words.svg){#fig:words interactive-link="live/words.html"}
 
+The same count can be drawn on the page by the reader. The script of \autoref{fig:plot} uses matplotlib, which the browser fetches when the script is first run. A chart that the script leaves open is shown under what it printed. The build does not run this script, so its chart is only on the web page.
+
+::: {#fig:plot .figure}
+```{.python include="plot_words.py" run="plot_words.py" run-files="generated/train.txt"}
+```
+
+The file `plot_words.py`. On the web page, **Try it** and then **Run** draw its chart.
+:::
+
 # Reviewing {#sec:review}
 
 A draft gets comments. On the web page, pressing **E** turns on review mode. The reader selects some text and comments on it. The reader can also switch to suggesting, and then type into the text, which marks the change and leaves the text as it was. Nothing is sent anywhere. The comments stay in the browser of the reader until the reader exports them as a file and sends the file to the author.
@@ -194,6 +218,7 @@ The command merges the files and keeps the newest version of each comment. It li
 
 - The numbers in the table and the figures come from the build. The numbers in a sentence do not. That is why the prose of \autoref{sec:results} quotes no numbers, and why the experiment checks its claims.
 - The scripts and stylesheets beside the page are copies. Nothing updates the copies when the originals change.
+- Code runs only on the web page, and only in Python. The first run needs the network, to fetch Python, and a script that uses matplotlib waits for a larger download.
 - The notes are made for a pointer or a finger. From the keyboard, Enter opens the note of a citation or a footnote. On a term or a reference it only follows the link.
 - The experiment is a toy. One paper is far too little text to learn much about a language, and models of language stopped counting words long ago [@bengio2003neural; @mikolov2013efficient; @vaswani2017attention].
 
@@ -215,6 +240,7 @@ On the web page:
 - Hover a term such as \term{loss}, or a citation [@knuth1984literate].
 - Hover a cell of \autoref{tab:loss} that has an asterisk.
 - Drag the line between the text and the margin, or the edge of the contents, to make a column wider. A double click puts it back.
+- Press **Try it** on \autoref{fig:model}, type a few words and press **Run**. Then change the code and run it again.
 - Press **M** for the settings. They set how wide the text and the columns are, whether lines join the text to the notes, and whether a note opens when the pointer rests on a link.
 - **Unpin** folds the contents into a tab at the left edge. They slide out when the pointer goes there.
 - Click \autoref{fig:loss} to make it live.

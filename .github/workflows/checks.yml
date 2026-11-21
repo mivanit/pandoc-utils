@@ -39,3 +39,9 @@ jobs:
       - run: make demo
         env:
           PUPPETEER_CFG: ${{ github.workspace }}/.github/puppeteer-ci.json
+
+      # html-papers: its page scripts in two browsers, then the demo paper as page and PDF
+      - run: uv run playwright install --with-deps chromium firefox
+      - run: make test-html
+      - run: make test-html-firefox
+      - run: make demo-html-papers

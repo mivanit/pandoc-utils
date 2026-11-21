@@ -203,6 +203,41 @@ button.open-full { background: white; color: #3b5a8c; font: inherit; cursor: poi
 .sheet-bar .open-full { margin: 0; }
 body.sheet-open { overflow: hidden; }
 
+/* code that runs (run-code.js): a button on the block, and its panel: a note in the side
+   column (.run-note), in the text on a phone, or under the block without popups.js */
+.run-block { position: relative; }
+.run-open {
+  position: absolute; top: 0.35rem; right: 0.35rem; border: 1px solid #3b5a8c; border-radius: 4px;
+  background: white; color: #3b5a8c; font: 0.75rem/1.3 system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding: 0.12rem 0.5rem; cursor: pointer; opacity: 0.85;
+}
+.run-open:hover, .run-open[aria-expanded="true"] { background: #3b5a8c; color: white; opacity: 1; }
+pre.run-output { position: relative; border-left: 3px solid #b9c2d0; }
+pre.run-output::before { content: 'Output'; position: absolute; top: 0.2rem; right: 0.5rem; font: 0.7rem system-ui, sans-serif; color: #8a909b; }
+.run-panel { font: 0.8rem/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; color: #222; }
+/* as tall as what is in it: its own boxes scroll, the note does not (popups.js caps a preview) */
+.margin-note.run-note { max-height: none !important; overflow: visible; }
+.run-block + .run-panel { margin: 0.6rem 0 1rem; padding: 0.6rem 0.8rem; border: 1px solid #d5d9e0; border-radius: 6px; }
+.run-tabs { display: flex; flex-wrap: wrap; gap: 0.2rem; margin: 0 1.4rem 0.3rem 0; }
+.run-tabs[hidden] { display: none; }  /* one file: no tabs */
+.run-tab { border: 1px solid #d5d9e0; border-bottom: 0; border-radius: 4px 4px 0 0; background: #f4f5f7; color: #555; font: inherit; font-size: 0.75rem; padding: 0.1rem 0.5rem; cursor: pointer; }
+.run-tab[aria-selected="true"] { background: white; color: #111; font-weight: 600; }
+.run-editor, .run-stdin {
+  display: block; box-sizing: border-box; width: 100%; margin: 0; padding: 0.4rem 0.5rem; border: 1px solid #cfd4dc; border-radius: 4px;
+  background: #fbfbfc; color: #1a1a1a; font: 0.75rem/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; tab-size: 4; resize: vertical;
+}
+.run-editor { height: 14rem; }
+.run-label { display: block; margin-top: 0.4rem; color: #555; font-size: 0.75rem; }
+.run-bar { display: flex; align-items: center; gap: 0.4rem; margin: 0.5rem 0; }
+.run-bar button { border: 1px solid #cfd4dc; border-radius: 4px; background: white; color: #333; font: inherit; padding: 0.15rem 0.7rem; cursor: pointer; }
+.run-bar .run-go { background: #3b5a8c; border-color: #3b5a8c; color: white; font-weight: 600; }
+.run-bar .run-stop { border-color: #b3261e; color: #b3261e; }
+.run-status { color: #666; font-size: 0.75rem; margin-left: 0.2rem; }
+.run-result pre { margin: 0 0 0.4rem; padding: 0.4rem 0.5rem; border-radius: 4px; background: #f6f7f9; font: 0.75rem/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 24rem; overflow-y: auto; }
+.run-result .run-stderr { background: #fdf3f2; color: #8c1d18; }
+.run-image { display: block; max-width: 100%; height: auto; margin: 0 0 0.4rem; }
+@media print { .run-open, .run-panel { display: none; } }
+
 /* the menu (menu.js): what the reader can change, on M or from the contents' ⚙ */
 #doc-menu {
   position: fixed; z-index: 2147483002; top: 3rem; left: 50%; transform: translateX(-50%); box-sizing: border-box;

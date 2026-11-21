@@ -1,0 +1,160 @@
+introduction a paper has two parts that are kept in different places .
+one is the text .
+the other is the scripts and notebooks that produced the numbers and figures in the text .
+the two drift apart a figure is redrawn and the sentence about it is not or the code that made a table can no longer be found .
+this paper does the same for a paper and it is its own example .
+the file you are reading was built from one markdown file .
+the build ran an experiment and the results of that experiment are the ones reported here .
+the experiment is small on purpose .
+nothing in it is new .
+it is here because it needs everything a paper needs definitions equations a table figures code and references .
+the paper makes three points each by doing it one source two outputs .
+the same file builds a web page and a pdf with the same numbers on the sections figures and references .
+on the web page a reference shows what it refers to a term shows its definition a figure can become live and a reader can leave comments and .
+the results come from the build .
+the numbers in the figures of and the code in are made or included by the build so they cannot disagree with the code that ran .
+a footnote .
+in the pdf it is at the foot of the page .
+one source two outputs the source is written in the markdown that pandoc reads .
+the one figure here that is drawn by hand shows the build .
+first the experiment runs .
+then pandoc reads twice once to write the web page and once to write latex which becomes the pdf .
+both times pandoc runs the filter which turns each construct of the paper into what that output needs .
+a cross-reference becomes a numbered link on the page and stays a reference in latex .
+a term becomes a link that carries its definition on the page and a tooltip in the pdf .
+the text is also the data of the experiment and the results of the experiment are included in the text .
+the script that does this is short enough to print .
+is not a copy of it .
+the build includes the file so the script you read is the script that ran .
+a captioned block of anything is a numbered figure .
+the settings are in the front matter of the bibliography the filters to run and the file of terms .
+besides its figures and the pages behind its live figures the finished page needs seven scripts and two stylesheets and nothing else .
+it needs no server and it loads nothing from the network until a reader runs code on it .
+writing most of the source is plain markdown and reads like the text .
+this section shows the constructs that are not plain markdown each beside its source .
+cross-references a heading a figure or a table is given an id and refers to it this gives see and .
+the reference becomes the number of its target in both outputs also when the target comes later in the text .
+a figure in a copy is made smaller until it fits so a copy of a figure never has to be scrolled .
+a link inside a copy opens another copy below it .
+clicking a copy keeps it open .
+a reference to an id that does not exist still builds .
+in the pdf it is the pair of question marks that latex prints .
+terms a paper names things and a reader who skipped the definition is lost .
+here a term is defined once in a file of terms that begins writing in the text then gives loss .
+the word is a link to the section that defines it and the definition shows in the margin when the pointer is on the word .
+writing shows other words for the same term .
+a name that is not in the file stops the build and says which name it was .
+citations notes and equations citations are the ones pandoc has .
+writing gives and two keys in one bracket give .
+in the list of references a title that has a web address is a link and so is an arxiv number .
+footnotes show in the margin in the same way .
+equations are written as in latex as in .
+a note from the author to the author is hard to miss in both outputs a second footnote so that there are two to compare .
+the experiment reads and keeps the prose as words in lower case with a mark at the end of each sentence .
+it drops the code the equations and the citations .
+a caption keeps its words and a term counts as the words it shows .
+every fifth sentence is set aside as the held-out text .
+the models count only the training text .
+because the text is the data changing a sentence of this paper changes its results and the next build reports the new ones .
+model an n-gram model of order predicts a word from the words before it .
+it counts how often each word followed those words in the training text .
+so the model counts every word more times than it was seen which is called smoothing here is the context the words before the word and is the number of different words .
+is the whole model .
+it is the file that the experiment imports .
+the file the model its loss and how it continues a text .
+loss a model is scored on a text by its loss the cross-entropy in bits per word a model that gave each of the words the same probability would have a loss of on any text .
+a model has learned something when its loss on the held-out text is below that .
+running it on the web page the code can also be run .
+the block of has a button try it .
+each model then goes on from those words as the models of do .
+what runs is not the file in the figure .
+it is a short script that reads the words calls the model and prints what the model said and a second script of the page draws what was printed .
+the script the model and the training text are in the page where the build put them so the code that runs is the code the build read .
+the code runs in the browser in python .
+the browser fetches python the first time run is pressed and nothing before that .
+is a second script and here the script that is shown is the one that runs .
+it reads a sentence and prints the loss of each model on it .
+the lines under the script are what it printed and the pdf has the same lines .
+the file and under it what the script printed for one sentence when the build ran it .
+results the build writes everything in this section except the prose .
+the prose makes claims about the numbers and the experiment checks each claim before it writes anything .
+loss by order gives the loss of each model at one smoothing constant .
+there on the training text a higher order is always better .
+on the held-out text it is not .
+one word of context helps so the model of order is the best .
+the last column of the table says why .
+the longer the context the less often the model has seen it and a model that has not seen the context knows nothing about the next word .
+the markdown of the table has two things that a plain table does not .
+a row whose first cell is bold joins the header which is where the word counts are .
+draws the same numbers .
+on the web page the figure is a picture until it is clicked .
+then it is a small live page with a slider for the smoothing constant and nothing is loaded before the click .
+moving the slider shows that the best order on the held-out text is not the same at every constant .
+the dashed line is the loss of guessing every word equally .
+on the web page click the figure for a live version with a slider for .
+smoothing how much smoothing is best depends on which text is asked about .
+on the training text less is always better because every count given to a word that did not come is taken from a word that did .
+on the held-out text the least smoothing is never the best .
+from order up the constant matters less as the order goes up because in a context the model has not seen every word gets the same probability whatever the constant is .
+training text .
+held-out text .
+two images in one figure each with its own number .
+what the models write a model can also write .
+give it some words take the word it finds most likely and repeat .
+starts every model with the same three words the run of three words that is most common in the training text .
+the model of order does not look at the prompt and repeats the most common word .
+the models of higher order can only say what they have counted so what they write is made of pieces of the paper .
+each model continues the same prompt one word on each chip .
+the rows are read from a file that the experiment writes .
+as in most text a few words are used very often and most words only once or twice .
+here the ten most used words are more than a fifth of the text .
+the page that lists every word with its count is too long to put inside a figure .
+so this figure stays a picture with a link to that page under it .
+both axes are logarithmic .
+the same count can be drawn on the page by the reader .
+the script of uses matplotlib which the browser fetches when the script is first run .
+a chart that the script leaves open is shown under what it printed .
+the file .
+on the web page try it and then run draw its chart .
+reviewing a draft gets comments .
+on the web page pressing e turns on review mode .
+the reader can also switch to suggesting and then type into the text which marks the change and leaves the text as it was .
+nothing is sent anywhere .
+the comments stay in the browser of the reader until the reader exports them as a file and sends the file to the author .
+the author puts the files in a folder and runs one command the command merges the files and keeps the newest version of each comment .
+so a comment made on the page leads to the line to change .
+the merged file can be loaded back into the page to read all the comments in place .
+limits the numbers in the table and the figures come from the build .
+the numbers in a sentence do not .
+the scripts and stylesheets beside the page are copies .
+nothing updates the copies when the originals change .
+code runs only on the web page and only in python .
+the first run needs the network to fetch python and a script that uses matplotlib waits for a larger download .
+from the keyboard enter opens the note of a citation or a footnote .
+on a term or a reference it only follows the link .
+the experiment is a toy .
+one paper is far too little text to learn much about a language and models of language stopped counting words long ago .
+it imports the model of and a small module that draws the charts which is beside the page and is not printed here .
+the claims that the prose of makes are the lines that begin with .
+what to try on the web page hover a reference to a section figure or table .
+a copy of it opens in the margin .
+click a note to keep it open .
+the cross in its corner closes it .
+the notes you kept open are there on your next visit .
+hover a term such as loss or a citation .
+drag the line between the text and the margin or the edge of the contents to make a column wider .
+a double click puts it back .
+press try it on type a few words and press run .
+then change the code and run it again .
+they set how wide the text and the columns are whether lines join the text to the notes and whether a note opens when the pointer rests on a link .
+unpin folds the contents into a tab at the left edge .
+they slide out when the pointer goes there .
+click to make it live .
+the comments share the margin with the notes and both are in the order of the text .
+make the window narrow or read on a phone .
+a tap on a link opens its note in the text under the paragraph .
+a swipe to the right opens the contents .
+keep the front matter of and the scripts and stylesheets .
+replace the text the terms the references and the experiment with your own .
+the build script looks for html-papers two folders up or where says .
+the repository of html-papers describes each file and each construct .

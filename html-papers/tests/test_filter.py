@@ -6,6 +6,7 @@ holds a terms file, an image and a token-rows file.
 
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -70,6 +71,11 @@ Two images.
 @pytest.fixture
 def folder(tmp_path: Path) -> Path:
     (tmp_path / "terms.yaml").write_text(TERMS)
+    (tmp_path / "data").mkdir()
+    (tmp_path / "driver.py").write_text('print("</script>", input())\n')
+    (tmp_path / "model.py").write_text("X = 1\n")
+    (tmp_path / "data" / "words.txt").write_text("one two\n")
+    (tmp_path / "said.txt").write_text("first line\n  second & <last>\n\n")
     (tmp_path / "a.svg").write_text(
         '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>'
     )
@@ -145,6 +151,7 @@ def test_head_has_the_scripts_with_their_prefix(html: str) -> None:
         "popups.js",
         "contents.js",
         "live-figures.js",
+        "run-code.js",
         "menu.js",
     ):
         assert f'<script src="../{name}" defer></script>' in html
@@ -438,3 +445,115 @@ def test_unknown_reference_builds_with_a_warning(folder: Path) -> None:
     assert result.returncode == 0, result.stderr
     assert "Unknown cross-reference: sec:gone" in result.stderr
     assert '<span class="todo">??sec:gone</span>' in result.stdout
+
+
+RUN: str = """---
+title: Code that runs
+pyodide_url: https://example.org/py/pyodide.mjs
+---
+
+::: {#fig:shown .figure}
+```{.python run="driver.py" run-files="model.py data/words.txt" run-stdin="two\\nlines" run-render="draw.js" run-packages="a-package another" run-output="said.txt"}
+shown = True
+```
+
+A listing that runs through a driver.
+:::
+
+```{.python .run}
+print(1)
+```
+"""
+
+
+def run_data(html: str) -> list[dict]:
+    return [
+        json.loads(text)
+        for text in re.findall(
+            r'<script type="application/json" class="run-data">(.*?)</script>', html
+        )
+    ]
+
+
+def test_code_that_runs_carries_its_files_in_the_page(folder: Path) -> None:
+    result: subprocess.CompletedProcess[str] = build(folder, "html5", RUN)
+    assert result.returncode == 0, result.stderr
+    html: str = result.stdout
+    first, second = run_data(html)
+    # the driver runs, not the listing; each file at its path; "</script>" cannot end the element
+    assert first == {
+        "main": "driver.py",
+        "files": [
+            {"name": "driver.py", "text": 'print("</script>", input())\n'},
+            {"name": "model.py", "text": "X = 1\n"},
+            {"name": "data/words.txt", "text": "one two\n"},
+        ],
+        "stdin": "two\nlines",
+        "render": "draw.js",
+        "packages": ["a-package", "another"],
+    }
+    # .run: the block's own code
+    assert second == {
+        "main": "main.py",
+        "files": [{"name": "main.py", "text": "print(1)"}],
+        "stdin": "",
+    }
+    flat: str = " ".join(html.split())
+    # the listing is still what the page shows, in a numbered figure, with the build's output
+    assert '<figure id="fig:shown">' in flat and flat.count('class="run-block"') == 2
+    assert "shown" in flat and "run-files" not in flat and "run-stdin" not in flat
+    assert (
+        '<pre class="run-output"><code>first line second &amp; &lt;last&gt;</code></pre>'
+        in flat
+    )
+    assert (
+        '<script src="run-code.js" data-run-pyodide="https://example.org/py/pyodide.mjs" defer></script>'
+        in flat
+    )
+
+
+def test_code_that_runs_is_a_listing_in_latex(folder: Path) -> None:
+    result: subprocess.CompletedProcess[str] = build(folder, "latex", RUN)
+    assert result.returncode == 0, result.stderr
+    latex: str = result.stdout
+    assert (
+        "run-data" not in latex
+        and "driver.py" not in latex
+        and "run-files" not in latex
+    )
+    assert "shown" in latex and "Output:" in latex and "first line" in latex
+
+
+@pytest.mark.parametrize(
+    ("block", "message"),
+    [
+        ('{.python run="missing.py"}', "run: cannot read missing.py"),
+        (
+            '{.python run="driver.py" run-files="nowhere.py"}',
+            "run-files: cannot read nowhere.py",
+        ),
+        (
+            '{.python run="driver.py" run-output="none.txt"}',
+            "run-output: cannot read none.txt",
+        ),
+        ('{.python run-files="model.py"}', 'run-files needs run="<file>"'),
+        ('{.python run="../driver.py"}', "must be a path below the document"),
+        ('{.python run="/etc/hostname"}', "must be a path below the document"),
+        ('{.python .run run="driver.py"}', "not both"),
+        (
+            '{.python run="driver.py" run-stdin="a" run-stdin-file="said.txt"}',
+            "not both",
+        ),
+        (
+            '{.python run="driver.py" run-files="driver.py"}',
+            "which is the file that runs",
+        ),
+    ],
+)
+def test_code_that_runs_says_what_is_wrong(
+    folder: Path, block: str, message: str
+) -> None:
+    source: str = f"---\ntitle: t\n---\n\n```{block}\nx = 1\n```\n"
+    for to in ("html5", "latex"):
+        result: subprocess.CompletedProcess[str] = build(folder, to, source)
+        assert result.returncode != 0 and message in result.stderr, result.stderr
