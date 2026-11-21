@@ -222,11 +222,36 @@ pre.run-output::before { content: 'Output'; position: absolute; top: 0.2rem; rig
 .run-tabs[hidden] { display: none; }  /* one file: no tabs */
 .run-tab { border: 1px solid #d5d9e0; border-bottom: 0; border-radius: 4px 4px 0 0; background: #f4f5f7; color: #555; font: inherit; font-size: 0.75rem; padding: 0.1rem 0.5rem; cursor: pointer; }
 .run-tab[aria-selected="true"] { background: white; color: #111; font-weight: 600; }
-.run-editor, .run-stdin {
-  display: block; box-sizing: border-box; width: 100%; margin: 0; padding: 0.4rem 0.5rem; border: 1px solid #cfd4dc; border-radius: 4px;
-  background: #fbfbfc; color: #1a1a1a; font: 0.75rem/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; tab-size: 4; resize: vertical;
+/* The code: a box that scrolls and resizes, holding the text twice in one grid cell: coloured
+   (.run-hl) under the textarea, whose own text is clear. The two must wrap alike, so every
+   property that places a letter is set on both, whatever the page says about pre and code. */
+.run-code {
+  display: grid; height: 14rem; overflow: auto; resize: vertical; border: 1px solid #cfd4dc; border-radius: 4px; background: #fbfbfc;
 }
-.run-editor { height: 14rem; }
+.run-code:focus-within { border-color: #3b5a8c; }
+.run-panel .run-code > pre.run-hl, .run-panel .run-code > .run-editor, .run-stdin {
+  box-sizing: border-box; margin: 0; padding: 0.4rem 0.5rem; border: 0; min-width: 0; width: 100%;
+  font: 0.75rem/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: normal; tab-size: 4;
+  white-space: pre-wrap; overflow-wrap: anywhere; word-break: normal; text-indent: 0; text-align: left;
+}
+.run-panel .run-code > pre.run-hl, .run-panel .run-code > .run-editor { grid-area: 1 / 1; background: none; }
+/* the coloured layer is as tall as the text and so sets the cell's height; the textarea fills it */
+.run-panel .run-code > pre.run-hl { color: #1a1a1a; pointer-events: none; max-height: none; overflow: visible; }
+.run-panel .run-code > pre.run-hl code { font: inherit; white-space: inherit; overflow-wrap: inherit; padding: 0; background: none; color: inherit; }
+/* colour only: a bold or slanted letter may be a different width from the one typed over it */
+.run-panel .run-code > pre.run-hl span { font-weight: inherit; font-style: inherit; text-indent: 0; padding: 0; }
+.run-panel .run-code > .run-editor { display: block; height: 100%; overflow: hidden; resize: none; outline: 0; color: transparent; caret-color: #111; }
+.run-panel .run-code > .run-editor::selection { color: transparent; background: rgba(59, 90, 140, 0.28); }
+/* the page's own highlighting (pandoc's `code span.kw`, ...) colours the tokens; without one: */
+:where(.run-hl) .kw, :where(.run-hl) .cf, :where(.run-hl) .im { color: #007020; }
+:where(.run-hl) .st { color: #4070a0; }
+:where(.run-hl) .co { color: #60a0b0; }
+:where(.run-hl) .dv, :where(.run-hl) .fl { color: #40a070; }
+:where(.run-hl) .bu { color: #008000; }
+:where(.run-hl) .fu { color: #06287e; }
+:where(.run-hl) .va { color: #19177c; }
+:where(.run-hl) .at { color: #7d9029; }
+.run-stdin { display: block; border: 1px solid #cfd4dc; border-radius: 4px; background: #fbfbfc; color: #1a1a1a; resize: vertical; }
 .run-label { display: block; margin-top: 0.4rem; color: #555; font-size: 0.75rem; }
 .run-bar { display: flex; align-items: center; gap: 0.4rem; margin: 0.5rem 0; }
 .run-bar button { border: 1px solid #cfd4dc; border-radius: 4px; background: white; color: #333; font: inherit; padding: 0.15rem 0.7rem; cursor: pointer; }

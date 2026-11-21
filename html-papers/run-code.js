@@ -17,14 +17,15 @@
  *     </div>
  *
  * The block gets a "Try it" button. It opens a panel in the side column (a note of popups.js;
- * under the block without it, or on a phone): the files, each editable, a box for the input,
- * Run, Stop, Reset, and the output. Ctrl/Cmd+Enter runs. What the page shows and what runs
- * are separate: `main` is usually a small driver that reads the input, calls the code shown
- * and prints.
+ * under the block without it, or on a phone) and runs the code: the files, each editable, a
+ * box for the input, Run, Stop, Reset, and the output. Ctrl/Cmd+Enter runs. Python files are
+ * coloured as the page's listings are (pandoc's classes on a layer under the text being
+ * typed), and long lines wrap. What the page shows and what runs are separate: `main` is
+ * usually a small driver that reads the input, calls the code shown and prints.
  *
  * Python is Pyodide, in a worker, so a run can be stopped and the page stays live. Nothing is
- * fetched until Run is first pressed; then Pyodide comes from a CDN (a few MB, cached by the
- * browser), with whatever the code imports that Pyodide ships (numpy, matplotlib, …).
+ * fetched until "Try it" is first pressed; then Pyodide comes from a CDN (a few MB, cached by
+ * the browser), with whatever the code imports that Pyodide ships (numpy, matplotlib, …).
  * `packages` are installed from PyPI. The files are written at their paths, under the folder
  * the code runs in, and `stdin` is its standard input. Every run starts the files afresh.
  *
@@ -195,6 +196,35 @@ def _run_code(main, names, stdin):
   }
 
   // ---------------------------------------------------------------------------------------
+  // Python, coloured: its text as html, each token in a span with the class pandoc gives that
+  // kind in a listing, so the page's own highlighting colours it. Good enough to read by: a
+  // string, a comment and a number are found exactly; a name is a keyword or a builtin by
+  // being on a list.
+  const WORDS = {
+    im: 'import from',
+    cf: 'if elif else for while break continue return yield try except finally raise with pass match case',
+    kw: 'def class lambda and or not is in as global nonlocal assert del async await',
+    va: 'True False None',
+    bu: 'abs all any bool bytes callable chr dict dir divmod enumerate filter float format frozenset getattr hasattr hash input int isinstance issubclass iter len list map max min next object open ord pow print property range repr reversed round set setattr slice sorted str sum super tuple type vars zip self',
+  };
+  const KIND = new Map(Object.entries(WORDS).flatMap(([cls, words]) => words.split(' ').map((word) => [word, cls])));
+  // a comment | a string (any prefix; one left open runs to the end of its line, or of the text
+  // if triple-quoted) | a number | a decorator | a name
+  const TOKEN = /(#.*)|((?:[rbfuRBFU]{1,2})?(?:"""[\s\S]*?(?:"""|$)|'''[\s\S]*?(?:'''|$)|"(?:\\.|[^"\\\n])*"?|'(?:\\.|[^'\\\n])*'?))|(\b0[xXoObB][\da-fA-F_]+\b|\b\d[\d_]*(?:\.\d*)?(?:[eE][+-]?\d+)?)|(@[\w.]+)|([A-Za-z_]\w*)/g;
+  const escaped = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  function coloured(text) {
+    let html = '', at = 0, naming = false;  // naming: the name after def or class
+    for (const m of text.matchAll(TOKEN)) {
+      let cls = m[1] ? 'co' : m[2] ? 'st' : m[3] ? (/^0[xXoObB]/.test(m[3]) || !/[.eE]/.test(m[3]) ? 'dv' : 'fl') : m[4] ? 'at' : KIND.get(m[0]);
+      if (m[5] && naming) cls = 'fu';
+      if (m[5]) naming = m[0] === 'def' || m[0] === 'class';
+      html += escaped(text.slice(at, m.index)) + (cls ? '<span class="' + cls + '">' + escaped(m[0]) + '</span>' : escaped(m[0]));
+      at = m.index + m[0].length;
+    }
+    return html + escaped(text.slice(at));
+  }
+
+  // ---------------------------------------------------------------------------------------
   // renderers: a script of the page's own, loaded when first needed, that calls RunCode.render
   const renderers = new Map(), loading = new Map();
   function renderer(src) {
@@ -239,17 +269,31 @@ def _run_code(main, names, stdin):
     const panel = make('div', 'run-panel');
     const tabs = make('div', 'run-tabs');
     tabs.setAttribute('role', 'tablist');
+    // The code: a box that scrolls, holding the text twice, one on the other. Under: the text
+    // coloured. Over: the textarea, its own text clear, so what is typed shows in the colours
+    // below. Both wrap alike and are as tall as the text, so only the box scrolls.
+    const code = make('div', 'run-code');
+    const under = make('pre', 'run-hl');
+    under.setAttribute('aria-hidden', 'true');
+    const tinted = make('code');
+    under.append(tinted);
     const editor = make('textarea', 'run-editor');
     editor.setAttribute('aria-label', 'Code');
+    code.append(under, editor);
     const stdin = make('textarea', 'run-stdin');
     stdin.rows = 2;
     stdin.value = data.stdin || '';
     for (const area of [editor, stdin]) {
       area.spellcheck = false;
-      area.wrap = 'off';
       area.setAttribute('autocapitalize', 'off');
       area.setAttribute('autocomplete', 'off');
     }
+    // the layer under the text, as the text is now (a last, empty line needs something on it)
+    function tint() {
+      const text = editor.value;
+      tinted.innerHTML = (shown.endsWith('.py') ? coloured(text) : escaped(text)) + ' ';
+    }
+    editor.addEventListener('input', tint);
     const label = make('label', 'run-label', 'Input');
     label.append(stdin);
     const go = make('button', 'run-go', 'Run');
@@ -264,12 +308,14 @@ def _run_code(main, names, stdin):
     bar.append(go, stop, reset, status);
     const result = make('div', 'run-result');
     result.setAttribute('aria-live', 'polite');
-    panel.append(tabs, editor, label, bar, result);
+    panel.append(tabs, code, label, bar, result);
 
     function show(name) {
       texts.set(shown, editor.value);
       shown = name;
       editor.value = texts.get(name);
+      tint();
+      code.scrollTop = 0;
       for (const tab of tabs.children) tab.setAttribute('aria-selected', String(tab.dataset.name === name));
     }
     for (const file of data.files) {
@@ -342,6 +388,7 @@ def _run_code(main, names, stdin):
     reset.addEventListener('click', () => {
       for (const [name, text] of original) texts.set(name, text);
       editor.value = texts.get(shown);
+      tint();
       stdin.value = data.stdin || '';
     });
     panel.addEventListener('keydown', (event) => {
@@ -350,6 +397,7 @@ def _run_code(main, names, stdin):
       if (event.key === 'Tab' && event.target === editor && !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey) {
         event.preventDefault();
         editor.setRangeText('    ', editor.selectionStart, editor.selectionEnd, 'end');
+        tint();
       }
     });
 
@@ -380,6 +428,7 @@ def _run_code(main, names, stdin):
       }
       opener.setAttribute('aria-expanded', 'true');
       editor.focus({ preventScroll: true });
+      run();  // what "Try it" asked for; the reader changes things and runs again
     }
     opener.setAttribute('aria-expanded', 'false');
     opener.addEventListener('click', () => (panel.isConnected ? close() : open()));
