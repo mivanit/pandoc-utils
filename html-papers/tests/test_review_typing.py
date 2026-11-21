@@ -11,6 +11,8 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Page, sync_playwright
 
+from hp_paths import BROWSER
+
 FIXTURE = (Path(__file__).parent / "review-fixture.html").absolute()
 SHADOW = "document.querySelector('#rv-host').shadowRoot"
 STORED = """JSON.parse(localStorage.getItem('review:v1:doc:' + location.pathname)
@@ -52,7 +54,7 @@ VIEW = """css => {
 @pytest.fixture(scope="module")
 def browser():
     with sync_playwright() as p:
-        b = p.chromium.launch(headless=True)
+        b = getattr(p, BROWSER).launch(headless=True)
         yield b
         b.close()
 
@@ -145,13 +147,24 @@ def test_suggest_mode_links_and_double_click(browser):
     page.click("#lnk", modifiers=["Control"])
     assert page.evaluate("location.hash") == "#top"
     page.keyboard.press("Escape")
-    page.dblclick("#prog >> text=autoregressivity")
+    # Click the word's actual text range; a text locator can resolve to the whole paragraph.
+    page.locator("#prog").scroll_into_view_if_needed()
+    page.evaluate(SELECT, ["#prog", "autoregressivity", False])
+    point = page.evaluate("""() => {
+        const box = getSelection().getRangeAt(0).getClientRects()[0];
+        getSelection().removeAllRanges();
+        return {x: box.x + box.width / 2, y: box.y + box.height / 2};
+    }""")
+    page.mouse.dblclick(point["x"], point["y"])
     page.keyboard.type("causality")
     assert mode(page) == "Suggest"
     assert "[-autoregressivity][+causality]" in view(page, "#prog")
     assert errors == []
 
 
+@pytest.mark.skipif(
+    BROWSER != "chromium", reason="IME injection requires Chromium's protocol"
+)
 def test_compositions(browser):
     """A dead key and a multi-step IME: the page's text is unchanged, one suggestion holds the result."""
     page, errors = open_page(browser)
@@ -211,11 +224,15 @@ def test_page_form_fields(browser):
     page.keyboard.type("abc")
     page.keyboard.press("Control+z")
     assert page.input_value("#field") != "abc"
-    cdp = page.context.new_cdp_session(page)
-    cdp.send(
-        "Input.imeSetComposition", {"text": "´", "selectionStart": 1, "selectionEnd": 1}
-    )
-    cdp.send("Input.insertText", {"text": "é"})
+    if BROWSER == "chromium":
+        cdp = page.context.new_cdp_session(page)
+        cdp.send(
+            "Input.imeSetComposition",
+            {"text": "´", "selectionStart": 1, "selectionEnd": 1},
+        )
+        cdp.send("Input.insertText", {"text": "é"})
+    else:
+        page.keyboard.insert_text("é")
     page.wait_for_timeout(300)
     assert "é" in page.input_value("#field")
     assert [a["replacement"] for a in page.evaluate(STORED)] == ["x"]

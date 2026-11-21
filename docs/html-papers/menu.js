@@ -25,8 +25,19 @@
  */
 (function () {
   const root = document.documentElement;
-  const store = (key, value) => { try { value === null ? localStorage.removeItem(key) : localStorage.setItem(key, value); } catch (e) { /* no storage: not remembered */ } };
-  const recall = (key) => { try { return localStorage.getItem(key); } catch (e) { return null; } };
+  // JSON null records a reset, so an old unprefixed preference cannot return later.
+  // Legacy keys are left intact: another page on this origin may still use them.
+  const PREF = 'html-papers:v1:';
+  const store = (key, value) => { try { localStorage.setItem(PREF + key, JSON.stringify(value)); } catch (e) { /* no storage */ } };
+  const recall = (key) => {
+    try {
+      const saved = localStorage.getItem(PREF + key);
+      if (saved !== null) return JSON.parse(saved);
+      const legacy = localStorage.getItem(key);
+      store(key, legacy);
+      return legacy;
+    } catch (e) { return null; }
+  };
   const moved = () => document.dispatchEvent(new Event('doclayout'));
 
   // this script's own options, applied now
@@ -65,9 +76,11 @@
   document.body.append(menu);
 
   const shown = (v, o) => (o.unit ? (Math.round(v * 10) / 10) + ' ' + o.unit : String(v));
+  let controls = [];
   function render() {
     const focused = [...menu.querySelectorAll('input, button')].indexOf(document.activeElement);
     menu.textContent = '';
+    controls = [];
     const top = document.createElement('div');
     top.className = 'menu-top';
     top.innerHTML = '<b>Settings</b><button type="button" class="menu-close" aria-label="Close">×</button>';
@@ -81,8 +94,9 @@
       text.textContent = o.label;
       if (o.key) { const k = document.createElement('kbd'); k.textContent = o.key; text.append(' ', k); }
       const input = document.createElement('input');
+      let out = null;
       if (o.type === 'range') {
-        const out = document.createElement('output');
+        out = document.createElement('output');
         input.type = 'range';
         input.min = o.min; input.max = o.max; input.step = o.step || 1;
         input.value = o.get();
@@ -96,6 +110,7 @@
         input.addEventListener('change', () => { o.set(input.checked); render(); });  // one option may change what another can be
         row.append(input, text);
       }
+      controls.push({ option: o, input, out });
       menu.append(row);
     }
     const foot = document.createElement('div');
@@ -122,6 +137,26 @@
     if (before instanceof HTMLElement && before.isConnected) before.focus();
   }
   const toggle = () => (menu.hidden ? open() : close());
+
+  // External changes (E, column dragging, resizing) update values without replacing the
+  // focused control. Rebuild only when the set of available options changes.
+  let refreshFrame = 0;
+  function refreshSoon() {
+    if (menu.hidden || refreshFrame) return;
+    refreshFrame = requestAnimationFrame(() => {
+      refreshFrame = 0;
+      if (menu.hidden) return;
+      const available = options.filter((o) => !o.available || o.available());
+      if (available.length !== controls.length || available.some((o, i) => controls[i].option !== o)) { render(); return; }
+      for (const { option: o, input, out } of controls) {
+        if (out) { input.value = o.get(); out.textContent = shown(o.get(), o); }
+        else input.checked = !!o.get();
+      }
+    });
+  }
+  document.addEventListener('doclayout', refreshSoon);
+  addEventListener('resize', refreshSoon);
+  new MutationObserver(refreshSoon).observe(root, { attributes: true, attributeFilter: ['class'] });
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') { close(); return; }

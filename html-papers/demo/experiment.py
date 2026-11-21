@@ -15,15 +15,12 @@ from collections import Counter
 from pathlib import Path
 
 from model import NGram
+from settings import CONTINUE, END, K, ORDERS, tokenize
 from svgplot import Chart, Series, write
 
 HERE: Path = Path(__file__).parent
-ORDERS: list[int] = [1, 2, 3, 4]
-K: float = 0.01  # the smoothing constant of the table and the first figure
 KS: list[float] = [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0, 3.0, 10.0]
 HELD_OUT_EVERY: int = 5  # every fifth sentence is held out
-CONTINUE: int = 14  # words each model adds to the prompt
-END: str = "."  # the end of a sentence, counted as a word
 
 
 def term_texts(yaml: str) -> dict[str, str]:
@@ -48,7 +45,7 @@ def words_of(markdown: str, terms: dict[str, str]) -> list[str]:
     text = re.sub(r"\\term\[([^\]]*)\]\{[^}]*\}", r"\1", text)
     text = re.sub(r"\\term\{([^}]*)\}", lambda m: terms[m[1]], text)
     text = re.sub(r"\\[A-Za-z]+(\{[^}]*\})?|\{[^}]*\}|https?://\S+", " ", text)
-    return re.findall(r"[a-z]+(?:[-'][a-z]+)*|\.", text.lower())
+    return tokenize(text)
 
 
 def split(words: list[str]) -> tuple[list[str], list[str]]:
@@ -176,6 +173,7 @@ def main() -> None:
 
     # the table: markdown, included by paper.md
     rows: list[str] = [
+        '::: {table-header-rows="1"}\n',
         "| order | training text | held-out text | contexts seen in training |",
         "|:--|--:|--:|--:|",
         f"| **words** | {len(train):,} | {len(held_out):,} | |",
@@ -190,7 +188,7 @@ def main() -> None:
         f"\n: \\term[Loss]{{loss}} in bits per word of each \\term{{ngram}} on the two texts,"
         f" with \\term{{smoothing}} $k = {K:g}$. The models know {vocabulary - 2:,} different"
         " words. The last column is the share of held-out words whose context the model had"
-        " counted. \\label{tab:loss}\n\n"
+        " counted. \\label{tab:loss}\n\n:::\n\n"
         f"[^guessing]: Hardly better than guessing equally among the {vocabulary:,} things a"
         " model can predict (its words, the end of a sentence and a stand-in for any other"
         f" word), which costs {uniform:.2f} bits.\n"

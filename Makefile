@@ -37,6 +37,11 @@ test-html:
 test-html-firefox:
 	HTML_PAPERS_BROWSER=firefox uv run pytest html-papers/tests -v
 
+# WebKit engine coverage (once: uv run playwright install --with-deps webkit)
+.PHONY: test-html-webkit
+test-html-webkit:
+	HTML_PAPERS_BROWSER=webkit uv run pytest html-papers/tests -v
+
 # the demo paper's runnable code in the real Python, fetched from its CDN (needs the network)
 .PHONY: test-html-pyodide
 test-html-pyodide:
@@ -115,4 +120,4 @@ demo-html-papers-copy:
 	rm -rf $(HTML_PAPERS_BUILD)
 	mkdir -p $(HTML_PAPERS_BUILD)
 	cp -r html-papers/demo/. $(HTML_PAPERS_BUILD)/
-	cp html-papers/*.js html-papers/*.css html-papers/numeric.csl html-papers/README.md $(HTML_PAPERS_BUILD)/
+	cp html-papers/*.js html-papers/*.css html-papers/numeric.csl html-papers/COPYING.review html-papers/README.md $(HTML_PAPERS_BUILD)/

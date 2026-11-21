@@ -240,10 +240,11 @@ def _run_code(main, stdin):
       loading.set(url, new Promise((resolve, reject) => {
         const script = document.createElement('script');
         script.src = url;
-        script.onload = () => (renderers.has(url) ? resolve(renderers.get(url)) : reject(new Error(src + ' did not call RunCode.render')));
-        script.onerror = () => reject(new Error(src + ' could not be loaded'));
+        const failed = (message) => { script.remove(); reject(new Error(message)); };
+        script.onload = () => (renderers.has(url) ? resolve(renderers.get(url)) : failed(src + ' did not call RunCode.render'));
+        script.onerror = () => failed(src + ' could not be loaded');
         document.head.append(script);
-      }));
+      }).catch((error) => { loading.delete(url); throw error; }));
     }
     return loading.get(url);
   }
@@ -273,7 +274,7 @@ def _run_code(main, stdin):
     opener.title = 'Edit this code and run it here';
     block.append(opener);
 
-    const panel = make('div', 'run-panel');
+    const panel = chrome(make('div', 'run-panel'));
     const tabs = make('div', 'run-tabs');
     tabs.setAttribute('role', 'tablist');
     // The code: a box that scrolls, holding the text twice, one on the other. Under: the text
@@ -438,7 +439,6 @@ def _run_code(main, stdin):
         note.addEventListener('noteclose', () => { if (note) { note = null; closed(); } });  // its own ×
         window.MarginNotes.place();
       } else {
-        chrome(panel);
         block.after(panel);
       }
       opener.setAttribute('aria-expanded', 'true');
@@ -449,5 +449,8 @@ def _run_code(main, stdin):
     opener.addEventListener('click', () => (panel.isConnected ? close() : open()));
   }
 
+  document.addEventListener('popups:preview', (event) => {
+    event.detail.box.querySelectorAll('.run-open, .run-panel').forEach((el) => el.remove());
+  });
   document.querySelectorAll('.run-block').forEach(setup);
 })();

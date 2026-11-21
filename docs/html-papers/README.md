@@ -147,6 +147,26 @@ Each file's header documents its markup, options and API. In short:
 pandoc writes the first four on its own; `html-papers.lua` writes the rest from markdown
 (`\term{name}`, a footnote in a table cell, `interactive-src` on an image).
 
+For additional table header rows, wrap one table in a fenced div:
+
+````markdown
+::: {table-header-rows="1"}
+
+| name | score |
+|---|---|
+| **sample count** | 100 |
+| first | 0.8 |
+
+: Scores.
+
+:::
+````
+
+The count is the number of leading body rows to move into the existing header, in both
+HTML and PDF. Bold cell text alone no longer promotes rows. Documents using the previous
+bold-first-cell rule should add this wrapper with the intended count. Footnotes in captions
+remain ordinary numbered footnotes; only cell footnotes become asterisks.
+
 ## Layout
 
 Three columns: the contents at the left, the text, and a side column at the right that holds
@@ -294,10 +314,9 @@ past the margin.
 
 ## How the scripts stay out of each other's way
 
-- Anything a script adds to the page carries `data-doc-chrome`: review.js does not treat it as
-  the document's text, popups.js does not look for anchors in it (other than in its own
-  notes), and it is `contenteditable="false"`, so review.js's Suggest mode cannot edit it.
-  (review.js's own panel is `#rv-host`, which it leaves out itself.)
+- Script controls carry `data-doc-chrome`; review.js excludes these, `.margin-note` and its
+  own `#rv-host` from the document's text. Notes stay excluded when placed inline on phones.
+  Controls and notes are `contenteditable="false"`. Notes still allow popup links inside them.
 - Each note carries `data-doc-avoid`: review.js's comment lines pass behind it, and
   `data-doc-reserve`: review.js's cards keep clear of it.
 - `html-papers.css` says where the side column is, in `--doc-side-left` and
@@ -398,6 +417,7 @@ panel. Standard library only.
 uv run playwright install chromium   # once
 make test-html
 make test-html-firefox               # the same in Firefox (once: uv run playwright install firefox)
+make test-html-webkit                # WebKit engine (once: uv run playwright install --with-deps webkit)
 make test-html-pyodide               # the demo's runnable code in the real Python (needs the network)
 ```
 
@@ -423,3 +443,16 @@ make test-html-pyodide               # the demo's runnable code in the real Pyth
 
 review.js was developed in [js-dev-toolkit](https://github.com/mivanit/js-dev-toolkit) and
 moved here on 2026-11-20 (from its commit 5ec127e). It is GPLv3, as it was there.
+The original license text is included in [COPYING.review](COPYING.review) and copied beside
+the published demo. This records review.js's existing license; it does not establish a
+repository-wide license for the other files.
+
+Browser tests select their engine with `HTML_PAPERS_BROWSER` (Chromium by default). Tap tests
+run in all three engines. Native swipe and IME injection tests still require Chromium's
+protocol and are explicitly skipped elsewhere. WebKit coverage is not a test of the Safari
+application or physical iOS devices.
+
+Page preferences use `html-papers:v1:` storage keys. Existing unprefixed values are copied on
+first read, then ignored; resetting a preference does not restore its legacy value. Legacy
+keys are left untouched for other pages. Layout preferences remain shared across papers on
+the same origin; open notes remain scoped to the document path.

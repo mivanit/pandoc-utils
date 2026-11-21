@@ -183,7 +183,7 @@
 	// through; `data-doc-reserve` = a box that cards keep clear of (a note in the
 	// column the cards share). A page that moves such boxes dispatches `doclayout` on document.
 	const OUTSIDE =
-		"script,style,noscript,template,annotation,#rv-host,[data-doc-chrome]" +
+		"script,style,noscript,template,annotation,#rv-host,[data-doc-chrome],.margin-note" +
 		(CFG.ignore ? "," + CFG.ignore : "");
 	const AVOID = "[data-doc-avoid]";
 	const RESERVE = "[data-doc-reserve]";
@@ -2657,6 +2657,7 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 		root.removeAttribute("data-rv-root");
 		document.documentElement.classList.remove("review-on");
 		document.documentElement.style.removeProperty("--review-width");
+		document.dispatchEvent(new Event("doclayout"));
 	}
 
 	// ==================================================================

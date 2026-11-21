@@ -85,7 +85,7 @@ one word of context helps so the model of order is the best .
 the last column of the table says why .
 the longer the context the less often the model has seen it and a model that has not seen the context knows nothing about the next word .
 the markdown of the table has two things that a plain table does not .
-a row whose first cell is bold joins the header which is where the word counts are .
+the table is wrapped in to put the word counts in the header bold row labels alone do not change the header .
 draws the same numbers .
 on the web page the figure is a picture until it is clicked .
 then it is a small live page with a slider for the smoothing constant and nothing is loaded before the click .

@@ -118,7 +118,7 @@ $$
 Here $c$ is the context, the $n - 1$ words before the word $w$, and $V$ is the number of different words. \autoref{fig:model} is the whole model. It is the file that the experiment imports.
 
 ::: {#fig:model .figure}
-```{.python include="model.py" run="continue_text.py" run-files="model.py generated/train.txt" run-stdin="the build" run-render="run/chips.js"}
+```{.python include="model.py" run="continue_text.py" run-files="model.py settings.py generated/train.txt" run-stdin="the build" run-render="run/chips.js"}
 ```
 
 The file `model.py`: the model, its \term{loss} and how it continues a text. On the web page, **Try it** runs it.
@@ -143,7 +143,7 @@ The code runs in the browser, in Python. The browser fetches Python the first ti
 \autoref{fig:sentence} is a second script, and here the script that is shown is the one that runs. It reads a sentence and prints the \term{loss} of each model on it. The build ran it on one sentence. The lines under the script are what it printed, and the PDF has the same lines.
 
 ::: {#fig:sentence .figure}
-```{.python include="sentence_loss.py" run="sentence_loss.py" run-files="model.py generated/train.txt" run-stdin-file="run/sentence.txt" run-output="generated/sentence-loss.txt"}
+```{.python include="sentence_loss.py" run="sentence_loss.py" run-files="model.py settings.py generated/train.txt" run-stdin-file="run/sentence.txt" run-output="generated/sentence-loss.txt"}
 ```
 
 The file `sentence_loss.py`, and under it what the script printed for one sentence when the build ran it.
@@ -161,7 +161,7 @@ The build writes everything in this section except the prose. The prose makes cl
 generated/results.md
 ```
 
-The markdown of the table has two things that a plain table does not. A row whose first cell is bold joins the header, which is where the word counts are. A footnote in a cell shows as an asterisk on the web page, and its note shows in the margin while the pointer is anywhere in the cell.
+The markdown of the table has two things that a plain table does not. The table is wrapped in `::: {table-header-rows="1"}` to put the word counts in the header; bold row labels alone do not change the header. A footnote in a cell shows as an asterisk on the web page, and its note shows in the margin while the pointer is anywhere in the cell.
 
 \autoref{fig:loss} draws the same numbers. On the web page the figure is a picture until it is clicked. Then it is a small live page with a slider for the \term{smoothing} constant, and nothing is loaded before the click. Moving the slider shows that the best order on the held-out text is not the same at every constant.
 

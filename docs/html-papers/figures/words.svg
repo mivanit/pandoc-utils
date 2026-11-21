@@ -9,27 +9,27 @@
 <path d="M435.3 272 v5" stroke="#222"/><text x="435.3" y="292" text-anchor="middle" fill="#222">100</text>
 <path d="M622.0 272 v5" stroke="#222"/><text x="622.0" y="292" text-anchor="middle" fill="#222">1000</text>
 <path d="M62 14 V272 H622" fill="none" stroke="#222" stroke-width="1.5"/><text x="342.0" y="312" text-anchor="middle" fill="#222">rank of the word (1 = most used)</text><text x="16" y="143.0" text-anchor="middle" fill="#222" transform="rotate(-90 16 143.0)">times used</text>
-<circle cx="62.0" cy="50.5" r="3.2" fill="#3b5a8c"/>
-<circle cx="118.2" cy="89.9" r="3.2" fill="#3b5a8c"/>
+<circle cx="62.0" cy="50.3" r="3.2" fill="#3b5a8c"/>
+<circle cx="118.2" cy="90.2" r="3.2" fill="#3b5a8c"/>
 <circle cx="151.1" cy="106.1" r="3.2" fill="#3b5a8c"/>
-<circle cx="174.4" cy="107.0" r="3.2" fill="#3b5a8c"/>
+<circle cx="174.4" cy="107.4" r="3.2" fill="#3b5a8c"/>
 <circle cx="192.5" cy="113.3" r="3.2" fill="#3b5a8c"/>
 <circle cx="207.3" cy="114.4" r="3.2" fill="#3b5a8c"/>
-<circle cx="219.8" cy="120.3" r="3.2" fill="#3b5a8c"/>
+<circle cx="219.8" cy="119.1" r="3.2" fill="#3b5a8c"/>
 <circle cx="230.6" cy="126.6" r="3.2" fill="#3b5a8c"/>
 <circle cx="240.1" cy="128.2" r="3.2" fill="#3b5a8c"/>
 <circle cx="248.7" cy="129.8" r="3.2" fill="#3b5a8c"/>
-<circle cx="256.4" cy="141.4" r="3.2" fill="#3b5a8c"/>
+<circle cx="256.4" cy="140.3" r="3.2" fill="#3b5a8c"/>
 <circle cx="263.4" cy="142.6" r="3.2" fill="#3b5a8c"/>
 <circle cx="269.9" cy="148.9" r="3.2" fill="#3b5a8c"/>
-<circle cx="275.9" cy="151.8" r="3.2" fill="#3b5a8c"/>
+<circle cx="275.9" cy="153.3" r="3.2" fill="#3b5a8c"/>
 <circle cx="281.5" cy="153.3" r="3.2" fill="#3b5a8c"/>
 <circle cx="286.8" cy="153.3" r="3.2" fill="#3b5a8c"/>
 <circle cx="291.7" cy="153.3" r="3.2" fill="#3b5a8c"/>
 <circle cx="296.3" cy="158.3" r="3.2" fill="#3b5a8c"/>
 <circle cx="300.7" cy="162.0" r="3.2" fill="#3b5a8c"/>
 <circle cx="304.9" cy="162.0" r="3.2" fill="#3b5a8c"/>
-<circle cx="308.8" cy="164.0" r="3.2" fill="#3b5a8c"/>
+<circle cx="308.8" cy="162.0" r="3.2" fill="#3b5a8c"/>
 <circle cx="312.6" cy="164.0" r="3.2" fill="#3b5a8c"/>
 <circle cx="316.2" cy="164.0" r="3.2" fill="#3b5a8c"/>
 <circle cx="319.6" cy="166.2" r="3.2" fill="#3b5a8c"/>
@@ -55,10 +55,10 @@
 <circle cx="368.8" cy="182.4" r="3.2" fill="#3b5a8c"/>
 <circle cx="370.6" cy="182.4" r="3.2" fill="#3b5a8c"/>
 <circle cx="372.4" cy="182.4" r="3.2" fill="#3b5a8c"/>
-<circle cx="374.1" cy="182.4" r="3.2" fill="#3b5a8c"/>
+<circle cx="374.1" cy="186.0" r="3.2" fill="#3b5a8c"/>
 <circle cx="375.8" cy="186.0" r="3.2" fill="#3b5a8c"/>
 <circle cx="377.5" cy="186.0" r="3.2" fill="#3b5a8c"/>
-<circle cx="379.1" cy="189.9" r="3.2" fill="#3b5a8c"/>
+<circle cx="379.1" cy="186.0" r="3.2" fill="#3b5a8c"/>
 <circle cx="380.7" cy="189.9" r="3.2" fill="#3b5a8c"/>
 <circle cx="382.3" cy="189.9" r="3.2" fill="#3b5a8c"/>
 <circle cx="383.9" cy="194.3" r="3.2" fill="#3b5a8c"/>
@@ -71,7 +71,7 @@
 <circle cx="393.9" cy="194.3" r="3.2" fill="#3b5a8c"/>
 <circle cx="395.3" cy="194.3" r="3.2" fill="#3b5a8c"/>
 <circle cx="396.6" cy="194.3" r="3.2" fill="#3b5a8c"/>
-<circle cx="397.9" cy="199.3" r="3.2" fill="#3b5a8c"/>
+<circle cx="397.9" cy="194.3" r="3.2" fill="#3b5a8c"/>
 <circle cx="399.2" cy="199.3" r="3.2" fill="#3b5a8c"/>
 <circle cx="400.4" cy="199.3" r="3.2" fill="#3b5a8c"/>
 <circle cx="401.6" cy="199.3" r="3.2" fill="#3b5a8c"/>
@@ -100,7 +100,7 @@
 <circle cx="425.9" cy="205.1" r="3.2" fill="#3b5a8c"/>
 <circle cx="426.8" cy="205.1" r="3.2" fill="#3b5a8c"/>
 <circle cx="427.7" cy="205.1" r="3.2" fill="#3b5a8c"/>
-<circle cx="428.6" cy="205.1" r="3.2" fill="#3b5a8c"/>
+<circle cx="428.6" cy="211.9" r="3.2" fill="#3b5a8c"/>
 <circle cx="429.5" cy="211.9" r="3.2" fill="#3b5a8c"/>
 <circle cx="430.3" cy="211.9" r="3.2" fill="#3b5a8c"/>
 <circle cx="431.2" cy="211.9" r="3.2" fill="#3b5a8c"/>
@@ -162,8 +162,8 @@
 <circle cx="468.7" cy="220.2" r="3.2" fill="#3b5a8c"/>
 <circle cx="469.3" cy="220.2" r="3.2" fill="#3b5a8c"/>
 <circle cx="469.8" cy="220.2" r="3.2" fill="#3b5a8c"/>
-<circle cx="470.3" cy="220.2" r="3.2" fill="#3b5a8c"/>
-<circle cx="470.9" cy="220.2" r="3.2" fill="#3b5a8c"/>
+<circle cx="470.3" cy="231.0" r="3.2" fill="#3b5a8c"/>
+<circle cx="470.9" cy="231.0" r="3.2" fill="#3b5a8c"/>
 <circle cx="471.4" cy="231.0" r="3.2" fill="#3b5a8c"/>
 <circle cx="471.9" cy="231.0" r="3.2" fill="#3b5a8c"/>
 <circle cx="472.4" cy="231.0" r="3.2" fill="#3b5a8c"/>
@@ -196,8 +196,8 @@
 <circle cx="485.2" cy="231.0" r="3.2" fill="#3b5a8c"/>
 <circle cx="485.6" cy="231.0" r="3.2" fill="#3b5a8c"/>
 <circle cx="486.1" cy="231.0" r="3.2" fill="#3b5a8c"/>
-<circle cx="486.5" cy="246.1" r="3.2" fill="#3b5a8c"/>
-<circle cx="486.9" cy="246.1" r="3.2" fill="#3b5a8c"/>
+<circle cx="486.5" cy="231.0" r="3.2" fill="#3b5a8c"/>
+<circle cx="486.9" cy="231.0" r="3.2" fill="#3b5a8c"/>
 <circle cx="487.4" cy="246.1" r="3.2" fill="#3b5a8c"/>
 <circle cx="487.8" cy="246.1" r="3.2" fill="#3b5a8c"/>
 <circle cx="488.2" cy="246.1" r="3.2" fill="#3b5a8c"/>
@@ -291,7 +291,7 @@
 <circle cx="518.8" cy="246.1" r="3.2" fill="#3b5a8c"/>
 <circle cx="519.1" cy="246.1" r="3.2" fill="#3b5a8c"/>
 <circle cx="519.4" cy="246.1" r="3.2" fill="#3b5a8c"/>
-<circle cx="519.7" cy="272.0" r="3.2" fill="#3b5a8c"/>
+<circle cx="519.7" cy="246.1" r="3.2" fill="#3b5a8c"/>
 <circle cx="520.0" cy="272.0" r="3.2" fill="#3b5a8c"/>
 <circle cx="520.2" cy="272.0" r="3.2" fill="#3b5a8c"/>
 <circle cx="520.5" cy="272.0" r="3.2" fill="#3b5a8c"/>
@@ -529,7 +529,8 @@
 <circle cx="568.7" cy="272.0" r="3.2" fill="#3b5a8c"/>
 <circle cx="568.8" cy="272.0" r="3.2" fill="#3b5a8c"/>
 <circle cx="569.0" cy="272.0" r="3.2" fill="#3b5a8c"/>
-<path d="M62.0 50.5 L542.7 272.0" fill="none" stroke="#888888" stroke-width="2.2" stroke-dasharray="6 4"/>
+<circle cx="569.1" cy="272.0" r="3.2" fill="#3b5a8c"/>
+<path d="M62.0 50.3 L543.1 272.0" fill="none" stroke="#888888" stroke-width="2.2" stroke-dasharray="6 4"/>
 <rect x="400" y="18" width="216" height="44" fill="white" fill-opacity="0.9"/>
 <circle cx="420" cy="32" r="3.2" fill="#3b5a8c"/>
 <text x="442" y="36" fill="#222">each word of the paper</text>

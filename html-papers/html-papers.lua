@@ -17,8 +17,8 @@
 --   is one figure, images side by side as (a), (b), ...; each image keeps its own id.
 -- - A figure of anything: `::: {#fig:x .figure}` holding blocks then one caption paragraph is
 --   one numbered figure (a code listing with a caption, say).
--- - Tables: leading body rows whose first cell is all bold join the header, so the header's
---   rule falls under them (a pipe table has a one-row header). HTML: a footnote in a cell
+-- - Tables: wrap a table in `::: {table-header-rows="1"}` to move that many leading body
+--   rows into its header (a pipe table already has a one-row header). HTML: a footnote in a cell
 --   becomes a `*` whose text popups.js shows in the margin; the PDF keeps the footnote.
 -- - Live figures (HTML): `![caption](static.svg){#fig:x interactive-src="page.html"
 --   interactive-height="400"}` shows the static image until clicked (live-figures.js). Also
@@ -33,7 +33,7 @@
 --   label becomes that term.
 -- - Code that runs (HTML): a code block with `run="driver.py"` gets a Run button
 --   (run-code.js): the reader edits the code, gives it input and runs it in the page, in
---   Python (Pyodide, fetched when Run is first pressed). The block shows its own code; the
+--   Python (Pyodide, fetched when Try it is first pressed). The block shows its own code; the
 --   file named by `run` is what runs, so the two can differ (a listing of a module, run
 --   through a driver that reads the input and prints). `run=""`, or the class `.run`, runs
 --   the block's own code. Also:
@@ -170,24 +170,34 @@ end
 
 -- ---------------------------------------------------------------------------------------
 -- tables
-local function bold_rows_to_header(tbl)
+local function table_headers(div)
+  local count = div.attributes['table-header-rows']
+  if not count then return end
+  assert(count:match('^%d+$') and #div.content == 1 and div.content[1].t == 'Table',
+    'table-header-rows needs a nonnegative integer and a div containing one table')
+  local tbl = div.content[1]
   local body = tbl.bodies[1]
-  local moved = false
-  while body and #body.body > 0 do
-    local first = body.body[1].cells[1].contents
-    if not (#first == 1 and #first[1].content == 1 and first[1].content[1].t == 'Strong') then break end
+  count = tonumber(count)
+  assert(count <= (body and #body.body or 0), 'table-header-rows exceeds the first table body')
+  for _ = 1, count do
     tbl.head.rows:insert(body.body:remove(1))
-    moved = true
   end
-  if moved then return tbl end
+  div.content[1] = tbl
+  div.attributes['table-header-rows'] = nil
+  return div
 end
 
 local function table_notes(tbl)
-  return tbl:walk({Note = function(note)
+  -- Captions keep ordinary numbered footnotes. Only notes inside cells become cell notes.
+  local caption = tbl.caption
+  tbl.caption = pandoc.Caption()
+  tbl = tbl:walk({Note = function(note)
     return pandoc.Span({pandoc.Superscript({pandoc.Str('*')}),
       pandoc.Span(pandoc.utils.blocks_to_inlines(note.content), pandoc.Attr('', {'cell-note-body'}, {hidden = ''}))},
       pandoc.Attr('', {'cell-note'}))
   end})
+  tbl.caption = caption
+  return tbl
 end
 
 -- ---------------------------------------------------------------------------------------
@@ -262,7 +272,8 @@ end
 -- An unknown name is an error (both builds call this).
 local function parse_term(raw)
   local rest = raw.text:match('^\\term(.*)$')
-  if not rest then return nil end
+  if not rest or rest:match('^%a') then return nil end
+  rest = rest:gsub('^%s+', '')
   local shown = rest:match('^(%b[])')
   if shown then rest = rest:sub(#shown + 1) end
   local braced = rest:match('^(%b{})')
@@ -474,9 +485,9 @@ local function run_code(cb)
   cb.classes = cb.classes:filter(function(c) return c ~= 'run' end)
   local blocks = {cb}
   if HTML then
-    -- "</" would end the script element early
+    -- Escape every '<': '<!-- <script>' also changes HTML's script parsing state.
     blocks[#blocks + 1] = pandoc.RawBlock('html', '<script type="application/json" class="run-data">'
-      .. pandoc.json.encode(data):gsub('</', '<\\/') .. '</script>')
+      .. pandoc.json.encode(data):gsub('<', '\\u003c') .. '</script>')
   end
   if output then
     if not HTML then blocks[#blocks + 1] = pandoc.RawBlock('latex', '\\noindent{\\small\\textit{Output:}}') end
@@ -540,7 +551,7 @@ function Pandoc(doc)
   doc = doc:walk({Div = subfigures})
   doc = doc:walk({Div = figure_div})
   doc = doc:walk({Div = generations})
-  doc = doc:walk({Table = bold_rows_to_header})
+  doc = doc:walk({Div = table_headers})
 
   if not HTML then
     -- check term names here too, so a typo fails with its name rather than a LaTeX error

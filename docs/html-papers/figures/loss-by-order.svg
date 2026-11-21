@@ -16,9 +16,9 @@
 <circle cx="248.7" cy="174.6" r="3.2" fill="#3b5a8c"/>
 <circle cx="435.3" cy="201.7" r="3.2" fill="#3b5a8c"/>
 <circle cx="622.0" cy="207.1" r="3.2" fill="#3b5a8c"/>
-<path d="M62.0 72.0 L248.7 86.7 L435.3 67.1 L622.0 53.7" fill="none" stroke="#a8842c" stroke-width="2.2"/>
-<circle cx="62.0" cy="72.0" r="3.2" fill="#a8842c"/>
-<circle cx="248.7" cy="86.7" r="3.2" fill="#a8842c"/>
+<path d="M62.0 71.1 L248.7 87.3 L435.3 67.1 L622.0 53.7" fill="none" stroke="#a8842c" stroke-width="2.2"/>
+<circle cx="62.0" cy="71.1" r="3.2" fill="#a8842c"/>
+<circle cx="248.7" cy="87.3" r="3.2" fill="#a8842c"/>
 <circle cx="435.3" cy="67.1" r="3.2" fill="#a8842c"/>
 <circle cx="622.0" cy="53.7" r="3.2" fill="#a8842c"/>
 <path d="M62.0 42.6 L622.0 42.6" fill="none" stroke="#888888" stroke-width="2.2" stroke-dasharray="6 4"/>

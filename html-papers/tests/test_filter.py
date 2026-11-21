@@ -57,12 +57,16 @@ A listing with a caption.
 Two images.
 :::
 
+::: {table-header-rows="1"}
+
 | name | score |
 |:--|--:|
 | **tried** | 12 |
 | one | 0.5[^cell] |
 
 : Scores of the \term{widget}. \label{tab:scores}
+
+:::
 
 [^cell]: One run only.
 """
@@ -205,6 +209,55 @@ def test_table_header_rows_and_cell_notes(html: str) -> None:
         in html
     )
     assert "footnote-ref" not in html  # the table's note left the numbered footnotes
+
+
+@pytest.mark.parametrize("to", ["html5", "latex"])
+def test_bold_row_labels_stay_in_the_body(folder: Path, to: str) -> None:
+    result = build(
+        folder, to, "| name | score |\n|---|---|\n| **one** | 1 |\n| **two** | 2 |\n"
+    )
+    assert result.returncode == 0, result.stderr
+    if to == "html5":
+        body = result.stdout.split("<tbody>")[1].split("</tbody>")[0]
+        assert body.count("<tr") == 2 and "one" in body and "two" in body
+    else:
+        assert result.stdout.index("\\endhead") < result.stdout.index("\\textbf{one}")
+
+
+@pytest.mark.parametrize("to", ["html5", "latex"])
+@pytest.mark.parametrize("cell", [r"\term{widget}", "```python\nprint(1)\n```"])
+def test_grid_table_block_cells_build(folder: Path, to: str, cell: str) -> None:
+    border = "+" + "-" * 30 + "+-------+\n"
+    rows = "".join("|" + line.ljust(30) + "| 1     |\n" for line in cell.splitlines())
+    source = (
+        "# Widgets {#sec:widgets}\n\n"
+        + border
+        + "|name                          | score |\n"
+        + border.replace("-", "=")
+        + rows
+        + border
+    )
+    result = build(folder, to, source)
+    assert result.returncode == 0, result.stderr
+    assert ("widget" if cell.startswith("\\term") else "print") in result.stdout
+
+
+@pytest.mark.parametrize("to", ["html5", "latex"])
+def test_term_prefix_does_not_capture_other_macros(folder: Path, to: str) -> None:
+    result = build(folder, to, r"A \terminal{hello} and \terminate{world}.")
+    assert result.returncode == 0, result.stderr
+    if to == "latex":
+        assert r"\terminal{hello}" in result.stdout
+
+
+def test_invalid_header_row_counts_fail_clearly(folder: Path) -> None:
+    for count in ("-1", "many", "2"):
+        result = build(
+            folder,
+            "html5",
+            f'::: {{table-header-rows="{count}"}}\n\n| A |\n|---|\n| B |\n\n:::\n',
+        )
+        assert result.returncode != 0 and "table-header-rows" in result.stderr
 
 
 def test_figures_of_blocks_subfigures_and_live_figures(html: str) -> None:

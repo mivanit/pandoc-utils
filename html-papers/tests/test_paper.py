@@ -224,7 +224,10 @@ def test_contents_are_a_column_until_unpinned(page: Page) -> None:
     page.wait_for_timeout(300)
     assert not has_class(page, "toc-open")
     # remembered: stored, and a page that finds it stored starts unpinned
-    assert page.evaluate("localStorage.getItem('toc-pinned')") == ""
+    assert (
+        page.evaluate("JSON.parse(localStorage.getItem('html-papers:v1:toc-pinned'))")
+        == ""
+    )
     later: Page = fresh_page(page)
     later.add_init_script("localStorage.setItem('toc-pinned', '')")
     later.goto(PAPER)
@@ -261,7 +264,7 @@ def test_column_edges_drag_and_are_remembered(page: Page) -> None:
     assert page.evaluate(OVERFLOW) == 0
     # remembered: both widths are stored (in rem), and a page that finds them stored has them
     stored: list[str] = page.evaluate(
-        "[localStorage.getItem('side-width'), localStorage.getItem('toc-width')]"
+        "[JSON.parse(localStorage.getItem('html-papers:v1:side-width')), JSON.parse(localStorage.getItem('html-papers:v1:toc-width'))]"
     )
     assert (
         abs(float(stored[0]) * 16 - wider) < 2
@@ -291,7 +294,7 @@ def test_column_edges_drag_and_are_remembered(page: Page) -> None:
     assert abs(page.evaluate(RECT, "margin-notes")["width"] - side) < 2
     assert abs(page.evaluate(RECT, "toc-nav")["width"] - toc) < 2
     assert page.evaluate(
-        "[localStorage.getItem('side-width'), localStorage.getItem('toc-width')]"
+        "[JSON.parse(localStorage.getItem('html-papers:v1:side-width')), JSON.parse(localStorage.getItem('html-papers:v1:toc-width'))]"
     ) == [None, None]
 
 
@@ -496,7 +499,9 @@ def test_pinned_notes_are_remembered(page: Page) -> None:
     page.mouse.move(700, 880, steps=5)
     before: list[dict] = notes(page)
     assert len(before) == 3 and all(n["key"] != "hover" for n in before)
-    stored: str = page.evaluate(f"localStorage.getItem({key})")
+    stored: str = page.evaluate(
+        f"JSON.parse(localStorage.getItem('html-papers:v1:' + {key}))"
+    )
     assert stored.count("#tab:scores") == 1 and "doe2020" in stored
     # a later visit that finds them stored has the same notes, the table's under the section's
     later: Page = fresh_page(page)
@@ -511,11 +516,15 @@ def test_pinned_notes_are_remembered(page: Page) -> None:
     later.close()
     # closing one forgets it; closing all, or turning it off in the menu, forgets everything
     page.click(".margin-note .note-close")
-    assert "doe2020" not in page.evaluate(f"localStorage.getItem({key})")
+    assert "doe2020" not in page.evaluate(
+        f"JSON.parse(localStorage.getItem('html-papers:v1:' + {key}))"
+    )
     page.keyboard.press("m")
     page.locator("#doc-menu .menu-row", has_text="Remember").locator("input").click()
     assert (
-        page.evaluate(f"localStorage.getItem({key})") is None and len(notes(page)) == 2
+        page.evaluate(f"JSON.parse(localStorage.getItem('html-papers:v1:' + {key}))")
+        is None
+        and len(notes(page)) == 2
     )
 
 
@@ -547,11 +556,16 @@ def test_the_menu_lists_what_the_scripts_let_the_reader_change(page: Page) -> No
     page.keyboard.press("m")
     row("Lines").click()
     assert has_class(page, "lines-off") and page.evaluate(LINES) == []
-    assert page.evaluate("localStorage.getItem('lines')") == "0"
+    assert (
+        page.evaluate("JSON.parse(localStorage.getItem('html-papers:v1:lines'))") == "0"
+    )
     # the text's width: as asked, where the window has the room
     row("Text width").fill("50")
     assert abs(page.evaluate(RECT, "p-intro")["width"] - 50 * 16) < 2
-    assert page.evaluate("localStorage.getItem('text-width')") == "50"
+    assert (
+        page.evaluate("JSON.parse(localStorage.getItem('html-papers:v1:text-width'))")
+        == "50"
+    )
     # hover notes off: nothing opens under a resting pointer; a click opens the note instead
     row("pointer rests").click()
     page.keyboard.press("Escape")
@@ -577,7 +591,7 @@ def test_the_menu_lists_what_the_scripts_let_the_reader_change(page: Page) -> No
     assert abs(page.evaluate(RECT, "p-intro")["width"] - 44 * 16) < 2
     assert (
         page.evaluate(
-            "['lines', 'text-width', 'notes-hover', 'side-width', 'toc-width'].map(k => localStorage.getItem(k))"
+            "['lines', 'text-width', 'notes-hover', 'side-width', 'toc-width'].map(k => JSON.parse(localStorage.getItem('html-papers:v1:' + k)))"
         )
         == [None] * 5
     )
@@ -806,7 +820,7 @@ def test_code_runs_in_a_panel_beside_the_text(page: Page) -> None:
     page.click("#run-one .run-open")
     assert len(notes(page)) == 1
     assert "run" not in page.evaluate(
-        "localStorage.getItem('notes-open:' + location.pathname)"
+        "JSON.parse(localStorage.getItem('html-papers:v1:notes-open:' + location.pathname))"
     )
     # the other block: its own code, shown as printed, with the figure it drew and its packages
     page.click("#run-two .run-open")
@@ -901,8 +915,12 @@ def test_live_figure_opens_and_closes_from_the_keyboard(page: Page) -> None:
             const active = document.activeElement;
             return active === document.body || active.closest('.figure-sheet') !== null;
         }""")  # Tab may visit browser chrome, but never the page behind the modal
-    # Keystrokes inside an iframe belong to that page; Shift+Tab reaches our Close button.
-    page.keyboard.press("Shift+Tab")
+    # Engines differ in whether browser chrome and the iframe add a stop to this cycle.
+    # Walk backwards to Close instead of assuming it is exactly one stop away.
+    for _ in range(8):
+        page.keyboard.press("Shift+Tab")
+        if page.locator(".sheet-close").evaluate("el => el === document.activeElement"):
+            break
     expect(page.locator(".sheet-close")).to_be_focused()
     page.keyboard.press("Escape")
     expect(opener).to_be_focused()

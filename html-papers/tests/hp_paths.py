@@ -15,4 +15,5 @@ SHARED: list[str] = [
     *sorted(p.name for p in HTML_PAPERS.glob("*.js")),
     *sorted(p.name for p in HTML_PAPERS.glob("*.css")),
     "numeric.csl",
+    "COPYING.review",
 ]

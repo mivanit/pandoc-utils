@@ -61,8 +61,19 @@
   tab.firstChild.textContent = TITLE;
   document.body.append(tab, nav);
   const pin = nav.querySelector('.toc-pin');
-  const remember = (key, value) => { try { value === null ? localStorage.removeItem(key) : localStorage.setItem(key, value); } catch (e) { /* no storage: not remembered */ } };
-  const recall = (key) => { try { return localStorage.getItem(key); } catch (e) { return null; } };
+  // JSON null records a reset, so an old unprefixed preference cannot return later.
+  // Legacy keys are left intact: another page on this origin may still use them.
+  const PREF = 'html-papers:v1:';
+  const remember = (key, value) => { try { localStorage.setItem(PREF + key, JSON.stringify(value)); } catch (e) { /* no storage */ } };
+  const recall = (key) => {
+    try {
+      const saved = localStorage.getItem(PREF + key);
+      if (saved !== null) return JSON.parse(saved);
+      const legacy = localStorage.getItem(key);
+      remember(key, legacy);
+      return legacy;
+    } catch (e) { return null; }
+  };
   const moved = () => document.dispatchEvent(new Event('doclayout'));  // the text is somewhere else now
   function setPinned(on, keep) {
     root.classList.toggle('toc-pinned', on);
@@ -112,7 +123,7 @@
   (window.DocOptions = window.DocOptions || []).push(
     { label: 'Contents as a column', type: 'toggle', default: true,
       get: () => root.classList.contains('toc-pinned'), set: (on) => setPinned(on, true) },
-    { label: 'Contents width', type: 'range', min: TOC_MIN, max: 40, step: 0.5, unit: 'rem', available: docked,
+    { label: 'Contents width', type: 'range', min: TOC_MIN, max: TOC_MAX, step: 0.5, unit: 'rem', available: docked,
       get: () => nav.offsetWidth / rem(), set: (v) => { setWidth(v * rem()); remember('toc-width', String(v)); moved(); }, reset: resetWidth },
   );
   function accessible() {

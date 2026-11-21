@@ -47,7 +47,7 @@
  *   `place` is called with each one's top (review.js: its comment cards);
  * - a `popups:preview` event on document, `detail: {box, target}`, before a preview's copy is
  *   shown: change `box` to fix up the copy (drop an iframe, say);
- * - with review.js: everything added here is `data-doc-chrome` (not the document's text), each
+ * - with review.js: controls are `data-doc-chrome`, notes are `.margin-note` (both excluded), each
  *   note is `data-doc-avoid` and `data-doc-reserve` (for a review.js that places its own
  *   cards: its lines pass behind such a box and its cards keep clear of it), and a `doclayout`
  *   event on document follows every layout. One from another script (contents.js moved the
@@ -62,8 +62,19 @@
   const FIT_MIN = 0.3;  // a figure in a preview is scaled down to this, no further
   const SIDE_MIN = 10, SIDE_MAX = 80;  // rem: how far the side column drags (html-papers.css keeps the text its least width)
   const GAP = 10;  // px between one box in the column and the next
-  const store = (key, value) => { try { value === null ? localStorage.removeItem(key) : localStorage.setItem(key, value); } catch (e) { /* no storage: not remembered */ } };
-  const recall = (key) => { try { return localStorage.getItem(key); } catch (e) { return null; } };
+  // JSON null records a reset, so an old unprefixed preference cannot return later.
+  // Legacy keys are left intact: another page on this origin may still use them.
+  const PREF = 'html-papers:v1:';
+  const store = (key, value) => { try { localStorage.setItem(PREF + key, JSON.stringify(value)); } catch (e) { /* no storage */ } };
+  const recall = (key) => {
+    try {
+      const saved = localStorage.getItem(PREF + key);
+      if (saved !== null) return JSON.parse(saved);
+      const legacy = localStorage.getItem(key);
+      store(key, legacy);
+      return legacy;
+    } catch (e) { return null; }
+  };
 
   // What this script adds to the page is not the document's text: review.js skips it, and in
   // its Suggest mode, where the page is editable, it stays read-only.
@@ -259,7 +270,7 @@
     if (active && !open.includes(active)) active = null;
     document.querySelectorAll('.note-open').forEach((a) => a.classList.remove('note-open', 'note-active'));
     for (const n of notes()) if (n.linked) { n.anchor.classList.add('note-open'); n.anchor.classList.toggle('note-active', n === active); }
-    document.querySelectorAll('.cell-note-toggle').forEach((b) => b.setAttribute('aria-expanded', String(b.closest('td, th').classList.contains('note-open'))));
+    document.querySelectorAll('.cell-note-toggle').forEach((b) => b.setAttribute('aria-expanded', String(!!b.closest('td, th')?.classList.contains('note-open'))));
     for (const el of lines.children) el.classList.toggle('active', !!active && el.dataset.uid === String(active.uid));
   }
   document.addEventListener('mouseover', (event) => {
@@ -290,6 +301,7 @@
   function show(key, anchor, html, closable, opts = {}) {
     const n = document.createElement('div');
     n.className = 'margin-note' + (opts.cls ? ' ' + opts.cls : '');
+    n.setAttribute('contenteditable', 'false');
     n.setAttribute('data-doc-avoid', '');  // review.js's comment lines pass behind it
     n.setAttribute('data-doc-reserve', '');  // and its cards move clear of it
     n.dataset.key = key;
@@ -541,7 +553,7 @@
     a.dataset.def = a.title;
     a.removeAttribute('title');
   });
-  document.querySelectorAll('.cell-note > sup').forEach((sup) => {
+  document.querySelectorAll('td .cell-note > sup, th .cell-note > sup').forEach((sup) => {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'cell-note-toggle';
@@ -635,7 +647,7 @@
 
   // what the reader can change: menu.js lists whatever the page's scripts add to DocOptions
   (window.DocOptions = window.DocOptions || []).push(
-    { label: 'Notes column width', type: 'range', min: SIDE_MIN, max: 60, step: 0.5, unit: 'rem', available: () => !narrow(),
+    { label: 'Notes column width', type: 'range', min: SIDE_MIN, max: SIDE_MAX, step: 0.5, unit: 'rem', available: () => !narrow(),
       get: () => margin.offsetWidth / rem(), set: (v) => { setSide(v * rem()); store('side-width', String(v)); place(); }, reset: resetSide },
     { label: 'Open a note when the pointer rests on a link', type: 'toggle', default: true, available: () => !narrow() && !TOUCH.matches,
       get: () => hoverOn, set: (on) => { hoverOn = on; store('notes-hover', on ? null : '0'); if (!on) hide('hover'); } },
