@@ -314,6 +314,8 @@ src="mermaid-images/6b7ed204e608e78bdb28298f700be677fc4b96f9.svg" /></p>
     |-- contents.js                 # contents sidebar
     |-- live-figures.js             # click a static figure for its live version
     |-- arxiv-links.js              # links in the bibliography
+    |-- run-code.js                 # code blocks the reader can edit and run (Python in the browser)
+    |-- keep-place.js               # keeps the reader&#39;s place when the text reflows
     |-- menu.js                     # the reader&#39;s settings (M)
     |-- review.js                   # comments and suggested edits, exported as JSON
     +-- collect_reviews.py          # merge reviewers&#39; files, list comments by source line</code></pre>
@@ -407,9 +409,10 @@ a paper written in markdown as a web page with three columns: the
 contents, the text, and a side column with notes and previews
 (citations, footnotes, terms, cross-references) and, in review mode,
 comments and suggested edits. The columns resize, and on a phone the
-notes open in the text. Figures can be live. The same source builds the
-PDF. A filter, two stylesheets, five drop-in scripts, and a script that
-maps reviewers’ comments back to lines of the source.</p>
+notes open in the text. Figures can be live, and a reader can edit and
+run the paper’s code on the page. The same source builds the PDF. A
+filter, two stylesheets, eight drop-in scripts, and a script that maps
+reviewers’ comments back to lines of the source.</p>
 <p>The demo is <a
 href="https://mivanit.github.io/pandoc-utils/html-papers/">a paper that
 builds itself</a>: its build runs its experiment and prints the code
@@ -424,7 +427,8 @@ class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="
 class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> dep-install   <span class="co"># install system (apt), npm, and Python (uv) deps</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> dep-check     <span class="co"># verify all required binaries are available</span></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> test          <span class="co"># run pytest</span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> test-html     <span class="co"># html-papers/ in headless Chromium (once: uv run playwright install chromium)</span></span></code></pre></div>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> test-html     <span class="co"># html-papers/ in headless Chromium (once: uv run playwright install chromium)</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> test-html-firefox  <span class="co"># the same in Firefox (once: uv run playwright install firefox)</span></span></code></pre></div>
 <h4 id="dependencies">Dependencies</h4>
 <p><strong>System binaries:</strong> <code>uv</code>,
 <code>pandoc</code> (&gt;=2.12), <code>latexmk</code>,
