@@ -182,6 +182,12 @@ the notes and previews and, in review mode, the comments.
   a click opens it), whether open notes are remembered, and Reset.
 - **Touch.** Where no pointer can rest on a link (`hover: none`), one tap opens the note, with
   the link itself ("Go to Figure 3") inside it.
+- **Keyboard.** Tab reaches the controls. Space on a citation, term or cross-reference opens
+  its note and focuses Close; Escape closes it and returns to the link. Enter follows a
+  term or cross-reference as usual. Table notes have a `*` button, and live figures have an
+  **Open interactive figure** button. On a phone the live figure opens in a dialog; Close
+  (or Escape while on its controls) returns to its button. **Review** beside the contents
+  opens review mode without a keyboard; <kbd>E</kbd> still works too.
 - **Previews.** A copy of a figure or table is laid out as wide as it is in the text and
   scaled to fit the note, down to 30%, so it has no scrollbar. A copy of a section is text
   and scrolls.

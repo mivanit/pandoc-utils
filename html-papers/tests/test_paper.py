@@ -11,7 +11,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from playwright.sync_api import CDPSession, Locator, Page, sync_playwright
+from playwright.sync_api import CDPSession, Locator, Page, expect, sync_playwright
 
 from hp_paths import BROWSER
 
@@ -386,6 +386,7 @@ def test_touch_a_tap_opens_the_note_and_a_swipe_the_contents() -> None:
             viewport={"width": 400, "height": 800}, has_touch=True, is_mobile=True
         )
         pg = phone.new_page()
+        pg.add_init_script("localStorage.setItem('review:v1:help-seen', '1')")
         pg.on("pageerror", lambda e: errors.append(str(e)))
         pg.goto(PAPER)
         cdp: CDPSession = phone.new_cdp_session(pg)
@@ -415,6 +416,16 @@ def test_touch_a_tap_opens_the_note_and_a_swipe_the_contents() -> None:
             "document.querySelector('.margin-note').classList.contains('inline')"
         )
         assert pg.evaluate(OVERFLOW) == 0
+        pg.tap("#toc-tab")
+        pg.get_by_role("button", name="Review", exact=True).tap()
+        assert has_class(pg, "review-on")
+        pg.get_by_title("Leave review mode").tap()
+        assert not has_class(pg, "review-on")
+        make_live_figure(pg)
+        pg.get_by_role("button", name="Open interactive figure").tap()
+        expect(pg.get_by_role("dialog", name="Interactive figure")).to_be_visible()
+        pg.locator(".sheet-close").tap()
+        expect(pg.locator(".figure-sheet")).to_have_count(0)
         browser.close()
     assert not errors, errors
 
@@ -815,6 +826,115 @@ def test_code_runs_in_a_panel_beside_the_text(page: Page) -> None:
     )
     assert page.evaluate(OVERFLOW) == 0
     assert panel.locator(".run-stdout").text_content() == "echo \n"
+
+
+def test_notes_and_settings_work_from_the_keyboard(page: Page) -> None:
+    term = page.locator("#term-widget")
+    term.focus()
+    term.press("Space")
+    expect(page.locator(".margin-note")).to_contain_text("A small part")
+    expect(page.locator(".note-close")).to_be_focused()
+    page.keyboard.press("Escape")
+    expect(term).to_be_focused()
+    expect(page.locator(".margin-note")).to_have_count(0)
+
+    button = page.get_by_role("button", name="Table note")
+    button.focus()
+    button.press("Enter")
+    expect(button).to_have_attribute("aria-expanded", "true")
+    expect(page.locator(".note-close")).to_be_focused()
+    page.keyboard.press("Enter")  # close it, and return to the table
+    expect(button).to_be_focused()
+    expect(button).to_have_attribute("aria-expanded", "false")
+
+    page.keyboard.press("m")
+    # Locate by the same visible label the menu exposes, independent of option order.
+    toggle = page.locator(".menu-row", has_text="Remember").locator("input")
+    toggle.focus()
+    toggle.press("Space")
+    expect(toggle).to_be_focused()
+    page.keyboard.press("Escape")
+    expect(button).to_be_focused()
+
+    page.set_viewport_size({"width": 420, "height": 800})
+    expect(page.locator("#toc-nav")).to_have_attribute("inert", "")
+    tab = page.locator("#toc-tab")
+    tab.focus()
+    tab.press("Enter")
+    expect(page.locator(".toc-title")).to_be_focused()
+    page.keyboard.press("Escape")
+    expect(tab).to_be_focused()
+
+
+def make_live_figure(page: Page) -> None:
+    # Give this test's figure a live version, then initialize the script on that markup.
+    page.evaluate("""() => {
+        const image = document.getElementById('fig:curve').querySelector('img');
+        const figure = document.createElement('div');
+        figure.className = 'fig-static';
+        figure.dataset.embed = 'about:blank';
+        figure.dataset.height = '160';
+        image.replaceWith(figure); figure.append(image);
+    }""")
+    page.add_script_tag(path=str(Path(__file__).parent.parent / "live-figures.js"))
+
+
+def test_live_figure_opens_and_closes_from_the_keyboard(page: Page) -> None:
+    make_live_figure(page)
+    opener = page.get_by_role("button", name="Open interactive figure")
+    opener.focus()
+    opener.press("Enter")
+    expect(page.locator("iframe.interactive-figure")).to_have_count(1)
+    back = page.get_by_role("button", name="Back to the static figure")
+    expect(back).to_be_focused()
+    back.press("Space")
+    expect(opener).to_be_focused()
+    expect(page.locator("iframe.interactive-figure")).to_have_count(0)
+
+    page.set_viewport_size({"width": 420, "height": 800})
+    opener.press("Space")
+    expect(page.get_by_role("dialog", name="Interactive figure")).to_be_visible()
+    # The native dialog keeps Tab inside it, and Escape returns to its opener.
+    for _ in range(4):
+        page.keyboard.press("Tab")
+        assert page.evaluate("""() => {
+            const active = document.activeElement;
+            return active === document.body || active.closest('.figure-sheet') !== null;
+        }""")  # Tab may visit browser chrome, but never the page behind the modal
+    # Keystrokes inside an iframe belong to that page; Shift+Tab reaches our Close button.
+    page.keyboard.press("Shift+Tab")
+    expect(page.locator(".sheet-close")).to_be_focused()
+    page.keyboard.press("Escape")
+    expect(opener).to_be_focused()
+    expect(page.locator(".figure-sheet")).to_have_count(0)
+
+
+def test_successful_output_is_not_overwritten_by_queued_draws(page: Page) -> None:
+    page.evaluate("""() => {
+        RunCode.interpreter = {run(job, on) {
+            on.out('hello'); on.err('a warning');
+            on.done({exit: 0, images: [], seconds: 0.1});
+            return {stop() {}};
+        }};
+    }""")
+    page.locator("#run-one .run-open").click()
+    expect(page.locator(".run-rendered")).to_have_count(1)
+    page.locator(".run-go").click()
+    page.wait_for_timeout(
+        100
+    )  # let the pending animation frame run after the cached renderer
+    expect(page.locator(".run-rendered")).to_have_count(1)
+    # A renderer waiting to run must not replace a newer run's error output either.
+    page.evaluate("""() => {
+        document.querySelector('.run-go').click();
+        RunCode.interpreter = {run(job, on) {
+            on.err('new failure'); on.done({exit: 1}); return {stop() {}};
+        }};
+        document.querySelector('.run-go').click();
+    }""")
+    page.wait_for_timeout(100)
+    expect(page.locator(".run-rendered")).to_have_count(0)
+    expect(page.locator(".run-stderr")).to_have_text("new failure")
 
 
 def test_resizing_a_column_keeps_the_readers_place(page: Page) -> None:

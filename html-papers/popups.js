@@ -259,6 +259,7 @@
     if (active && !open.includes(active)) active = null;
     document.querySelectorAll('.note-open').forEach((a) => a.classList.remove('note-open', 'note-active'));
     for (const n of notes()) if (n.linked) { n.anchor.classList.add('note-open'); n.anchor.classList.toggle('note-active', n === active); }
+    document.querySelectorAll('.cell-note-toggle').forEach((b) => b.setAttribute('aria-expanded', String(b.closest('td, th').classList.contains('note-open'))));
     for (const el of lines.children) el.classList.toggle('active', !!active && el.dataset.uid === String(active.uid));
   }
   document.addEventListener('mouseover', (event) => {
@@ -309,6 +310,10 @@
   // take notes, and every note opened from them, off the page
   function drop(list) {
     for (const n of list) for (const m of tree(n)) {
+      if (m.contains(document.activeElement)) {
+        const anchor = m.anchor;
+        (anchor.matches('a, button') ? anchor : anchor.querySelector('a, button'))?.focus({ preventScroll: true });
+      }
       resized.unobserve(m);
       m.remove();
       open.splice(open.indexOf(m), 1);
@@ -400,7 +405,7 @@
   // a click (or middle click) on an anchor: pin its note, or close it if pinned
   function clickPin(a) {
     if (shown(keyOf(a))) hide(keyOf(a));
-    else pin(a);
+    else return pin(a);
   }
 
   // Pinned notes are remembered for this page in this browser (the reader can turn that off):
@@ -458,7 +463,8 @@
     // citations and footnotes pin; a table note pins on a click anywhere in its cell
     if (a && (a.matches('.citation, a.footnote-ref') || (a.matches('td, th') && !t.closest('a'))) && hasNote(a)) {
       event.preventDefault();
-      clickPin(a);
+      const note = clickPin(a);
+      if (event.detail === 0) note?.querySelector('.note-close')?.focus({ preventScroll: true });
       return;
     }
     // Without a pointer to rest on a link (a touch screen), without a side column (a phone), or
@@ -467,7 +473,8 @@
     // tap closes the note.
     if (a && a.matches('a[href^="#"]') && tapMode() && hasNote(a)) {
       event.preventDefault();
-      clickPin(a);
+      const note = clickPin(a);
+      if (event.detail === 0) note?.querySelector('.note-close')?.focus({ preventScroll: true });
       return;
     }
     // a click on a hover note, not on a link or button in it, pins it
@@ -515,13 +522,34 @@
   }
   document.addEventListener('mousemove', (event) => { pointerX = event.clientX; pointerY = event.clientY; dropHovers(); });
   window.addEventListener('scroll', dropHovers, { passive: true });
-  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') hide('hover'); });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      const note = event.target.closest?.('.margin-note');
+      if (note) drop([note]); else hide('hover');
+    }
+    // Space opens a link's note; Enter keeps its usual navigation. Buttons handle Space themselves.
+    if (event.key !== ' ' || event.ctrlKey || event.metaKey || event.altKey || event.target.isContentEditable || !event.target.matches?.('a')) return;
+    const a = anchorOf(event.target);
+    if (!a || !hasNote(a)) return;
+    event.preventDefault();
+    clickPin(a)?.querySelector('.note-close')?.focus({ preventScroll: true });
+  });
 
   // Terms: the definition is the link's title, moved so the browser's slow tooltip stays away
   // (copies in previews keep data-def)
   document.querySelectorAll('a.term[title]').forEach((a) => {
     a.dataset.def = a.title;
     a.removeAttribute('title');
+  });
+  document.querySelectorAll('.cell-note > sup').forEach((sup) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'cell-note-toggle';
+    button.textContent = sup.textContent;
+    button.setAttribute('aria-label', 'Table note');
+    button.setAttribute('aria-expanded', 'false');
+    button.setAttribute('contenteditable', 'false');
+    sup.replaceChildren(button);
   });
 
   // A cross-reference's preview: a copy of the target.

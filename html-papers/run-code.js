@@ -69,18 +69,22 @@
 
   // Run in Python, once: runs one file as a program and collects what it left.
   const HARNESS = String.raw`
-import base64, io, os, runpy, sys, traceback, warnings
+import base64, importlib, io, os, runpy, sys, traceback, warnings
 
 os.environ.setdefault("MPLBACKEND", "Agg")  # figures are collected below, not shown
+sys.dont_write_bytecode = True  # edits can have the same size and timestamp as the last run
+_RUN_DIR, _RUN_PATH = os.getcwd(), sys.path.copy()
 
 
-def _run_code(main, names, stdin):
-    for name in names:  # the files as they are now, not as an earlier run imported them
-        if name.endswith(".py"):
-            sys.modules.pop(name[:-3].replace("/", "."), None)
+def _run_code(main, stdin):
+    os.chdir(_RUN_DIR)
+    # Reload the paper's modules, including packages and imports from an earlier block.
+    for name, module in list(sys.modules.items()):
+        if (getattr(module, "__file__", None) or "").startswith(_RUN_DIR + os.sep):
+            sys.modules.pop(name, None)
+    importlib.invalidate_caches()
     here = os.path.dirname(os.path.abspath(main))  # as python does for a script
-    if here not in sys.path:
-        sys.path.insert(0, here)
+    sys.path[:] = [here, *_RUN_PATH]
     sys.stdin = io.StringIO(stdin)
     sys.argv = [main]
     code = 0
@@ -98,6 +102,9 @@ def _run_code(main, names, stdin):
             tb = tb.tb_next
         traceback.print_exception(type(error), error, tb)
         code = 1
+    finally:
+        os.chdir(_RUN_DIR)
+        sys.path[:] = _RUN_PATH
     images = []
     pyplot = sys.modules.get("matplotlib.pyplot")
     if pyplot is not None:
@@ -157,7 +164,7 @@ def _run_code(main, names, stdin):
         py.setStderr(writer('err'));
         const began = performance.now();
         const run = py.globals.get('_run_code');
-        const result = run(job.main, job.files.map((file) => file.name), job.stdin);
+        const result = run(job.main, job.stdin);
         const [exit, images] = result.toJs();
         result.destroy();
         run.destroy();
@@ -339,6 +346,7 @@ def _run_code(main, names, stdin):
       for (const src of r.images || []) { const img = make('img', 'run-image'); img.src = src; img.alt = 'A figure the code drew'; el.append(img); }
     }
     let mine = null;  // this panel's run, while it is going
+    let latest = 0;  // delayed output belongs only to the latest run in this panel
     function ended(text) {
       mine = running = null;
       go.hidden = false;
@@ -347,16 +355,17 @@ def _run_code(main, names, stdin):
     }
     function run() {
       if (running) running.stop();
+      const version = ++latest;
       texts.set(shown, editor.value);
       const r = { stdout: '', stderr: '', exit: null, images: [], seconds: 0, stdin: stdin.value };
-      let drawn = false;
-      const draw = () => { drawn = false; printed(result, r); };
-      const soon = () => { if (!drawn) { drawn = true; requestAnimationFrame(draw); } };  // at most once a frame
+      let frame = 0;
+      const draw = () => { frame = 0; if (version === latest) printed(result, r); };
+      const soon = () => { if (!frame) frame = requestAnimationFrame(draw); };  // at most once a frame
       result.textContent = '';
       go.hidden = true;
       stop.hidden = false;
       status.textContent = 'Starting…';
-      const own = { stop: () => { handle.stop(); if (mine === own) ended('Stopped'); } };
+      const own = { stop: () => { handle.stop(); cancelAnimationFrame(frame); if (mine === own) ended('Stopped'); } };
       running = mine = own;  // before the interpreter is asked: it may answer at once
       const handle = RunCode.interpreter.run(
         { main: data.main, files: data.files.map((file) => ({ name: file.name, text: texts.get(file.name) })), stdin: stdin.value, packages: data.packages || [] },
@@ -366,16 +375,19 @@ def _run_code(main, names, stdin):
           err: (text) => { if (mine === own) { r.stderr += text; soon(); } },
           done: (end) => {
             if (mine !== own) return;
+            cancelAnimationFrame(frame);
             Object.assign(r, { exit: end.exit, images: end.images || [], seconds: end.seconds || 0 });
             ended(r.exit === 0 ? 'Ran in ' + (r.seconds < 10 ? r.seconds.toFixed(2) : Math.round(r.seconds)) + ' s' : 'Stopped with an error');
             printed(result, r);
             if (!data.render || r.exit !== 0) return;
             renderer(data.render).then((draw) => {
+              if (version !== latest) return;
               const el = make('div', 'run-rendered');
               draw(r, el);
               result.textContent = '';
               result.append(el);
             }).catch((error) => {
+              if (version !== latest) return;
               // the output stays as printed, with why it is not drawn
               result.append(make('pre', 'run-stderr', 'The output could not be drawn: ' + error.message));
             });
@@ -407,8 +419,11 @@ def _run_code(main, names, stdin):
     let note = null;
     function closed() {
       if (mine) mine.stop();
+      latest++;
+      const focused = panel.contains(document.activeElement);
       panel.remove();  // out of the note, to go into the next one
       opener.setAttribute('aria-expanded', 'false');
+      if (focused) opener.focus({ preventScroll: true });
     }
     function close() {
       const n = note;

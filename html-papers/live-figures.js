@@ -54,17 +54,22 @@
   // closing it leaves the static one.
   let sheet = null;
   function closeSheet() {
-    sheet?.remove();
+    if (!sheet) return;
+    const opener = sheet.opener;
+    sheet.close();
+    sheet.remove();
     sheet = null;
     document.body.classList.remove('sheet-open');
+    opener.focus({ preventScroll: true });
   }
-  function openSheet(fig) {
+  function openSheet(fig, opener) {
     closeSheet();
-    sheet = document.createElement('div');
+    sheet = document.createElement('dialog');
+    sheet.opener = opener;
     sheet.className = 'figure-sheet';
     chrome(sheet);
-    sheet.setAttribute('role', 'dialog');
     sheet.setAttribute('aria-label', 'Interactive figure');
+    sheet.addEventListener('cancel', (event) => { event.preventDefault(); closeSheet(); });
     sheet.innerHTML = '<div class="sheet-bar"><a class="open-full" href="' + attr(fig.dataset.link || fig.dataset.embed) + '" target="_blank" rel="noopener">Open the full page ↗</a>'
       + '<button type="button" class="open-full sheet-close">Close</button></div>';
     sheet.querySelector('.sheet-close').addEventListener('click', closeSheet);
@@ -74,20 +79,27 @@
     if (key) sheet.append(key.cloneNode(true));
     document.body.append(sheet);
     document.body.classList.add('sheet-open');
+    sheet.showModal();
     fit(wrap);
   }
   document.querySelectorAll('.fig-static[data-embed]').forEach((fig, i) => {
+    const opener = chrome(document.createElement('button'));
+    opener.type = 'button';
+    opener.className = 'open-full live-open';
+    opener.textContent = 'Open interactive figure';
+    fig.append(opener);
     fig.classList.add('clickable');
     fig.title = 'Click for the interactive version';
     fig.addEventListener('click', (event) => {
-      // a link in the key, or already live
-      if (event.target.closest('a') || !fig.classList.contains('clickable')) return;
-      if (narrow()) { openSheet(fig); return; }
+      // The visible button and the image do the same thing; links in the key stay links.
+      if (event.target.closest('a') || !event.target.closest('.live-open, img:not(.legend-glyph)') || !fig.classList.contains('clickable')) return;
+      if (narrow()) { openSheet(fig, opener); return; }
       // only the image is swapped: a typeset key stays
       const img = fig.querySelector('img:not(.legend-glyph)');
       const wrap = liveFrame(fig);
       wrap.dataset.staticImg = img.outerHTML;  // for previews of this figure (below)
       img.replaceWith(wrap);
+      opener.hidden = true;
       fig.classList.remove('clickable');
       fig.removeAttribute('title');
       fit(wrap);
@@ -103,10 +115,13 @@
       }
       bar.querySelector('.static-again').addEventListener('click', () => {
         wrap.replaceWith(img);
+        opener.hidden = false;
         fig.classList.add('clickable');
         fig.title = 'Click for the interactive version';
         if (notes()) notes().hide('live:' + i); else bar.remove();
+        opener.focus({ preventScroll: true });
       });
+      bar.querySelector('.static-again').focus({ preventScroll: true });
     });
   });
   window.addEventListener('message', (event) => {
@@ -123,7 +138,7 @@
   document.addEventListener('popups:preview', (event) => {
     const box = event.detail.box;
     box.querySelectorAll('.interactive-wrap').forEach((w) => { w.outerHTML = w.dataset.staticImg || ''; });
-    box.querySelectorAll('.live-bar').forEach((e) => e.remove());
+    box.querySelectorAll('.live-bar, .live-open').forEach((e) => e.remove());
     box.querySelectorAll('.clickable').forEach((e) => { e.classList.remove('clickable'); e.removeAttribute('title'); });
   });
 })();

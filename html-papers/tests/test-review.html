@@ -475,6 +475,22 @@
 						/not a review file/,
 					);
 				});
+
+				it("keeps deletions when older exports arrive afterward", () => {
+					reset();
+					const a = annotation("lazy dog", { author: "other" });
+					const load = (changes) => ReviewMode.importData({
+						format: "review/v1", annotations: [{ ...a, ...changes }],
+					});
+					assert.deepStrictEqual(load({}), [1, 0]);
+					assert.deepStrictEqual(load({ deleted: true, updated: "2026-02-01" }), [0, 0]);
+					const count = shadow().querySelectorAll(".card.other").length;
+					assert.deepStrictEqual(load({}), [0, 0]);
+					assert.strictEqual(shadow().querySelectorAll(".card.other").length, count);
+					// A genuinely newer revision can restore the annotation.
+					assert.deepStrictEqual(load({ updated: "2026-03-01" }), [1, 0]);
+					load({ deleted: true, updated: "2026-04-01" });
+				});
 			});
 
 			describe("undo", () => {

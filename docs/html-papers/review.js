@@ -325,7 +325,7 @@
 		a.kind === "comment" && !a.deleted && !(a.body || "").trim();
 	/** @returns {Annotation[]} own annotations, without tombstones */
 	const mine = () => state.annotations.filter((a) => !a.deleted);
-	const all = () => [...mine(), ...others];
+	const all = () => [...mine(), ...others.filter((a) => !a.deleted)];
 	const openSuggestions = () =>
 		mine().filter(
 			(a) =>
@@ -1261,9 +1261,10 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 	/** The header's counts: own and imported annotations, and how many are unsent. */
 	function renderCount() {
 		const n = mine().filter((a) => !isDraft(a)).length,
+			otherCount = others.filter((a) => !a.deleted).length,
 			u = unsent();
 		countEl.replaceChildren(
-			`${n} yours` + (others.length ? `, ${others.length} others` : ""),
+			`${n} yours` + (otherCount ? `, ${otherCount} others` : ""),
 			u ? DOT : "",
 			u
 				? h(
@@ -2511,7 +2512,7 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 			const prev = others.find((o) => o.id === a.id);
 			if (prev && prev.updated >= a.updated) continue;
 			others = others.filter((o) => o.id !== a.id);
-			if (a.deleted) continue;
+				// Keep deletions too: an older export imported later must not revive them.
 			const author = a.author || data.reviewer || "anonymous";
 			others.push({
 				...a,
@@ -2519,7 +2520,7 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 				_other: true,
 				_color: colorFor(author),
 			});
-			n++;
+				if (!a.deleted) n++;
 		}
 		return [n, bad];
 	}

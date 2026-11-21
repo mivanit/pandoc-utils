@@ -66,6 +66,7 @@
 
   const shown = (v, o) => (o.unit ? (Math.round(v * 10) / 10) + ' ' + o.unit : String(v));
   function render() {
+    const focused = [...menu.querySelectorAll('input, button')].indexOf(document.activeElement);
     menu.textContent = '';
     const top = document.createElement('div');
     top.className = 'menu-top';
@@ -105,6 +106,8 @@
       render();
     });
     menu.append(foot);
+    // Rebuilding options after a toggle must not send keyboard focus back to the page.
+    if (focused >= 0) menu.querySelectorAll('input, button')[focused]?.focus();
   }
   let before = null;  // what had the focus
   function open() {
@@ -144,6 +147,15 @@
     button.setAttribute('aria-label', 'Settings');
     button.addEventListener('click', toggle);
     bar.insertBefore(button, bar.querySelector('.toc-pin'));
+    if (window.ReviewMode) {
+      const review = document.createElement('button');
+      review.type = 'button';
+      review.className = 'toc-review';
+      review.textContent = 'Review';
+      review.title = 'Comment on this paper (E)';
+      review.addEventListener('click', () => window.ReviewMode.enter());
+      bar.insertBefore(review, button);
+    }
   }
 
   window.DocMenu = { open, close };

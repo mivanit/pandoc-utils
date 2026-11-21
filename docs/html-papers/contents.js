@@ -68,7 +68,7 @@
     root.classList.toggle('toc-pinned', on);
     pin.setAttribute('aria-pressed', on);
     pin.textContent = on ? 'Unpin' : 'Pin';
-    if (keep) { remember('toc-pinned', on ? '1' : ''); moved(); }
+    if (keep) { remember('toc-pinned', on ? '1' : ''); accessible(); moved(); }
   }
   setPinned(recall('toc-pinned') !== '', false);  // pinned until the reader unpins it
 
@@ -115,10 +115,24 @@
     { label: 'Contents width', type: 'range', min: TOC_MIN, max: 40, step: 0.5, unit: 'rem', available: docked,
       get: () => nav.offsetWidth / rem(), set: (v) => { setWidth(v * rem()); remember('toc-width', String(v)); moved(); }, reset: resetWidth },
   );
-  const open = (on) => root.classList.toggle('toc-open', on);
+  function accessible() {
+    nav.inert = !docked() && !root.classList.contains('toc-open');
+    tab.setAttribute('aria-expanded', String(!nav.inert));
+    if (nav.inert && nav.contains(document.activeElement)) tab.focus();
+  }
+  function open(on) {
+    root.classList.toggle('toc-open', on);
+    accessible();
+  }
+  tab.setAttribute('aria-controls', nav.id);
+  addEventListener('resize', accessible);
+  accessible();
   // a mouse over the tab opens the panel (a tap is the click below, alone)
   tab.addEventListener('pointerenter', (event) => { if (event.pointerType === 'mouse') open(true); });
-  tab.addEventListener('click', () => open(!root.classList.contains('toc-open')));
+  tab.addEventListener('click', (event) => {
+    open(!root.classList.contains('toc-open'));
+    if (event.detail === 0 && !nav.inert) nav.querySelector('a').focus();
+  });
   // the panel opens while the pointer is over the strip it would cover but left of the text
   // (zoomed in, the text starts near the edge: reading it must not open the panel), and
   // closes once the pointer is right of it
@@ -156,7 +170,7 @@
     if (!quick || Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) / 2 || docked() || !getSelection().isCollapsed) return;
     open(dx > 0);
   }, { passive: true });
-  nav.addEventListener('click', (event) => { if (event.target.closest('a')) open(false); });
+  nav.addEventListener('click', (event) => { if (event.target.closest('a, .toc-review')) open(false); });
   nav.querySelector('.toc-title').addEventListener('click', (event) => { event.preventDefault(); window.scrollTo({ top: 0 }); });
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape') open(false); });
   // the current section: the last heading above a line a third of the way down the window
