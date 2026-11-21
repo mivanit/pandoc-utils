@@ -1021,6 +1021,7 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 		svg,
 		modeButtons,
 		hint;
+	let reviewFocus, helpFocus, exportButton;
 
 	/** Build the UI (once, on first entry): page styles, and the shadow root with everything else. */
 	function mount() {
@@ -1171,7 +1172,10 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 						class: "primary",
 						onclick: (e) => {
 							e.stopPropagation();
-							menu.hidden = !menu.hidden;
+							if (menu.hidden) {
+								menu.hidden = false;
+								menu.querySelector("button").focus({ preventScroll: true });
+							} else closeExport();
 						},
 					},
 					"Export " + chr(0x25be),
@@ -1200,6 +1204,7 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 			lostBox,
 			list,
 		);
+		exportButton = panel.querySelector(".actions .primary");
 		panel.addEventListener("dragover", (e) => {
 			e.preventDefault();
 			panel.classList.add("drop");
@@ -2282,10 +2287,15 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 	function showHelp() {
 		lsSet("help-seen", "1");
 		closeHelp();
+		helpFocus = shadow.activeElement;
 		help = h(
 			"div",
 			{
 				class: "backdrop",
+				onkeydown: (e) => {
+					// Got it is the dialog's only control; Tab stays inside the modal.
+					if (e.key === "Tab") e.preventDefault();
+				},
 				onclick: (e) => {
 					if (e.target === help) closeHelp();
 				},
@@ -2295,6 +2305,7 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 				{
 					class: "modal",
 					role: "dialog",
+					"aria-modal": "true",
 					"aria-label": "Reviewing this page",
 				},
 				h("h2", {}, "Reviewing this page"),
@@ -2336,10 +2347,13 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 			),
 		);
 		shadow.append(help);
+		help.querySelector("button").focus({ preventScroll: true });
 	}
 	function closeHelp() {
-		if (help) help.remove();
+		if (!help) return;
+		help.remove();
 		help = null;
+		helpFocus?.focus({ preventScroll: true });
 	}
 
 	// ==================================================================
@@ -2389,11 +2403,16 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 				.map((a) => ({ ...a, author: name })),
 		};
 	}
+	function closeExport() {
+		const focused = menu.contains(shadow.activeElement);
+		menu.hidden = true;
+		if (focused) exportButton.focus({ preventScroll: true });
+	}
 	function markExported() {
 		state.exported = now();
 		persist();
 		renderCount();
-		menu.hidden = true;
+		closeExport();
 	}
 
 	/** Export > Copy: the JSON to the clipboard. */
@@ -2598,6 +2617,9 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 	/** Enter review mode, in Comment mode (remembered across reloads until left). */
 	function enter() {
 		if (on) return;
+		reviewFocus = document.activeElement;
+		while (reviewFocus?.shadowRoot?.activeElement)
+			reviewFocus = reviewFocus.shadowRoot.activeElement;
 		on = true;
 		state = store.load(); // as stored now: a script may have changed it while review mode was off
 		undoStack = [];
@@ -2622,6 +2644,8 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 			characterData: true,
 		});
 		resizeObserver.observe(idx.root);
+		// Start at the panel's first button, without opening a phone's text keyboard.
+		panel.querySelector("button").focus({ preventScroll: true });
 		if (!lsGet("help-seen")) showHelp();
 		if (CFG.load && !loaded) {
 			loaded = true;
@@ -2658,6 +2682,7 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 		document.documentElement.classList.remove("review-on");
 		document.documentElement.style.removeProperty("--review-width");
 		document.dispatchEvent(new Event("doclayout"));
+		if (reviewFocus?.isConnected) reviewFocus.focus({ preventScroll: true });
 	}
 
 	// ==================================================================
@@ -2782,7 +2807,7 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 		// use Esc itself, to close a popup, say)
 		if (on && e.key === "Escape") {
 			if (help) closeHelp();
-			else if (!menu.hidden) menu.hidden = true;
+			else if (!menu.hidden) closeExport();
 			else if (!toolbar.hidden) toolbar.hidden = true;
 			else if (ours && t.blur) t.blur();
 			else if (suggesting) setMode(false);
