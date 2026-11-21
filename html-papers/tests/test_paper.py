@@ -304,6 +304,7 @@ def test_a_figure_in_a_preview_is_scaled_not_scrolled(page: Page) -> None:
     page.evaluate("scrollTo(0, 0)")
     page.mouse.move(700, 250)
     hover(page, "#ref-fig", park=False)
+    page.wait_for_function("document.querySelector('.margin-note.preview')?.anchor?.id === 'ref-fig'")
     scale, scrolls, text = page.eval_on_selector(
         ".margin-note.preview",
         """n => [parseFloat(getComputedStyle(n.querySelector('.preview-fit')).getPropertyValue('--fit')),

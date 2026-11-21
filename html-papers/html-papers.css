@@ -126,7 +126,14 @@ html.col-dragging, html.col-dragging * { cursor: col-resize !important; user-sel
   #toc-tab::before { content: '\2630'; }
   html.review-on #toc-tab { bottom: calc(45vh + 0.9rem); }  /* above review.js's sheet */
 }
-@media print { #toc-tab, #toc-nav, #margin-notes, #note-lines, .col-handle, #doc-menu { display: none; } }
+.live-active > .live-static { display: none; }
+@media print {
+  :root, html.toc-pinned { --toc-w: 0rem; --side-w: 0rem; --text: 100%; }
+  body { max-width: none; margin: 0; padding: 0; overflow: visible; }
+  #toc-tab, #toc-nav, #margin-notes, #note-lines, .col-handle, #doc-menu,
+  .margin-note, .live-open, .live-bar, .interactive-wrap, .figure-sheet { display: none !important; }
+  .live-active > .live-static { display: block; }
+}
 
 /* margin notes (popups.js) */
 #margin-notes { position: absolute; top: 0; left: calc(100% + var(--gap)); width: var(--side-w); }

@@ -98,7 +98,10 @@
       const img = fig.querySelector('img:not(.legend-glyph)');
       const wrap = liveFrame(fig);
       wrap.dataset.staticImg = img.outerHTML;  // for previews of this figure (below)
-      img.replaceWith(wrap);
+      // Keep the original available to print without changing the live session.
+      img.classList.add('live-static');
+      img.after(wrap);
+      fig.classList.add('live-active');
       opener.hidden = true;
       fig.classList.remove('clickable');
       fig.removeAttribute('title');
@@ -113,14 +116,22 @@
         bar.innerHTML = html;
         wrap.after(bar);
       }
-      bar.querySelector('.static-again').addEventListener('click', () => {
-        wrap.replaceWith(img);
+      let restored = false;
+      function restore() {
+        if (restored) return;
+        restored = true;
+        bar.removeEventListener('noteclose', restore);
+        wrap.remove();
+        img.classList.remove('live-static');
+        fig.classList.remove('live-active');
         opener.hidden = false;
         fig.classList.add('clickable');
         fig.title = 'Click for the interactive version';
         if (notes()) notes().hide('live:' + i); else bar.remove();
         opener.focus({ preventScroll: true });
-      });
+      }
+      bar.addEventListener('noteclose', restore);
+      bar.querySelector('.static-again').addEventListener('click', restore);
       bar.querySelector('.static-again').focus({ preventScroll: true });
     });
   });
@@ -138,6 +149,9 @@
   document.addEventListener('popups:preview', (event) => {
     const box = event.detail.box;
     box.querySelectorAll('.interactive-wrap').forEach((w) => { w.outerHTML = w.dataset.staticImg || ''; });
+    // Live figures now retain their original image for print; the preview uses the copy above.
+    box.querySelectorAll('.live-static').forEach((e) => e.remove());
+    box.querySelectorAll('.live-active').forEach((e) => e.classList.remove('live-active'));
     box.querySelectorAll('.live-bar, .live-open').forEach((e) => e.remove());
     box.querySelectorAll('.clickable').forEach((e) => { e.classList.remove('clickable'); e.removeAttribute('title'); });
   });
