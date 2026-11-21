@@ -183,6 +183,49 @@ def test_escape_restores_a_live_figure_and_it_can_open_again(page: Page) -> None
         expect(page.locator(".live-open")).to_be_focused()
 
 
+def test_review_keyboard_focus_stays_with_the_controls(page: Page) -> None:
+    # Follow the real Tab order, including first-use help, instead of focusing controls by script.
+    page.evaluate("localStorage.removeItem('review:v1:help-seen')")
+    page.keyboard.press("Tab")
+    opener = page.evaluate("document.activeElement.id")
+    assert opener
+    page.keyboard.press("e")
+    help_button = page.locator("#rv-host .modal button")
+    expect(help_button).to_be_focused()
+    page.keyboard.press("Tab")
+    expect(help_button).to_be_focused()
+    page.keyboard.press("Enter")
+    expect(page.locator('#rv-host button[title="How this works"]')).to_be_focused()
+    page.keyboard.press("Tab")  # Leave review mode
+    page.keyboard.press("Tab")  # Your name
+    expect(page.get_by_role("textbox", name="Your name", exact=True)).to_be_focused()
+    page.keyboard.type("Keyboard reviewer")
+    for _ in range(4):  # Email, Comment, Suggest, Export
+        page.keyboard.press("Tab")
+    export = page.locator("#rv-host .actions .primary")
+    expect(export).to_be_focused()
+    page.keyboard.press("Enter")
+    expect(page.get_by_role("button", name="Copy JSON to clipboard")).to_be_focused()
+    page.keyboard.press("Tab")
+    with page.expect_download() as download:
+        page.keyboard.press("Enter")
+    data = json.loads(Path(download.value.path()).read_text())
+    assert data["reviewer"] == "Keyboard reviewer"
+    expect(export).to_be_focused()
+    page.keyboard.press("Enter")
+    page.keyboard.press("Escape")
+    expect(export).to_be_focused()
+    for _ in range(5):  # Suggest, Comment, email, name, Leave review mode
+        page.keyboard.press("Shift+Tab")
+    expect(page.locator('#rv-host button[title="Leave review mode"]')).to_be_focused()
+    page.keyboard.press("Enter")
+    expect(page.locator(f"#{opener}")).to_be_focused()
+    page.keyboard.press("e")
+    expect(page.locator('#rv-host button[title="How this works"]')).to_be_focused()
+    page.keyboard.press("e")
+    expect(page.locator(f"#{opener}")).to_be_focused()
+
+
 def test_print_uses_full_width_and_static_figures(page: Page) -> None:
     test_paper.make_live_figure(page)
     page.locator(".live-open").click()
