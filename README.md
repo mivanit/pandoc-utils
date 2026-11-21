@@ -167,6 +167,6 @@ make test-html-firefox  # the same in Firefox (once: uv run playwright install f
 
 ### Dependencies
 
-**System binaries:** `uv`, `pandoc` (>=2.12), `latexmk`, `pdflatex`, `inkscape`, `mmdc` (mermaid-cli), `pdfcrop`, `magick` (ImageMagick), `biber` (for bibliographies)
+**System binaries:** `uv`, `pandoc` (>=2.12; `html-papers/` needs >=3.6.1), `latexmk`, `pdflatex`, `inkscape`, `mmdc` (mermaid-cli), `pdfcrop`, `magick` (ImageMagick), `biber` (for bibliographies)
 
 **Python** (managed by `uv` via `pyproject.toml`): `pyyaml`, `pandocfilters`, `pandas`

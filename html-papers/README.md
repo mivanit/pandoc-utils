@@ -45,6 +45,9 @@ The PDF is `pandoc_md_pdf.sh paper.md`.
 
 ## Starting your own
 
+The filter needs pandoc 3.6.1 or later, and stops with a message saying so on an older one.
+It is tested with pandoc 3.7.
+
 1. Copy `demo/` and, into the same folder, this folder's scripts, `html-papers.css`,
    `paper.css` and `numeric.csl` (the demo's front matter names it: keep it, or take out the
    `csl:` line). Each names this repository in its header; nothing updates the copies.

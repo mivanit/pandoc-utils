@@ -58,7 +58,7 @@
 --   build made away from its sources); else the git commit, with -dirty when a tracked file in
 --   the document's folder, other than the page being written, is modified.
 -- - HTML: a multi-line `date: |` becomes lines of one paragraph (the date, then notes).
-PANDOC_VERSION:must_be_at_least('3.1.1')  -- pandoc.json
+PANDOC_VERSION:must_be_at_least('3.6.1')  -- pandoc.Caption (and pandoc.json, 3.1.1)
 
 local HTML = FORMAT:match('html') ~= nil
 local SCRIPTS = {'arxiv-links.js', 'popups.js', 'contents.js', 'live-figures.js', 'run-code.js', 'keep-place.js'}
