@@ -12,6 +12,7 @@ dist/
 
 # Test temp outputs
 tests/.temp/
+test-results/
 
 # demo (docs/ is the GitHub Pages site)
 docs/**

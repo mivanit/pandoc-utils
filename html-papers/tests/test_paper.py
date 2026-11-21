@@ -8,6 +8,8 @@ pointer, notes that open on a tap (in the text on a phone) and the contents that
 """
 
 from collections.abc import Iterator
+import json
+import os
 from pathlib import Path
 
 import pytest
@@ -26,18 +28,38 @@ NOTES: str = """() => { const ns = [...document.querySelectorAll('.margin-note')
 
 
 @pytest.fixture
-def page() -> Iterator[Page]:
+def page(request: pytest.FixtureRequest) -> Iterator[Page]:
     """The demo paper in a wide window, pointer parked in the text; fails on any page error."""
     errors: list[str] = []
     with sync_playwright() as p:
         browser = getattr(p, BROWSER).launch()
         pg = browser.new_page(viewport={"width": 1600, "height": 900})
+        artifacts = os.environ.get("HTML_PAPERS_ARTIFACTS")
+        failures: list[str] = []
+        pg.on("requestfailed", lambda r: failures.append(f"{r.url}: {r.failure}"))
+        if artifacts:
+            pg.context.tracing.start(screenshots=True, snapshots=True, sources=True)
         pg.on("pageerror", lambda e: errors.append(str(e)))
         pg.add_init_script("localStorage.setItem('review:v1:help-seen', '1')")
         pg.goto(PAPER)
         pg.mouse.move(700, 880)
-        yield pg
-        browser.close()
+        try:
+            yield pg
+        finally:
+            if artifacts:
+                out = Path(artifacts) / BROWSER / request.node.name
+                out.mkdir(parents=True, exist_ok=True)
+                state = pg.evaluate("""() => ({url: location.href, classes: document.documentElement.className,
+                    storage: {...localStorage}, menuLoaded: !!window.DocMenu,
+                    scripts: [...document.scripts].map(s => s.src)})""")
+                (out / "state.json").write_text(
+                    json.dumps(
+                        {"page": state, "errors": errors, "requests": failures},
+                        indent=2,
+                    )
+                )
+                pg.context.tracing.stop(path=out / "trace.zip")
+            browser.close()
     assert not errors, errors
 
 
@@ -304,7 +326,9 @@ def test_a_figure_in_a_preview_is_scaled_not_scrolled(page: Page) -> None:
     page.evaluate("scrollTo(0, 0)")
     page.mouse.move(700, 250)
     hover(page, "#ref-fig", park=False)
-    page.wait_for_function("document.querySelector('.margin-note.preview')?.anchor?.id === 'ref-fig'")
+    page.wait_for_function(
+        "document.querySelector('.margin-note.preview')?.anchor?.id === 'ref-fig'"
+    )
     scale, scrolls, text = page.eval_on_selector(
         ".margin-note.preview",
         """n => [parseFloat(getComputedStyle(n.querySelector('.preview-fit')).getPropertyValue('--fit')),

@@ -142,8 +142,8 @@ def test_published_copy_is_current(built_demo: Path) -> None:
     """docs/html-papers/ (the GitHub Pages copy) is what the sources build now.
 
     Its copies of the paper's sources and of the scripts and stylesheets match the originals,
-    and so does everything the experiment writes. (The page itself carries the commit it was
-    built from, so it is not compared.)
+    and so does everything the experiment writes. The page's source-content version is
+    reproducible too, so the complete HTML must match.
     """
     site: Path = REPO / "docs" / "html-papers"
     if not site.exists():
@@ -166,6 +166,48 @@ def test_published_copy_is_current(built_demo: Path) -> None:
         or (site / name).read_bytes() != original.read_bytes()
     )
     assert not stale, f"rebuild with `make demo-html-papers`: {stale}"
+    assert (site / "index.html").read_bytes() == (
+        built_demo / "index.html"
+    ).read_bytes()
+
+
+def test_demo_content_version_survives_committing_and_ignores_outputs(
+    tmp_path: Path,
+) -> None:
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    source = tmp_path / "html-papers" / "demo" / "paper.md"
+    source.parent.mkdir(parents=True)
+    source.write_text("first")
+
+    def version() -> str:
+        return subprocess.check_output(
+            ["python3", str(HTML_PAPERS / "source_version.py"), str(tmp_path)],
+            text=True,
+        ).strip()
+
+    first = version()
+    assert first.startswith("sha256:")
+    subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=t",
+            "-c",
+            "user.email=t@example.org",
+            "commit",
+            "-qm",
+            "source",
+        ],
+        cwd=tmp_path,
+        check=True,
+    )
+    assert version() == first
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "page.html").write_text("output")
+    assert version() == first
+    source.write_text("second")
+    assert version() != first
 
 
 def test_the_page_says_which_sources_it_was_built_from(tmp_path: Path) -> None:

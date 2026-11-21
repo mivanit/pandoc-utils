@@ -231,9 +231,17 @@ local function latex_preamble()
   -- jump (GoTo the label's hyperref anchor), so a click works whichever one is hit.
   local lines = {'\\usepackage{xspace}', '\\usepackage{pdfcomment}', '\\usepackage[normalem]{ulem}',
     '\\usepackage{refcount}', '\\usepackage{subcaption}', '\\usepackage{xcolor}', '\\usepackage{array}',
-    -- one token of a token-rows figure (generations): a grey chip, breakable after it
+    -- Keep ordinary chips intact; a token wider than its column can break between characters.
+    '\\usepackage{iftex}',
     '\\definecolor{hptokbg}{HTML}{ECEEF1}',
-    '\\newcommand{\\hptok}[1]{{\\setlength{\\fboxsep}{1.2pt}\\colorbox{hptokbg}{\\strut\\ttfamily #1}}\\hspace{1.5pt}\\allowbreak}',
+    '\\newsavebox{\\hptokbox}',
+    '\\newcommand{\\hptokchar}[1]{{\\setlength{\\fboxsep}{0pt}\\colorbox{hptokbg}{\\strut\\ttfamily #1}}\\allowbreak}',
+    '\\newcommand{\\hptok}[2]{{\\setlength{\\fboxsep}{1.2pt}\\sbox{\\hptokbox}{\\strut\\ttfamily #1}'
+      .. '\\ifdim\\wd\\hptokbox>\\dimexpr\\linewidth-2\\fboxsep\\relax #2'
+      .. '\\else\\colorbox{hptokbg}{\\usebox{\\hptokbox}}\\fi}\\hspace{1.5pt}\\allowbreak}',
+    -- Unsupported characters remain identifiable instead of aborting the PDF or disappearing.
+    '\\newcommand{\\hpunicode}[2]{\\ifPDFTeX\\ifcsname u8:\\detokenize{#2}\\endcsname #2'
+      .. '\\else\\texttt{[U+#1]}\\fi\\else\\iffontchar\\font"#1 #2\\else\\texttt{[U+#1]}\\fi\\fi}',
     '\\providecommand{\\TODO}[1]{{\\color{red}[TODO: #1]}}',
     -- \\autoref reads as on the web page: "Section 2.1", whatever the heading's level
     '\\AtBeginDocument{\\def\\sectionautorefname{Section}\\def\\subsectionautorefname{Section}'
@@ -383,6 +391,23 @@ local function generations(div)
     return (pandoc.write(pandoc.Pandoc({pandoc.Plain({pandoc.Code(s)})}), 'latex'):gsub('%s+$', ''))
   end
   local NL_TEX = '{\\color{gray}$\\hookleftarrow$}'
+  local function pdf_token(s)
+    local whole, pieces, ascii = {}, {}, {}
+    local function flush()
+      if #ascii > 0 then whole[#whole + 1] = tex_code(table.concat(ascii)); ascii = {} end
+    end
+    for _, cp in utf8.codes(s) do
+      local char = utf8.char(cp)
+      local rendered
+      if cp == 0xE000 then rendered = NL_TEX
+      elseif cp > 127 then rendered = '\\hpunicode{' .. string.format('%04X', cp) .. '}{' .. char .. '}'
+      else rendered = tex_code(char) end
+      if cp < 128 then ascii[#ascii + 1] = char else flush(); whole[#whole + 1] = rendered end
+      pieces[#pieces + 1] = '\\hptokchar{' .. rendered .. '}'
+    end
+    flush()
+    return '\\hptok{' .. table.concat(whole) .. '}{' .. table.concat(pieces) .. '}'
+  end
   -- the chips of one token list, and its end marker, as html or latex
   local function chips(tokens, finish)
     local out, seen = {}, false
@@ -393,7 +418,7 @@ local function generations(div)
         out[#out + 1] = '<span class="tok' .. (t:match('^%s*$') and nl and ' tok-nl' or '') .. '">'
           .. esc(shown):gsub('\u{E000}', '<span class="nl">↵</span>') .. '</span>'
       else
-        out[#out + 1] = '\\hptok{' .. tex_code(shown):gsub('\u{E000}', NL_TEX) .. '}'
+        out[#out + 1] = pdf_token(shown)
       end
       -- a newline breaks the line once there is text before it (this token's counts)
       seen = seen or t:match('%S') ~= nil

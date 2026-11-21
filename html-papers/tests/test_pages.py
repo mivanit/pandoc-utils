@@ -84,8 +84,18 @@ def test_the_demo_code_runs_in_real_python(built_demo: Path) -> None:
             )
             return panel
 
+        # A failed initial download must allow Run to recover without reloading the page.
+        page.context.set_offline(True)
+        page.locator(".run-open").nth(0).click()
+        panel = page.locator(".run-panel")
+        panel.locator(".run-status", has_text="error").wait_for(timeout=30000)
+        assert "Python did not load" in (
+            panel.locator(".run-stderr").text_content() or ""
+        )
+        page.context.set_offline(False)
+        panel.locator(".run-go").click()
+        panel.locator(".run-status", has_text="Ran in").wait_for(timeout=240000)
         # the model continues the words it is given: the page's own script draws the chips
-        panel = run(0)
         assert panel.locator(".run-rendered .gen-row").count() == 5
         assert panel.locator(".run-rendered .tok").count() > 10
         page.locator(".run-open").nth(0).click()

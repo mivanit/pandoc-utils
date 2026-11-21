@@ -405,6 +405,8 @@ def _run_code(main, stdin):
       stdin.value = data.stdin || '';
     });
     panel.addEventListener('keydown', (event) => {
+      // Escape while editing must not bubble to the note's close-and-stop handler.
+      if (event.key === 'Escape' && event.target.matches('textarea')) { event.stopPropagation(); return; }
       if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) { event.preventDefault(); run(); return; }
       // Tab indents in the code; Shift+Tab, as everywhere, leaves the box
       if (event.key === 'Tab' && event.target === editor && !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey) {

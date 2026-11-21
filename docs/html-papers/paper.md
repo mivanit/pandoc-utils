@@ -7,7 +7,7 @@ author:
 date: |
   November 2026 \ \
   One markdown file, built as [a web page](https://mivanit.github.io/pandoc-utils/html-papers/) and as [a PDF](https://mivanit.github.io/pandoc-utils/html-papers/paper.pdf) \ \
-  Source: [paper.md](https://mivanit.github.io/pandoc-utils/html-papers/paper.md), built by [build.sh](https://mivanit.github.io/pandoc-utils/html-papers/build.sh) with [html-papers](https://github.com/mivanit/pandoc-utils/tree/main/html-papers)
+  Source: [paper.md](https://mivanit.github.io/pandoc-utils/html-papers/paper.md), built by [build.sh](https://mivanit.github.io/pandoc-utils/html-papers/build.sh) with [html-papers](https://miv.name/pandoc-utils/html-papers/README.md)
 linkcolor: linkmuted
 urlcolor: linkmuted
 citecolor: linkmuted

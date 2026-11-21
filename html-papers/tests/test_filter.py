@@ -7,6 +7,7 @@ holds a terms file, an image and a token-rows file.
 import json
 import os
 import re
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -354,10 +355,42 @@ def test_token_rows_in_latex(folder: Path) -> None:
     assert result.returncode == 0, result.stderr
     tex: str = result.stdout
     assert "\\newcommand{\\hptok}" in tex and "\\usepackage{array}" in tex
-    assert "\\hptok{\\texttt{the}}\\hptok{\\texttt{paper}}" in tex
-    assert "\\hptok{\\texttt{x\\_y}}{\\color{gray}\\ldots}" in tex  # escaped for LaTeX
+    assert "\\hptok{\\texttt{the}}{" in tex and "\\hptok{\\texttt{paper}}{" in tex
+    assert "\\hptok{\\texttt{x\\_y}}{" in tex  # escaped for LaTeX
     assert "\\term[widget]{widget}" in tex
     assert "\\caption{What each model says.}\\label{fig:rows}" in tex
+
+
+def test_pdf_tokens_wrap_and_unsupported_glyphs_remain_identifiable(
+    folder: Path,
+) -> None:
+    if not shutil.which("pdflatex"):
+        pytest.skip("needs pdflatex")
+    (folder / "rows.json").write_text(
+        json.dumps(
+            {
+                "prompt": ["café"],
+                "rows": [{"label": "model", "tokens": ["x" * 400, "▁漢😀"]}],
+            }
+        )
+    )
+    built = build(folder, "latex", TOKEN_ROWS)
+    assert built.returncode == 0, built.stderr
+    (folder / "tokens.tex").write_text(built.stdout)
+    result = subprocess.run(
+        ["pdflatex", "-interaction=nonstopmode", "-halt-on-error", "tokens.tex"],
+        cwd=folder,
+        text=True,
+        capture_output=True,
+    )
+    assert result.returncode == 0, result.stdout
+    assert "Overfull" not in result.stdout
+    assert "Missing character" not in result.stdout
+    if shutil.which("pdftotext"):
+        text = subprocess.check_output(
+            ["pdftotext", "tokens.pdf", "-"], cwd=folder, text=True
+        )
+        assert "U+2581" in text and "U+6F22" in text and "U+1F600" in text
 
 
 def test_token_rows_need_their_file(folder: Path) -> None:

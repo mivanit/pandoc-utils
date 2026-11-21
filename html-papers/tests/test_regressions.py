@@ -13,6 +13,7 @@ from test_filter import build
 from test_paper import PAPER, STUB, comment
 
 page = test_paper.page
+pytest_plugins = ["hp_fixtures"]
 
 
 def test_generated_json_and_caption_footnote(page: Page, tmp_path: Path) -> None:
@@ -146,11 +147,15 @@ def test_menu_tracks_external_changes_and_full_width_range(page: Page) -> None:
     ).to_have_value("50")
 
 
-def test_legacy_preferences_migrate_once_and_reset_stays_reset(page: Page) -> None:
+def test_legacy_preferences_migrate_once_and_reset_stays_reset(
+    page: Page, paper_url: str
+) -> None:
+    page.goto(paper_url)
     page.evaluate(
         "localStorage.clear(); localStorage.setItem('lines', '0'); localStorage.setItem('text-width', '50')"
     )
     page.reload()
+    assert page.evaluate("localStorage.getItem('lines')") == "0"
     expect(page.locator("html")).to_have_class(re.compile(r".*lines-off.*"))
     page.evaluate("DocMenu.open()")
     page.locator("#doc-menu .menu-foot button").click()
@@ -165,6 +170,77 @@ def test_legacy_preferences_migrate_once_and_reset_stays_reset(page: Page) -> No
         )
         == "44rem"
     )
+
+
+def test_escape_restores_a_live_figure_and_it_can_open_again(page: Page) -> None:
+    test_paper.make_live_figure(page)
+    for _ in range(2):
+        page.locator(".live-open").click()
+        expect(page.locator("iframe.interactive-figure")).to_have_count(1)
+        page.keyboard.press("Escape")
+        expect(page.locator("iframe.interactive-figure")).to_have_count(0)
+        expect(page.locator(".fig-static img")).to_be_visible()
+        expect(page.locator(".live-open")).to_be_focused()
+
+
+def test_print_uses_full_width_and_static_figures(page: Page) -> None:
+    test_paper.make_live_figure(page)
+    page.locator(".live-open").click()
+    page.emulate_media(media="print")
+    expect(page.locator(".fig-static img")).to_be_visible()
+    expect(page.locator(".interactive-wrap")).to_be_hidden()
+    expect(page.locator(".live-open")).to_be_hidden()
+    expect(page.locator(".margin-note")).to_be_hidden()
+    assert (
+        page.evaluate(
+            "Math.abs(document.body.getBoundingClientRect().width - innerWidth)"
+        )
+        < 1
+    )
+    page.emulate_media(media="screen")
+    expect(page.locator(".interactive-wrap")).to_be_visible()
+    page.locator(".static-again").click()
+    page.set_viewport_size({"width": 420, "height": 900})
+    page.locator("#term-widget").click()
+    expect(page.locator(".margin-note.inline")).to_be_visible()
+    page.emulate_media(media="print")
+    expect(page.locator(".margin-note.inline")).to_be_hidden()
+
+
+def test_escape_while_editing_does_not_stop_the_run(page: Page) -> None:
+    page.evaluate(STUB)
+    page.locator("#run-one .run-open").click()
+    editor = page.locator(".run-editor")
+    editor.fill("forever")
+    editor.press("Control+Enter")
+    before = page.evaluate("STOPPED")
+    editor.press("Escape")
+    expect(editor).to_be_visible()
+    expect(editor).to_have_value("forever")
+    assert page.evaluate("STOPPED") == before
+    page.locator(".run-stdin").press("Escape")
+    assert page.evaluate("STOPPED") == before
+    page.locator(".run-stop").focus()
+    page.keyboard.press("Escape")
+    expect(editor).to_have_count(0)
+    assert page.evaluate("STOPPED") == before + 1
+
+
+def test_editor_layers_match_with_tabs_and_wrapped_lines(page: Page) -> None:
+    page.evaluate(STUB)
+    page.locator("#run-one .run-open").click()
+    for width in (420, 800, 1600):
+        page.set_viewport_size({"width": width, "height": 900})
+        page.locator(".run-editor").fill(
+            ('\tif True: print("' + "x" * 120 + '")\n') * 40
+        )
+        page.wait_for_function("""() => {
+            const a=document.querySelector('.run-editor'), b=document.querySelector('.run-hl');
+            const ar=a.getBoundingClientRect(), br=b.getBoundingClientRect();
+            return ['width','height','left','top'].every(k => Math.abs(ar[k]-br[k]) < 1)
+                && Math.abs(a.scrollHeight-b.scrollHeight) < 2
+                && getComputedStyle(a).tabSize === getComputedStyle(b).tabSize;
+        }""")
 
 
 def test_touch_taps_open_notes_and_contents_in_each_browser() -> None:

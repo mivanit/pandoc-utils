@@ -283,8 +283,13 @@
   let own = false;
   document.addEventListener('doclayout', () => { if (!own) place(); });
   margin.addEventListener('scroll', draw, true);  // a preview scrolled inside moves its links
-  addEventListener('resize', () => place());  // the room beside the column, even if the text stayed as wide
-  const resized = new ResizeObserver(() => place());  // e.g. a preview's images loading
+  let resizeFrame = 0;
+  const placeSoon = () => {
+    if (!resizeFrame) resizeFrame = requestAnimationFrame(() => { resizeFrame = 0; place(); });
+  };
+  addEventListener('resize', placeSoon);  // the room beside the column, even if the text stayed as wide
+  // Layout can itself resize an observed note. Leave the observer delivery before writing.
+  const resized = new ResizeObserver(placeSoon);  // e.g. a preview's images loading
   resized.observe(document.body);
   let lastNote = 0;
   function addClose(n) {
@@ -623,17 +628,24 @@
     handle.setPointerCapture(event.pointerId);
     handle.classList.add('dragging');
     root.classList.add('col-dragging');
-    const move = (e) => {
+    let frame = 0, pointerX = event.clientX;
+    const flush = () => {
+      cancelAnimationFrame(frame);
+      frame = 0;
       for (let i = 0; i < 6; i++) {
-        const r = handle.getBoundingClientRect(), off = (r.left + r.right) / 2 - e.clientX, before = margin.offsetWidth;
+        const r = handle.getBoundingClientRect(), off = (r.left + r.right) / 2 - pointerX, before = margin.offsetWidth;
         if (Math.abs(off) < 1) break;
         setSide(before + off);
         if (margin.offsetWidth === before) break;  // as wide, or as narrow, as it goes
       }
       place();
     };
+    const move = (e) => { pointerX = e.clientX; if (!frame) frame = requestAnimationFrame(flush); };
     const up = () => {
+      if (frame) flush();
       handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', up);
+      handle.removeEventListener('pointercancel', up);
       handle.classList.remove('dragging');
       root.classList.remove('col-dragging');
       setSide(margin.offsetWidth);  // what it came to, not what was asked for

@@ -10,17 +10,18 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.10", "3.12"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
 
-      - uses: astral-sh/setup-uv@v4
+      - uses: astral-sh/setup-uv@v10.4.0
         with:
           python-version: ${{ matrix.python-version }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: "22"
 
@@ -42,9 +43,26 @@ jobs:
 
       # html-papers: three browser engines, then the demo paper as page and PDF
       - run: uv run playwright install --with-deps chromium firefox webkit
+        id: browsers
       - run: make test-html
+        env:
+          HTML_PAPERS_ARTIFACTS: test-results
       - run: make test-html-firefox
+        if: ${{ !cancelled() && steps.browsers.outcome == 'success' }}
+        env:
+          HTML_PAPERS_ARTIFACTS: test-results
       - run: make test-html-webkit
+        if: ${{ !cancelled() && steps.browsers.outcome == 'success' }}
+        env:
+          HTML_PAPERS_ARTIFACTS: test-results
       # the demo's code in the real in-browser Python: fetches it, and one package from PyPI
       - run: make test-html-pyodide
+        if: ${{ !cancelled() && steps.browsers.outcome == 'success' }}
       - run: make demo-html-papers
+        if: ${{ !cancelled() && steps.browsers.outcome == 'success' }}
+      - uses: actions/upload-artifact@v7.0.2
+        if: ${{ failure() }}
+        with:
+          name: browser-diagnostics-${{ matrix.python-version }}
+          path: test-results/
+          retention-days: 7

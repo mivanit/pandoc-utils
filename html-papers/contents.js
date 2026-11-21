@@ -105,9 +105,14 @@
     handle.setPointerCapture(event.pointerId);
     handle.classList.add('dragging');
     root.classList.add('col-dragging');
-    const move = (e) => { setWidth(e.clientX); moved(); };
+    let frame = 0, pointerX = event.clientX;
+    const flush = () => { cancelAnimationFrame(frame); frame = 0; setWidth(pointerX); moved(); };
+    const move = (e) => { pointerX = e.clientX; if (!frame) frame = requestAnimationFrame(flush); };
     const up = () => {
+      if (frame) flush();
       handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', up);
+      handle.removeEventListener('pointercancel', up);
       handle.classList.remove('dragging');
       root.classList.remove('col-dragging');
       setWidth(nav.offsetWidth);  // what it came to, not what was asked for

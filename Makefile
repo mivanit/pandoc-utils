@@ -95,11 +95,11 @@ clean-demo:
 # (paper.pdf). The paper's source and the html-papers scripts and stylesheets are copied to a
 # folder beside the published one, the paper's own build.sh runs there, and the result replaces
 # the published folder only if the build succeeds (a claim of the paper that stopped holding
-# stops the build). DOC_VERSION tells the page which sources it was built from: the commit,
-# -dirty when html-papers/ has uncommitted changes.
+# stops the build). DOC_VERSION identifies the source contents, including uncommitted edits;
+# committing the result does not change that identity.
 HTML_PAPERS_SITE := docs/html-papers
 HTML_PAPERS_BUILD := docs/.html-papers-build
-HTML_PAPERS_VERSION = $(shell git rev-parse HEAD 2>/dev/null)$(shell git diff --quiet HEAD -- html-papers 2>/dev/null || echo -dirty)
+HTML_PAPERS_VERSION = $(shell python3 html-papers/source_version.py)
 
 .PHONY: demo-html-papers
 demo-html-papers: demo-html-papers-copy

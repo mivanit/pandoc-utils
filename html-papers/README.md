@@ -97,7 +97,9 @@ Each script is one file with no dependencies; take the ones you want.
   the git commit, with `-dirty` when a tracked file in the page's folder is modified (the page
   itself aside). A build made away from its sources, as `make demo-html-papers` is, says what
   it was built from in the environment variable `DOC_VERSION`. A page committed with its
-  sources names the commit before its own.
+  sources names the commit before its own. The demo build instead supplies a `sha256:` hash
+  of its source contents, including local edits. Committing or rebuilding the same sources
+  preserves that identity; it does not claim a dirty tree is an exact Git revision.
 - **A captioned image is a numbered figure.** An image with an empty description
   (`![](logo.svg)`) is an illustration without a number.
 - **The PDF** goes through latexmk, which runs LaTeX and biber as often as needed. If a
@@ -308,9 +310,9 @@ chip, in both outputs. The file is
 `end` is `"eos"` (the model stopped: "end of text"), `"cut"` (the row was cut: "…") or absent.
 The row marked `reference` is set apart. A newline in a token shows as ↵ and, after some text,
 breaks the line, so code keeps its lines. A term's text inside a label becomes that term. A
-token shows the same characters in both outputs, with two limits in the PDF: a character
-pdflatex has no glyph for (`▁`, say) stops the build, and one token longer than the line runs
-past the margin.
+token stays intact in the PDF when it fits the column; an oversized token can wrap between
+characters. Characters unsupported by the PDF engine or font remain identifiable as Unicode
+markers such as `[U+2581]` for `▁`, rather than stopping the build or disappearing.
 
 ## How the scripts stay out of each other's way
 
