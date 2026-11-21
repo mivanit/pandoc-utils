@@ -28,7 +28,7 @@ is not a copy of it .
 the build includes the file so the script you read is the script that ran .
 a captioned block of anything is a numbered figure .
 the settings are in the front matter of the bibliography the filters to run and the file of terms .
-besides its figures and the pages behind its live figures the finished page needs seven scripts and two stylesheets and nothing else .
+besides its figures and the pages behind its live figures the finished page needs eight scripts and two stylesheets and nothing else .
 it needs no server and it loads nothing from the network until a reader runs code on it .
 writing most of the source is plain markdown and reads like the text .
 this section shows the constructs that are not plain markdown each beside its source .
@@ -71,7 +71,7 @@ what runs is not the file in the figure .
 it is a short script that reads the words calls the model and prints what the model said and a second script of the page draws what was printed .
 the script the model and the training text are in the page where the build put them so the code that runs is the code the build read .
 the code runs in the browser in python .
-the browser fetches python the first time run is pressed and nothing before that .
+the browser fetches python the first time try it is pressed and nothing before that .
 is a second script and here the script that is shown is the one that runs .
 it reads a sentence and prints the loss of each model on it .
 the lines under the script are what it printed and the pdf has the same lines .
@@ -115,7 +115,7 @@ the same count can be drawn on the page by the reader .
 the script of uses matplotlib which the browser fetches when the script is first run .
 a chart that the script leaves open is shown under what it printed .
 the file .
-on the web page try it and then run draw its chart .
+on the web page try it draws its chart .
 reviewing a draft gets comments .
 on the web page pressing e turns on review mode .
 the reader can also switch to suggesting and then type into the text which marks the change and leaves the text as it was .
@@ -144,17 +144,17 @@ the notes you kept open are there on your next visit .
 hover a term such as loss or a citation .
 drag the line between the text and the margin or the edge of the contents to make a column wider .
 a double click puts it back .
-press try it on type a few words and press run .
-then change the code and run it again .
+the lines of the text break in new places and the words in the middle of the window stay where they were .
+press try it on .
+press m for the settings .
 they set how wide the text and the columns are whether lines join the text to the notes and whether a note opens when the pointer rests on a link .
 unpin folds the contents into a tab at the left edge .
 they slide out when the pointer goes there .
-click to make it live .
+press e select some text and comment on it or suggest a change .
 the comments share the margin with the notes and both are in the order of the text .
 make the window narrow or read on a phone .
 a tap on a link opens its note in the text under the paragraph .
-a swipe to the right opens the contents .
+starting your own copy this folder .
 keep the front matter of and the scripts and stylesheets .
 replace the text the terms the references and the experiment with your own .
 the build script looks for html-papers two folders up or where says .
-the repository of html-papers describes each file and each construct .

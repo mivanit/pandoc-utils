@@ -699,6 +699,19 @@ def test_code_runs_in_a_panel_beside_the_text(page: Page) -> None:
     assert n["close"] and n["left"] >= margin["left"] - 1
     assert page.locator("#note-lines path").count() == 1
     panel = page.locator(".margin-note.run-note .run-panel")
+    # opening it ran the code as the page has it: "Try it" is one press
+    page.wait_for_timeout(200)
+    assert page.evaluate("[JOBS.length, JOBS[0].stdin, JOBS[0].files[0].text]") == [
+        1,
+        "hello",
+        "print(input())\n",
+    ]
+    assert (
+        panel.locator(".run-rendered").text_content()
+        == "drawn: ECHO HELLO (exit 0, input hello)"
+    )
+    # Python is coloured, a token to a span with pandoc's class for it; other files are not
+    assert panel.locator(".run-hl .bu").all_text_contents() == ["print", "input"]
     editor, stdin, status = (
         panel.locator(".run-editor"),
         panel.locator(".run-stdin"),
@@ -713,6 +726,15 @@ def test_code_runs_in_a_panel_beside_the_text(page: Page) -> None:
     editor.fill("print(input())  # edited\n")
     panel.locator(".run-tab").nth(1).click()
     assert editor.input_value() == "one two\n"
+    assert panel.locator(".run-hl span").count() == 0
+    # a long line wraps: the coloured layer and the box typed in stay the same size, and
+    # nothing scrolls sideways
+    editor.fill("word " * 80)
+    wide, under, over = page.evaluate(
+        """() => { const c = document.querySelector('.run-code'), h = c.querySelector('.run-hl'), e = c.querySelector('.run-editor');
+        return [c.scrollWidth - c.clientWidth, h.getBoundingClientRect().height, e.scrollHeight] }"""
+    )
+    assert wide == 0 and under > 60 and abs(under - over) < 2
     editor.fill("three\n")
     panel.locator(".run-tab").nth(0).click()
     assert editor.input_value() == "print(input())  # edited\n"
@@ -721,7 +743,7 @@ def test_code_runs_in_a_panel_beside_the_text(page: Page) -> None:
     stdin.fill("abc")
     panel.locator(".run-go").click()
     page.wait_for_timeout(200)
-    assert page.evaluate("JOBS[0]") == {
+    assert page.evaluate("JOBS.at(-1)") == {
         "main": "driver.py",
         "files": [
             {"name": "driver.py", "text": "print(input())  # edited\n"},
@@ -782,7 +804,7 @@ def test_code_runs_in_a_panel_beside_the_text(page: Page) -> None:
     panel.locator(".run-editor").fill("plot")
     panel.locator(".run-go").click()
     page.wait_for_timeout(200)
-    assert page.evaluate("JOBS.at(-1).packages") == ["some-package"]
+    assert page.evaluate("JOBS.at(-1).packages") == ["cowsay"]
     assert panel.locator(".run-stdout").text_content() == "echo \n"
     assert panel.locator(".run-image").count() == 1
     # without a side column the panel is in the text, under its block
@@ -793,3 +815,54 @@ def test_code_runs_in_a_panel_beside_the_text(page: Page) -> None:
     )
     assert page.evaluate(OVERFLOW) == 0
     assert panel.locator(".run-stdout").text_content() == "echo \n"
+
+
+def test_resizing_a_column_keeps_the_readers_place(page: Page) -> None:
+    """The text reflows when its column narrows; the words mid-window stay where they were."""
+    page.set_viewport_size(
+        {"width": 1600, "height": 500}
+    )  # low, so the page scrolls far
+    top: str = "document.getElementById('inner-ref').getBoundingClientRect().top"
+    # a link in the middle of the window
+    page.evaluate(f"scrollBy(0, {top} - innerHeight / 2 + 4)")
+    page.wait_for_timeout(300)
+    before: float = page.evaluate(top)
+    scrolled: float = page.evaluate("scrollY")
+    assert abs(before - 250) < 12 and scrolled > 100
+
+    def drag(handle: str, by: int) -> None:
+        box = page.locator(handle).bounding_box()
+        assert box is not None
+        x: float = box["x"] + box["width"] / 2
+        page.mouse.move(x, 100)
+        page.mouse.down()
+        for step in range(1, 7):
+            page.mouse.move(x + by * step / 6, 100)
+        page.mouse.up()
+        page.wait_for_timeout(250)
+
+    # the side column takes half the text's width: the text above is longer now, so the page
+    # scrolled further to keep the link where it was (within a line: it may wrap)
+    width: float = page.evaluate(RECT, "p-intro")["width"]
+    drag("#side-handle", -350)
+    assert page.evaluate(RECT, "p-intro")["width"] < width - 250
+    assert page.evaluate("scrollY") > scrolled + 30
+    assert abs(page.evaluate(top) - before) < 30
+    # and back, by the menu, and with a narrower window
+    page.keyboard.press("m")
+    page.click("#doc-menu .menu-foot button")
+    page.keyboard.press("Escape")
+    page.wait_for_timeout(250)
+    assert abs(page.evaluate(top) - before) < 30
+    page.set_viewport_size({"width": 900, "height": 500})
+    page.wait_for_timeout(300)
+    assert page.evaluate(RECT, "p-intro")["width"] < width - 100
+    assert abs(page.evaluate(top) - before) < 30
+    # a note opening moves nothing: the page scrolls only for a change of the text's width
+    at: float = page.evaluate("scrollY")
+    page.evaluate(
+        "MarginNotes.show('a-note', document.getElementById('inner-ref'), 'A note.')"
+    )
+    page.wait_for_timeout(200)
+    assert len(notes(page)) == 1
+    assert page.evaluate("scrollY") == at

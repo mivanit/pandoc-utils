@@ -76,10 +76,9 @@ def test_the_demo_code_runs_in_real_python(built_demo: Path) -> None:
         page.goto((built_demo / "index.html").absolute().as_uri())
 
         def run(block: int, patience: int = 240):
-            """Open a block's panel and run it; the panel, once the run has ended."""
+            """Open a block's panel, which runs it; the panel, once the run has ended."""
             page.locator(".run-open").nth(block).click()
             panel = page.locator(".run-panel")
-            panel.locator(".run-go").click()
             panel.locator(".run-status", has_text="Ran in").wait_for(
                 timeout=patience * 1000
             )
@@ -121,5 +120,14 @@ def test_the_demo_code_runs_in_real_python(built_demo: Path) -> None:
             panel.locator(".run-stdout").text_content() or ""
         )
         assert panel.locator(".run-image").count() == 1
+        # a package from PyPI (the fixture page asks for a small one): installed, then imported
+        page.goto((HERE / "paper-fixture.html").absolute().as_uri())
+        page.locator("#run-two .run-open").click()
+        panel = page.locator(".run-panel")
+        panel.locator(".run-status", has_text="Ran in").wait_for(timeout=240000)
+        panel.locator(".run-editor").fill("import cowsay\nprint(cowsay.__name__)\n")
+        panel.locator(".run-go").click()
+        panel.locator(".run-stdout", has_text="cowsay").wait_for(timeout=60000)
+        assert panel.locator(".run-stdout").text_content() == "cowsay\n"
         browser.close()
     assert not errors, errors

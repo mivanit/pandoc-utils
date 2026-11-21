@@ -44,4 +44,6 @@ jobs:
       - run: uv run playwright install --with-deps chromium firefox
       - run: make test-html
       - run: make test-html-firefox
+      # the demo's code in the real in-browser Python: fetches it, and one package from PyPI
+      - run: make test-html-pyodide
       - run: make demo-html-papers

@@ -70,6 +70,7 @@ Without the filter, the scripts still work on any pandoc page built with
 <script src="contents.js" defer></script>
 <script src="live-figures.js" defer></script>
 <script src="run-code.js" defer></script>
+<script src="keep-place.js" defer></script>
 <script src="review.js" defer data-review-email="me@example.org"></script>
 <script src="menu.js" defer></script>  <!-- last: it lists what the others let the reader change -->
 ```
@@ -81,7 +82,7 @@ Each script is one file with no dependencies; take the ones you want.
 - **Publish together:** the page, both stylesheets, the scripts, and the `figures/` and
   `live/` files it refers to (and a renderer script, if a runnable block names one). Nothing
   else is needed. Nothing is fetched from elsewhere, with one exception: when a reader runs
-  code, the browser fetches Python (Pyodide) from a CDN.
+  code (**Try it**), the browser fetches Python (Pyodide) from a CDN.
 - **Equations** are MathML (`--mathml`): they render in current Chrome, Firefox and Safari
   without JavaScript or a CDN. A bare `--mathjax` on Debian's pandoc writes a path that only
   exists on the machine that built the page.
@@ -122,6 +123,7 @@ Each script is one file with no dependencies; take the ones you want.
 | `live-figures.js` | A figure with a live version: the static image until clicked, then an iframe of the live page, with links to the full page and back. |
 | `arxiv-links.js` | In the bibliography, `arXiv:<id>` becomes a link, and so does the title of an entry that has an address. |
 | `run-code.js` | A code block with `run=`: a **Try it** button opens the code in the side column, where the reader edits it, gives it input and runs it, in Python in the browser. |
+| `keep-place.js` | When the text reflows (a column resized, the window resized), scrolls so the words at the middle of the window stay where they were. |
 | `menu.js` | The settings, on <kbd>M</kbd> or the ⚙ beside the contents' Pin: the widths of the text and the columns, lines on or off, hover notes on or off, whether open notes are remembered. |
 | `review.js` | Review mode: readers press <kbd>E</kbd>, select text, and comment or suggest edits; they export a JSON file and send it to you. Works on any web page, with or without the rest. |
 | `collect_reviews.py` | Merges the files reviewers send and lists each comment with the line of the markdown source it is about. |
@@ -163,6 +165,9 @@ the notes and previews and, in review mode, the comments.
   `--text-min` (22rem), the side column down to 10rem, the contents down to 8rem, so whatever
   was dragged, nothing runs off the page. Until the side column is dragged, it and the text
   narrow together with the window.
+- **The reader's place.** A narrower or wider text breaks its lines elsewhere, which moves
+  everything below. keep-place.js remembers the words at the middle of the window and, after
+  the text's width changed, scrolls so they are where they were.
 - **One column, in the order of the text.** Notes, previews and comments are one stack: each
   sits level with the place in the text it belongs to, or below the one before it. A note
   opened from a note goes right under that note.
@@ -231,8 +236,9 @@ written in the markdown itself.
 | `run-output="out.txt"` | A file holding what a run printed, made by your build. It is printed under the block, on the page and in the PDF. |
 
 - **On the page** the block gets a **Try it** button. It opens a panel in the side column (in
-  the text on a phone): a tab for each file, each editable, a box for the input, **Run**,
-  **Stop**, **Reset**, and the output. Ctrl/Cmd+Enter runs.
+  the text on a phone) and runs the code: a tab for each file, each editable, a box for the
+  input, **Run**, **Stop**, **Reset**, and the output. Ctrl/Cmd+Enter runs. Python is
+  coloured as the page's listings are, and long lines wrap.
 - **In the PDF** the block is a listing. With `run-output` the output is under it; without,
   the code alone. That is the choice per block: give `run-output` where the paper should show
   a result, and have the build make the file by running the same script on the same input
@@ -242,7 +248,7 @@ written in the markdown itself.
   opened from a file works. Paths must be below the document's folder. Write scripts so they
   run from that folder, and they run the same way in the build and in the page.
 - **Python is [Pyodide](https://pyodide.org)**, in a worker, fetched from jsDelivr the first
-  time **Run** is pressed (a few MB, then cached; matplotlib is a larger download). Nothing is
+  time **Try it** is pressed (a few MB, then cached; matplotlib is a larger download). Nothing is
   fetched before that. The version is pinned in `run-code.js`; `pyodide_url` in the front
   matter (the address of a `pyodide.mjs`) points it at another version or at your own copy.
 - **Output.** Standard output as printed, standard error under it, then any matplotlib figure

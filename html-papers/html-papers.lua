@@ -61,7 +61,7 @@
 PANDOC_VERSION:must_be_at_least('3.1.1')  -- pandoc.json
 
 local HTML = FORMAT:match('html') ~= nil
-local SCRIPTS = {'arxiv-links.js', 'popups.js', 'contents.js', 'live-figures.js', 'run-code.js'}
+local SCRIPTS = {'arxiv-links.js', 'popups.js', 'contents.js', 'live-figures.js', 'run-code.js', 'keep-place.js'}
 local LAST_SCRIPT = 'menu.js'  -- after review.js: it lists what the others let the reader change
 
 -- ---------------------------------------------------------------------------------------

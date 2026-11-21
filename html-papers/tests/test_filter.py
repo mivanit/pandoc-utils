@@ -152,6 +152,7 @@ def test_head_has_the_scripts_with_their_prefix(html: str) -> None:
         "contents.js",
         "live-figures.js",
         "run-code.js",
+        "keep-place.js",
         "menu.js",
     ):
         assert f'<script src="../{name}" defer></script>' in html

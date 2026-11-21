@@ -68,7 +68,7 @@ The script that does this is short enough to print. \autoref{fig:build} is not a
 The file `build.sh`, included from the folder it built. A captioned block of anything is a numbered figure.
 :::
 
-The settings are in the front matter of `paper.md`: the bibliography, the filters to run and the file of terms. Besides its figures and the pages behind its live figures, the finished page needs seven scripts and two stylesheets, and nothing else. It needs no server, and it loads nothing from the network until a reader runs code on it (\autoref{sec:run}). Its equations are MathML, which a browser draws on its own.
+The settings are in the front matter of `paper.md`: the bibliography, the filters to run and the file of terms. Besides its figures and the pages behind its live figures, the finished page needs eight scripts and two stylesheets, and nothing else. It needs no server, and it loads nothing from the network until a reader runs code on it (\autoref{sec:run}). Its equations are MathML, which a browser draws on its own.
 
 # Writing {#sec:writing}
 
@@ -136,9 +136,9 @@ A model that gave each of the $V$ words the same probability would have a loss o
 
 ## Running it {#sec:run}
 
-On the web page the code can also be run. The block of \autoref{fig:model} has a button, **Try it**. The button opens the code beside the text, with a box for some words and a button that runs it. Each model then goes on from those words, as the models of \autoref{sec:write} do. What runs is not the file in the figure. It is a short script that reads the words, calls the model and prints what the model said, and a second script of the page draws what was printed. The script, the model and the training text are in the page, where the build put them, so the code that runs is the code the build read. A reader can change the code and run it again.
+On the web page the code can also be run. The block of \autoref{fig:model} has a button, **Try it**. The button opens the code beside the text, with a box for some words, and runs it. Each model then goes on from those words, as the models of \autoref{sec:write} do. What runs is not the file in the figure. It is a short script that reads the words, calls the model and prints what the model said, and a second script of the page draws what was printed. The script, the model and the training text are in the page, where the build put them, so the code that runs is the code the build read. A reader can change the code or the words and press **Run**.
 
-The code runs in the browser, in Python. The browser fetches Python the first time **Run** is pressed, and nothing before that.
+The code runs in the browser, in Python. The browser fetches Python the first time **Try it** is pressed, and nothing before that.
 
 \autoref{fig:sentence} is a second script, and here the script that is shown is the one that runs. It reads a sentence and prints the \term{loss} of each model on it. The build ran it on one sentence. The lines under the script are what it printed, and the PDF has the same lines.
 
@@ -199,7 +199,7 @@ The same count can be drawn on the page by the reader. The script of \autoref{fi
 ```{.python include="plot_words.py" run="plot_words.py" run-files="generated/train.txt"}
 ```
 
-The file `plot_words.py`. On the web page, **Try it** and then **Run** draw its chart.
+The file `plot_words.py`. On the web page, **Try it** draws its chart.
 :::
 
 # Reviewing {#sec:review}
@@ -239,8 +239,8 @@ On the web page:
 - Click a note to keep it open. The cross in its corner closes it. The notes you kept open are there on your next visit.
 - Hover a term such as \term{loss}, or a citation [@knuth1984literate].
 - Hover a cell of \autoref{tab:loss} that has an asterisk.
-- Drag the line between the text and the margin, or the edge of the contents, to make a column wider. A double click puts it back.
-- Press **Try it** on \autoref{fig:model}, type a few words and press **Run**. Then change the code and run it again.
+- Drag the line between the text and the margin, or the edge of the contents, to make a column wider. A double click puts it back. The lines of the text break in new places, and the words in the middle of the window stay where they were.
+- Press **Try it** on \autoref{fig:model}. Then type a few words of your own, or change the code, and press **Run**.
 - Press **M** for the settings. They set how wide the text and the columns are, whether lines join the text to the notes, and whether a note opens when the pointer rests on a link.
 - **Unpin** folds the contents into a tab at the left edge. They slide out when the pointer goes there.
 - Click \autoref{fig:loss} to make it live.

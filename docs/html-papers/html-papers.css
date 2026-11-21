@@ -19,7 +19,8 @@
    - data-doc-chrome on anything a script adds to the page (not the document's text);
    - data-doc-avoid on a box that review.js's comment lines pass behind, data-doc-reserve on
      one its comment cards keep clear of (a note);
-   - a `doclayout` event on document after such boxes, or the text, move; a `doccolumn` event
+   - a `doclayout` event on document after such boxes, or the text, move (keep-place.js then
+     keeps the reader's place); a `doccolumn` event
      from popups.js, which lays out the side column, asking other scripts for their boxes;
    - window.DocOptions: what the reader can change, listed by menu.js.
    The breakpoints live only here: popups.js reads the layout it finds (is there a side

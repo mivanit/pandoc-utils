@@ -132,6 +132,7 @@ def test_each_construct_is_in_the_page(html: str) -> None:
         "contents.js",
         "live-figures.js",
         "run-code.js",
+        "keep-place.js",
         "menu.js",
     ):
         assert f'<script src="{name}" defer></script>' in html

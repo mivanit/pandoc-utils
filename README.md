@@ -28,6 +28,7 @@ pandoc-utils/
     |-- live-figures.js             # click a static figure for its live version
     |-- arxiv-links.js              # links in the bibliography
     |-- run-code.js                 # code blocks the reader can edit and run (Python in the browser)
+    |-- keep-place.js               # keeps the reader's place when the text reflows
     |-- menu.js                     # the reader's settings (M)
     |-- review.js                   # comments and suggested edits, exported as JSON
     +-- collect_reviews.py          # merge reviewers' files, list comments by source line
@@ -125,7 +126,7 @@ three columns: the contents, the text, and a side column with notes and previews
 footnotes, terms, cross-references) and, in review mode, comments and suggested edits. The
 columns resize, and on a phone the notes open in the text. Figures can be live, and a reader
 can edit and run the paper's code on the page. The same source builds the PDF. A filter, two
-stylesheets, seven drop-in scripts, and a script that maps reviewers' comments back to lines
+stylesheets, eight drop-in scripts, and a script that maps reviewers' comments back to lines
 of the source.
 
 The demo is [a paper that builds itself](https://mivanit.github.io/pandoc-utils/html-papers/):
