@@ -12,7 +12,9 @@
  *     </div>
  *
  * The static image shows until clicked, so nothing loads from the live page's host before
- * that. The click swaps the image for an iframe of `data-embed`; a note beside it (in the
+ * that. With a pointer and a side column, its open button appears in the margin on hover
+ * (or keyboard focus); otherwise the button stays under the image. The click swaps the
+ * image for an iframe of `data-embed`; a note beside it (in the
  * margin, with popups.js; else under the frame) has "Open the full page" and "Back to the
  * static figure". The frame and the note are `data-doc-chrome`: not the document's text. With `data-width` the frame renders at that width and is scaled down to the
  * column, so the live figure matches the static one. The framed page can report its height
@@ -83,6 +85,7 @@
     fit(wrap);
   }
   document.querySelectorAll('.fig-static[data-embed]').forEach((fig, i) => {
+    const img = fig.querySelector('img:not(.legend-glyph)');
     const opener = chrome(document.createElement('button'));
     opener.type = 'button';
     opener.className = 'open-full live-open';
@@ -90,12 +93,75 @@
     fig.append(opener);
     fig.classList.add('clickable');
     fig.title = 'Click for the interactive version';
-    fig.addEventListener('click', (event) => {
-      // The visible button and the image do the same thing; links in the key stay links.
-      if (event.target.closest('a') || !event.target.closest('.live-open, img:not(.legend-glyph)') || !fig.classList.contains('clickable')) return;
+    const hoverPointer = matchMedia('(hover: hover)');
+    const inMargin = () => notes() && !narrow() && hoverPointer.matches;
+    const focusOpener = () => (inMargin() ? img : opener).focus({ preventScroll: true });
+    let hint = null, leaving = null;
+    function parkOpener() {
+      fig.append(opener);
+      opener.hidden = inMargin() || !fig.classList.contains('clickable');
+    }
+    function hideHint() {
+      clearTimeout(leaving);
+      if (!hint) return;
+      parkOpener();
+      notes().hide('live-open:' + i);
+      hint = null;
+    }
+    function leaveHint() {
+      clearTimeout(leaving);
+      leaving = setTimeout(() => {
+        if (fig.matches(':hover') || fig.contains(document.activeElement) ||
+            hint?.matches(':hover') || hint?.contains(document.activeElement)) return;
+        hideHint();
+      }, 200);
+    }
+    function showHint() {
+      clearTimeout(leaving);
+      if (hint || !inMargin() || !fig.classList.contains('clickable')) return;
+      hint = notes().show('live-open:' + i, img, '', { linked: true });
+      opener.hidden = false;
+      hint.append(opener);
+      hint.addEventListener('mouseenter', () => clearTimeout(leaving));
+      hint.addEventListener('mouseleave', leaveHint);
+      hint.addEventListener('focusout', leaveHint);
+      hint.addEventListener('noteclose', () => { parkOpener(); hint = null; });
+      notes().place();
+    }
+    function syncOpener() {
+      hideHint();
+      parkOpener();
+      if (inMargin()) {
+        img.tabIndex = 0;
+        img.setAttribute('role', 'button');
+        img.setAttribute('aria-label', 'Open interactive figure' + (img.alt ? ': ' + img.alt : ''));
+      } else {
+        img.removeAttribute('tabindex');
+        img.removeAttribute('role');
+        img.removeAttribute('aria-label');
+      }
+    }
+    syncOpener();
+    window.addEventListener('resize', syncOpener);
+    hoverPointer.addEventListener('change', syncOpener);
+    fig.addEventListener('mouseenter', showHint);
+    fig.addEventListener('mousemove', showHint); // also when initialized beneath the pointer
+    fig.addEventListener('mouseleave', leaveHint);
+    fig.addEventListener('focusin', showHint);
+    fig.addEventListener('focusout', leaveHint);
+    img.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      openLive();
+    });
+    // The margin button and the image do the same thing; links in the key stay links.
+    opener.addEventListener('click', openLive);
+    img.addEventListener('click', (event) => { if (!event.target.closest('a')) openLive(); });
+    function openLive() {
+      if (!fig.classList.contains('clickable')) return;
+      hideHint();
       if (narrow()) { openSheet(fig, opener); return; }
       // only the image is swapped: a typeset key stays
-      const img = fig.querySelector('img:not(.legend-glyph)');
       const wrap = liveFrame(fig);
       wrap.dataset.staticImg = img.outerHTML;  // for previews of this figure (below)
       // Keep the original available to print without changing the live session.
@@ -124,16 +190,16 @@
         wrap.remove();
         img.classList.remove('live-static');
         fig.classList.remove('live-active');
-        opener.hidden = false;
         fig.classList.add('clickable');
+        parkOpener();
         fig.title = 'Click for the interactive version';
         if (notes()) notes().hide('live:' + i); else bar.remove();
-        opener.focus({ preventScroll: true });
+        focusOpener();
       }
       bar.addEventListener('noteclose', restore);
       bar.querySelector('.static-again').addEventListener('click', restore);
       bar.querySelector('.static-again').focus({ preventScroll: true });
-    });
+    }
   });
   window.addEventListener('message', (event) => {
     // clmEmbedHeight: the name this message had before the script was shared
@@ -153,6 +219,9 @@
     box.querySelectorAll('.live-static').forEach((e) => e.remove());
     box.querySelectorAll('.live-active').forEach((e) => e.classList.remove('live-active'));
     box.querySelectorAll('.live-bar, .live-open').forEach((e) => e.remove());
+    box.querySelectorAll('.fig-static img[role="button"]').forEach((e) => {
+      e.removeAttribute('role'); e.removeAttribute('tabindex'); e.removeAttribute('aria-label');
+    });
     box.querySelectorAll('.clickable').forEach((e) => { e.classList.remove('clickable'); e.removeAttribute('title'); });
   });
 })();

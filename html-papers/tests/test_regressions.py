@@ -175,12 +175,13 @@ def test_legacy_preferences_migrate_once_and_reset_stays_reset(
 def test_escape_restores_a_live_figure_and_it_can_open_again(page: Page) -> None:
     test_paper.make_live_figure(page)
     for _ in range(2):
+        page.locator(".fig-static img").hover()
         page.locator(".live-open").click()
         expect(page.locator("iframe.interactive-figure")).to_have_count(1)
         page.keyboard.press("Escape")
         expect(page.locator("iframe.interactive-figure")).to_have_count(0)
         expect(page.locator(".fig-static img")).to_be_visible()
-        expect(page.locator(".live-open")).to_be_focused()
+        expect(page.locator(".fig-static img")).to_be_focused()
 
 
 def test_review_keyboard_focus_stays_with_the_controls(page: Page) -> None:
@@ -228,6 +229,7 @@ def test_review_keyboard_focus_stays_with_the_controls(page: Page) -> None:
 
 def test_print_uses_full_width_and_static_figures(page: Page) -> None:
     test_paper.make_live_figure(page)
+    page.locator(".fig-static img").hover()
     page.locator(".live-open").click()
     page.emulate_media(media="print")
     expect(page.locator(".fig-static img")).to_be_visible()

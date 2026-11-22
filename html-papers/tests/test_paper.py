@@ -920,7 +920,7 @@ def make_live_figure(page: Page) -> None:
 
 def test_live_figure_opens_and_closes_from_the_keyboard(page: Page) -> None:
     make_live_figure(page)
-    opener = page.get_by_role("button", name="Open interactive figure")
+    opener = page.locator('.fig-static img[role="button"]')
     opener.focus()
     opener.press("Enter")
     expect(page.locator("iframe.interactive-figure")).to_have_count(1)
@@ -931,6 +931,8 @@ def test_live_figure_opens_and_closes_from_the_keyboard(page: Page) -> None:
     expect(page.locator("iframe.interactive-figure")).to_have_count(0)
 
     page.set_viewport_size({"width": 420, "height": 800})
+    opener = page.get_by_role("button", name="Open interactive figure", exact=True)
+    opener.focus()
     opener.press("Space")
     expect(page.get_by_role("dialog", name="Interactive figure")).to_be_visible()
     # The native dialog keeps Tab inside it, and Escape returns to its opener.
@@ -950,6 +952,27 @@ def test_live_figure_opens_and_closes_from_the_keyboard(page: Page) -> None:
     page.keyboard.press("Escape")
     expect(opener).to_be_focused()
     expect(page.locator(".figure-sheet")).to_have_count(0)
+
+
+def test_live_figure_opener_only_appears_in_the_margin_on_hover(page: Page) -> None:
+    page.mouse.move(0, 0)
+    make_live_figure(page)
+    image = page.locator(".fig-static img")
+    opener = page.locator(".live-open")
+    expect(opener).to_be_hidden()
+    image.hover()
+    expect(page.locator("#margin-notes .live-open")).to_be_visible()
+    expect(page.locator("iframe.interactive-figure")).to_have_count(0)
+    opener.hover()  # crossing from the figure to its control must keep it available
+    page.wait_for_timeout(250)
+    expect(opener).to_be_visible()
+    page.mouse.move(0, 0)
+    expect(opener).to_be_hidden()
+    image.hover()
+    opener.click()
+    expect(page.locator("iframe.interactive-figure")).to_have_count(1)
+    expect(page.locator(".live-open")).to_be_hidden()
+    expect(page.get_by_role("button", name="Back to the static figure")).to_be_visible()
 
 
 def test_successful_output_is_not_overwritten_by_queued_draws(page: Page) -> None:

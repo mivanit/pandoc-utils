@@ -165,7 +165,9 @@ def test_suggest_mode_links_and_double_click(browser):
 @pytest.mark.skipif(
     BROWSER != "chromium", reason="IME injection requires Chromium's protocol"
 )
-def test_compositions(browser):
+@pytest.mark.parametrize("redraw", [None, "pending", "import"])
+@pytest.mark.parametrize("cancel", [False, True])
+def test_compositions(browser, redraw, cancel):
     """A dead key and a multi-step IME: the page's text is unchanged, one suggestion holds the result."""
     page, errors = open_page(browser)
     page.click("text=Suggest")
@@ -175,12 +177,34 @@ def test_compositions(browser):
         "Input.imeSetComposition", {"text": "´", "selectionStart": 1, "selectionEnd": 1}
     )
     cdp.send("Input.insertText", {"text": "é"})
+    if redraw == "pending":
+        # Queue the real debounced redraw before composition disconnects its observer.
+        page.evaluate("document.querySelector('#filler').append(' Updated.')")
     for step in ("n", "に", "にほ"):
         cdp.send(
             "Input.imeSetComposition",
             {"text": step, "selectionStart": len(step), "selectionEnd": len(step)},
         )
-    cdp.send("Input.insertText", {"text": "日本"})
+    if redraw == "pending":
+        page.wait_for_timeout(
+            350
+        )  # the redraw's 300 ms deadline passes mid-composition
+    elif redraw == "import":
+        page.evaluate("""() => {
+            const data = ReviewMode.exportData();
+            data.reviewer = 'another reviewer';
+            Object.assign(data.annotations[0], {
+                id: 'incoming', kind: 'comment', body: 'Arrived during composition'
+            });
+            ReviewMode.importData(data);
+        }""")
+    if cancel:
+        cdp.send(
+            "Input.imeSetComposition",
+            {"text": "", "selectionStart": 0, "selectionEnd": 0},
+        )
+    else:
+        cdp.send("Input.insertText", {"text": "日本"})
     page.wait_for_timeout(300)
     own_text = page.evaluate(
         "[...document.querySelector('#fox').childNodes]"
@@ -191,7 +215,13 @@ def test_compositions(browser):
         own_text
         == "The quick brown fox jumps over the lazy dog near the riverbank today."
     )
-    assert [a["replacement"] for a in page.evaluate(STORED)] == ["é日本"]
+    replacement = "é" if cancel else "é日本"
+    assert [a["replacement"] for a in page.evaluate(STORED)] == [replacement]
+    # The deferred full render must preserve the caret for the next keystroke too.
+    page.keyboard.type("!")
+    assert [a["replacement"] for a in page.evaluate(STORED)] == [replacement + "!"]
+    if redraw == "import":
+        assert page.get_by_text("Arrived during composition", exact=True).is_visible()
     assert errors == []
 
 

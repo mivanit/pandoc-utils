@@ -794,8 +794,16 @@
 	 * Redraw everything: re-index the text, re-attach every annotation, insert the
 	 * inserted-text spans, paint the highlights, rebuild the cards, lay them out.
 	 */
+	let renderDeferred = false;
 	function render() {
+		clearTimeout(pending);
+		pending = 0;
 		if (!on) return;
+		if (composing) {
+			renderDeferred = true;
+			return;
+		}
+		renderDeferred = false;
 		clearInserts();
 		idx = buildIndex();
 		spans = new Map(all().map((a) => [a.id, resolve(a)]));
@@ -2033,6 +2041,7 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 		persist();
 		if (!(
 			caret.patch &&
+			!renderDeferred &&
 			!dropped &&
 			patchInsert(caret.s, wasActive !== active)
 		))
@@ -2222,6 +2231,10 @@ ins { color: #17703a; text-decoration: none; background: #e6f6ea; padding: 0 2px
 					eo: r.endOffset,
 				},
 			};
+			// Disconnecting the observer does not cancel a redraw it already scheduled.
+			renderDeferred ||= !!pending;
+			clearTimeout(pending);
+			pending = 0;
 			observer.disconnect(); // a re-render mid-composition would break the IME
 			compObserver.observe(idx.root, {
 				childList: true,
